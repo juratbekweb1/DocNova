@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, Reorder } from "motion/react";
 import {
   Sparkles,
@@ -243,6 +244,7 @@ const ExperienceDragDemo = () => {
 export function LandingPage() {
   const { t } = useLanguage();
   const [activeDemoTab, setActiveDemoTab] = useState(0);
+  const [isYearly, setIsYearly] = useState(false);
 
   const features: Feature[] = [
     {
@@ -814,7 +816,7 @@ export function LandingPage() {
         <section id="pricing" className="mx-auto max-w-7xl px-6 py-24 sm:px-8 lg:px-12">
           <div className="rounded-[2.5rem] border border-border bg-background/80 p-8 lg:p-14 relative overflow-hidden">
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-accent/20 via-primary/5 to-transparent blur-3xl rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-accent/20 via-primary/5 to-transparent blur-3xl rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none z-0" />
             
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between relative z-10">
               <div className="max-w-2xl">
@@ -824,61 +826,127 @@ export function LandingPage() {
                 </h2>
               </div>
             </div>
+
+            {/* Toggle Switch */}
+            <div className="relative flex items-center p-1.5 bg-surface/50 border border-border/50 rounded-full w-fit mt-8 shadow-inner backdrop-blur-sm z-10">
+              <button
+                onClick={() => setIsYearly(false)}
+                className={cn(
+                  "relative px-8 py-2.5 text-sm font-semibold transition-colors rounded-full z-10",
+                  !isYearly ? "text-foreground" : "text-foreground-secondary hover:text-foreground"
+                )}
+              >
+                {!isYearly && (
+                  <motion.div
+                    layoutId="landing-pricing-toggle"
+                    className="absolute inset-0 bg-surface-elevated border border-border shadow-[0_2px_8px_rgba(0,0,0,0.2)] rounded-full -z-10"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                Oylik
+              </button>
+              <button
+                onClick={() => setIsYearly(true)}
+                className={cn(
+                  "relative px-8 py-2.5 text-sm font-semibold transition-colors rounded-full z-10 flex items-center gap-2",
+                  isYearly ? "text-foreground" : "text-foreground-secondary hover:text-foreground"
+                )}
+              >
+                {isYearly && (
+                  <motion.div
+                    layoutId="landing-pricing-toggle"
+                    className="absolute inset-0 bg-surface-elevated border border-border shadow-[0_2px_8px_rgba(0,0,0,0.2)] rounded-full -z-10"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                Yillik
+                <span className="bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+                  20% chegirma
+                </span>
+              </button>
+            </div>
             
-            <div className="mt-12 grid gap-6 md:grid-cols-3 relative z-10">
+            <div className="mt-12 grid gap-6 md:grid-cols-3 relative z-10 items-stretch">
               {/* Free Plan */}
-              <div className="rounded-3xl border border-border bg-surface p-8 shadow-md hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 transform md:-translate-y-2 flex flex-col group relative overflow-hidden">
-                <h3 className="text-2xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{t.freePlan}</h3>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="rounded-3xl border border-border/40 bg-surface/30 p-8 hover:border-border/80 transition-all duration-300 flex flex-col relative overflow-hidden"
+              >
+                <h3 className="text-2xl font-bold tracking-tight text-foreground transition-colors">{t.freePlan}</h3>
                 <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-5xl font-black tracking-tight text-foreground">0 UZS</span>
+                  <span className="text-5xl font-black tracking-tight text-foreground">0</span>
+                  <span className="text-lg text-foreground-secondary">UZS</span>
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-foreground-secondary font-medium">{t.freePlanDesc}</p>
                 <div className="mt-auto pt-10">
-                  <a href="#features" className="block w-full rounded-2xl border border-border bg-surface-elevated py-4 text-center text-sm font-bold text-foreground group-hover:border-border-hover group-hover:scale-[1.02] transition-all duration-300 shadow-sm">
+                  <a href="#features" className="block w-full rounded-xl border border-border bg-surface-elevated py-4 text-center text-sm font-bold text-foreground hover:bg-surface-elevated/80 transition-all duration-300 shadow-sm">
                     {t.startBuildingFree}
                   </a>
                 </div>
-              </div>
+              </motion.div>
               
               {/* Pro Plan */}
-              <div className="rounded-3xl border border-primary/15 bg-surface p-8 shadow-md dark:shadow-[0_0_20px_-10px_rgba(245,158,11,0.15)] transition-all duration-500 hover:shadow-lg dark:hover:shadow-[0_0_30px_-10px_rgba(245,158,11,0.25)] hover:border-primary/30 relative flex flex-col group overflow-hidden">
-                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-t-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="rounded-3xl border border-cyan-500/30 bg-surface-elevated p-8 shadow-[0_0_25px_rgba(0,180,216,0.2)] hover:shadow-[0_0_35px_rgba(0,180,216,0.3)] transition-all duration-300 flex flex-col relative overflow-visible z-20"
+              >
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5 border border-cyan-400/30">
+                    <Sparkles className="h-3 w-3" /> ★ MOST POPULAR
+                  </span>
+                </div>
                 
-                <div className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary border border-primary/20 w-fit backdrop-blur-md">
-                  <Star className="h-3 w-3" fill="currentColor" /> Most Popular
-                </div>
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">{t.proPlan}</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-foreground mt-4">{t.proPlan}</h3>
                 <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-5xl font-black tracking-tight text-foreground">29,000 UZS</span>
+                  <span className="text-5xl font-black tracking-tight text-foreground">
+                    {isYearly ? "566,400" : "59,000"}
+                  </span>
+                  <span className="text-lg text-foreground-secondary">UZS</span>
+                  <span className="text-lg text-foreground-secondary">{isYearly ? "/ Yil" : "/ Oy"}</span>
                 </div>
+                <p className="mt-2 text-sm font-medium text-cyan-400/80 relative z-10">
+                  {isYearly ? "Oyiga 47,200 so'm dan aylanadi" : "Har oy to'lanadi"}
+                </p>
                 <p className="mt-4 text-sm leading-relaxed text-foreground-secondary font-medium relative z-10">{t.proPlanDesc}</p>
                 <div className="mt-auto pt-10 relative z-10">
-                  <Link href="/checkout?plan=pro" className="block w-full rounded-2xl bg-primary py-4 text-center text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] transition-all">
+                  <Link href="/checkout?plan=pro" className="block w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 py-4 text-center text-sm font-bold text-white shadow-[0_4px_14px_0_rgba(0,180,216,0.39)] hover:shadow-[0_6px_20px_rgba(0,180,216,0.23)] hover:-translate-y-0.5 transition-all">
                     {t.viewPlans}
                   </Link>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Premium Plan */}
-              <div className="rounded-3xl border border-violet-500/30 bg-surface p-8 shadow-md dark:shadow-[0_0_20px_-10px_rgba(139,92,246,0.15)] transition-all duration-500 hover:shadow-lg dark:hover:shadow-[0_0_30px_-10px_rgba(139,92,246,0.25)] hover:border-violet-500/50 relative flex flex-col group overflow-hidden">
-                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-violet-500/50 via-violet-500 to-violet-500/50 rounded-t-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="rounded-3xl border border-purple-500/30 bg-surface p-8 shadow-[0_0_25px_rgba(168,85,247,0.1)] hover:shadow-[0_0_35px_rgba(168,85,247,0.2)] transition-all duration-300 flex flex-col relative overflow-visible z-10"
+              >
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-lg flex items-center gap-1.5 border border-purple-400/30">
+                    <Zap className="h-3 w-3" /> ⚡ PREMIUM +
+                  </span>
+                </div>
                 
-                <div className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-violet-400 border border-violet-500/20 w-fit backdrop-blur-md">
-                  <Zap className="h-3 w-3" /> Premium +
-                </div>
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">{t.premiumPlan}</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-foreground mt-4">{t.premiumPlan}</h3>
                 <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-5xl font-black tracking-tight text-foreground">59,000 UZS</span>
+                  <span className="text-5xl font-black tracking-tight text-foreground">
+                    {isYearly ? "758,400" : "79,000"}
+                  </span>
+                  <span className="text-lg text-foreground-secondary">UZS</span>
+                  <span className="text-lg text-foreground-secondary">{isYearly ? "/ Yil" : "/ Oy"}</span>
                 </div>
+                <p className="mt-2 text-sm font-medium text-purple-400/80 relative z-10">
+                  {isYearly ? "Oyiga 63,200 so'm dan aylanadi" : "Har oy to'lanadi"}
+                </p>
                 <p className="mt-4 text-sm leading-relaxed text-foreground-secondary font-medium relative z-10">{t.premiumPlanDesc}</p>
                 <div className="mt-auto pt-10 relative z-10">
-                  <Link href="/checkout?plan=premium" className="block w-full rounded-2xl bg-violet-600 py-4 text-center text-sm font-bold text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02] transition-all">
+                  <Link href="/checkout?plan=premium" className="block w-full rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 py-4 text-center text-sm font-bold text-white shadow-[0_4px_14px_0_rgba(168,85,247,0.39)] hover:shadow-[0_6px_20px_rgba(168,85,247,0.23)] hover:-translate-y-0.5 transition-all">
                     {t.viewPlans}
                   </Link>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
