@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverExternalPackages: ["@prisma/client", "@prisma/engines"],
+  turbopack: {},
   images: {
     remotePatterns: [
       {
@@ -17,8 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Disable Turbopack to fix Windows "nul" file error
-  // turbopack: {},
 };
 
 export default withBundleAnalyzer({

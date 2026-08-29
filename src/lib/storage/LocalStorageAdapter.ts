@@ -13,7 +13,7 @@ export class LocalStorageAdapter implements UploadService {
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Ensure the directory exists
-    const uploadDir = path.join(process.cwd(), this.baseDir, pathPrefix);
+    const uploadDir = path.join(/* turbopackIgnore: true */ process.cwd(), this.baseDir, pathPrefix);
     await mkdir(uploadDir, { recursive: true });
 
     // Sanitize filename and add unique timestamp
@@ -37,7 +37,7 @@ export class LocalStorageAdapter implements UploadService {
       }
       // e.g., url is '/uploads/pathPrefix/filename', filePath is 'public/uploads/pathPrefix/filename'
       const relativePath = url.startsWith("/uploads/") ? url.replace(/^\//, "public/") : `public${url}`;
-      const filePath = path.join(process.cwd(), relativePath);
+      const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), relativePath);
       await unlink(filePath);
     } catch (error: unknown) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
