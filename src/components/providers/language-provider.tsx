@@ -21,7 +21,8 @@ export const translations = {
     // AI Writing
     aiFeature: "AI Xususiyati",
     aiWritingTitle: "AI Yordamida Yozuv",
-    aiWritingDesc: "Qo'pol yozuvlaringizni joylashtiring va AI ularni rekruterlarga taassurot qoldiradigan hamda ATS tizimlaridan o'tadigan aniq, moslashtirilgan resume bandlariga aylantirsin.",
+    aiWritingDesc:
+      "Qo'pol yozuvlaringizni joylashtiring va AI ularni rekruterlarga taassurot qoldiradigan hamda ATS tizimlaridan o'tadigan aniq, moslashtirilgan resume bandlariga aylantirsin.",
     tryExample: "Namuna sinab ko'ring",
     jobTitle: "Ish unvoni",
     roughNotes: "Qo'pol yozuvlar",
@@ -36,19 +37,21 @@ export const translations = {
     outputPlaceholder: "AI bilan yaxshilangan bandlar shu yerda paydo bo'ladi",
     writingTips: "Yozish Maslahatlari",
     proTip: "Pro maslahat",
-    proTipText: "Har bir bandni muayyan ish tavsifiga moslashtirish callback koeffitsiyentini 3x oshiradi.",
+    proTipText:
+      "Har bir bandni muayyan ish tavsifiga moslashtirish callback koeffitsiyentini 3x oshiradi.",
 
     // ATS
     atsFeature: "ATS Xususiyati",
     atsTitle: "ATS ga tayyor formatlash",
-    atsDesc: "Resumeyingizni joylashtiring va u Fortune 500 kompaniyalari ishlatidigai arizachilarni kuzatish tizimlariga qarshi qanday ishlashini bir zumda ko'ring.",
+    atsDesc:
+      "Resumeyingizni joylashtiring va u Fortune 500 kompaniyalari ishlatidigai arizachilarni kuzatish tizimlariga qarshi qanday ishlashini bir zumda ko'ring.",
     pasteResume: "Resumeyingizni joylashtiring",
     useSample: "Namuna ishlatish",
     analyzing: "Tahlil qilinmoqda...",
     checkATS: "ATS ballini tekshirish",
     reset: "Qayta o'rnatish",
     atsPlaceholder: "To'liq resume matnini shu yerga joylashtiring...",
-    atsWaiting: "Resumeyingizni joylashtiring va \"ATS ballini tekshirish\" tugmasini bosing",
+    atsWaiting: 'Resumeyingizni joylashtiring va "ATS ballini tekshirish" tugmasini bosing',
     atsAnalyzing: "50+ ATS tizimiga qarshi resumeyingiz tahlil qilinmoqda...",
     atsScore: "ATS Balli",
     needsWork: "Yaxshilash zarur",
@@ -60,7 +63,8 @@ export const translations = {
     // Exports
     exportFeature: "Eksport Xususiyati",
     exportTitle: "Bir marta bosish bilan eksport",
-    exportDesc: "Ma'lumotlaringizni to'ldiring va bir necha soniyada mukammal resume PDF yoki DOCX formatida eksport qiling.",
+    exportDesc:
+      "Ma'lumotlaringizni to'ldiring va bir necha soniyada mukammal resume PDF yoki DOCX formatida eksport qiling.",
     exportPDF: "PDF eksport",
     exportDOCX: "DOCX eksport",
     personalInfo: "Shaxsiy ma'lumotlar",
@@ -79,7 +83,8 @@ export const translations = {
     // Preview
     liveFeature: "Jonli Xususiyat",
     previewTitle: "Real vaqt rejimida ko'rish",
-    previewDesc: "Chapda resumeyingizni tahrirlang va o'ngda bir zumda yangilanishini kuzating. Kechikish yo'q, yangilash kerak emas.",
+    previewDesc:
+      "Chapda resumeyingizni tahrirlang va o'ngda bir zumda yangilanishini kuzating. Kechikish yo'q, yangilash kerak emas.",
     personal: "Shaxsiy",
     skillsTab: "Ko'nikmalar",
     position: "Lavozim",
@@ -90,7 +95,8 @@ export const translations = {
     // Templates
     templatesFeature: "Shablonlar",
     templatesTitle: "Premium Shablonlar",
-    templatesDesc: "20+ professionally designed shablonlar ichidan tanlang. Har biri muayyan soha, lavozim darajasi va vizual uslub uchun yaratilgan.",
+    templatesDesc:
+      "20+ professionally designed shablonlar ichidan tanlang. Har biri muayyan soha, lavozim darajasi va vizual uslub uchun yaratilgan.",
     preview: "Ko'rish",
     useThis: "Shu shablondan foydalanish",
     selected: "Tanlandi!",
@@ -99,7 +105,8 @@ export const translations = {
     // Versions
     versionsFeature: "Tarix",
     versionsTitle: "Versiyalar tarixi",
-    versionsDesc: "Har bir o'zgarish avtomatik saqlanadi. Resume ning istalgan oldingi versiyasini ko'rib chiqing, solishtiring va tiklang.",
+    versionsDesc:
+      "Har bir o'zgarish avtomatik saqlanadi. Resume ning istalgan oldingi versiyasini ko'rib chiqing, solishtiring va tiklang.",
     allVersions: "Barcha versiyalar",
     saveNow: "Hozir saqlash",
     snapshot: "Snapshot",
@@ -117,7 +124,8 @@ export const translations = {
     heroTitle1: "Ajoyib rezumeni ",
     heroTitle2: "aniqlik, tezlik,",
     heroTitle3: " va ishonch bilan yarating.",
-    heroDesc: "DocNova sun'iy intellekt yordamini, ATSga tayyor formatlashni va mukammal shablonlarni birlashtiradi, shunda keyingi arizangizni topshirish osonlashadi.",
+    heroDesc:
+      "DocNova sun'iy intellekt yordamini, ATSga tayyor formatlashni va mukammal shablonlarni birlashtiradi, shunda keyingi arizangizni topshirish osonlashadi.",
     startBuildingFree: "Bepul yaratishni boshlash",
     seeBuilderInAction: "Yaratuvchini amalda ko'ring",
     usedBy: "12,000+ ish qidiruvchilar tomonidan foydalaniladi",
@@ -131,7 +139,8 @@ export const translations = {
     featuresTitle1: "Yaxshiroq rezume yaratish uchun ",
     featuresTitle2: "kerak bo'lgan barcha narsa ",
     featuresTitle3: "tezroq.",
-    featuresDesc: "Oltita kuchli vosita, bitta uzluksiz ish jarayoni — murakkablikni emas, natijalarni xohlaydigan professionallar uchun yaratilgan.",
+    featuresDesc:
+      "Oltita kuchli vosita, bitta uzluksiz ish jarayoni — murakkablikni emas, natijalarni xohlaydigan professionallar uchun yaratilgan.",
     exploreFeature: "Xususiyatni o'rganish",
 
     statActiveUsers: "Faol foydalanuvchilar",
@@ -141,7 +150,8 @@ export const translations = {
 
     demoTagline: "Rezume yaratuvchi demosi",
     demoTitle: "Hikoyangiz qanday qilib mukammal, yollovchiga tayyor hujjatga aylanishini ko'ring.",
-    demoDesc: "Tizimli bo'limlar, aqlli tavsiyalar va lahzali oldindan ko'rish jarayonni oddiy va professional qiladi.",
+    demoDesc:
+      "Tizimli bo'limlar, aqlli tavsiyalar va lahzali oldindan ko'rish jarayonni oddiy va professional qiladi.",
     profSummaryTag: "Kasbiy qisqacha ma'lumot",
     profSummaryDesc: "Sun'iy intellekt tavsiyalari va o'lchanadigan natijalar bilan ajratilgan.",
     expBuilder: "Tajriba yaratuvchisi",
@@ -158,17 +168,20 @@ export const translations = {
     proPlan: "Pro",
     proPlanDesc: "Ko'proq shablonlar, versiyalarni saqlash va ilg'or AI yordamini oching.",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Cheksiz imkoniyatlar, barcha premium shablonlar va to'liq cheklovsiz foydalanish.",
+    premiumPlanDesc:
+      "Cheksiz imkoniyatlar, barcha premium shablonlar va to'liq cheklovsiz foydalanish.",
     priceFree: "0 UZS",
     pricePro: "29,000 UZS",
     pricePremium: "59,000 UZS",
     usageLimitTitle: "Foydalanish limiti tugadi",
-    usageLimitDesc: "Siz ushbu bo'limdan bepul foydalanish limitingizni (1 marta) ishlatib bo'ldingiz. Cheklovsiz davom etish uchun Pro yoki Premium obunasini xarid qiling.",
+    usageLimitDesc:
+      "Siz ushbu bo'limdan bepul foydalanish limitingizni (1 marta) ishlatib bo'ldingiz. Cheklovsiz davom etish uchun Pro yoki Premium obunasini xarid qiling.",
     upgradeNow: "Obunani yangilash",
     closeBtn: "Yopish",
 
     checkoutTitle: "Xavfsiz To'lov",
-    checkoutDesc: "Rejangizni tanlang va qisqa fursatda DocNova'ning barcha premium imkoniyatlaridan foydalanishni boshlang.",
+    checkoutDesc:
+      "Rejangizni tanlang va qisqa fursatda DocNova'ning barcha premium imkoniyatlaridan foydalanishni boshlang.",
     orderSummary: "Buyurtma tafsilotlari",
     paymentMethod: "To'lov usuli",
     cardNumber: "Karta raqami",
@@ -178,22 +191,27 @@ export const translations = {
     payNow: "To'lovni amalga oshirish",
     processing: "Qayta ishlanmoqda...",
     paymentSuccess: "To'lov muvaffaqiyatli amalga oshirildi!",
-    paymentSuccessDesc: "Tabriklaymiz, sizning hisobingiz yangilandi. Endi barcha premium xususiyatlardan cheklovsiz foydalanishingiz mumkin.",
+    paymentSuccessDesc:
+      "Tabriklaymiz, sizning hisobingiz yangilandi. Endi barcha premium xususiyatlardan cheklovsiz foydalanishingiz mumkin.",
     paymentFailed: "To'lov rad etildi",
-    insufficientFunds: "Kartangizda mablag' yetarli emas. Iltimos, hisobingizni to'ldirib qayta urinib ko'ring.",
+    insufficientFunds:
+      "Kartangizda mablag' yetarli emas. Iltimos, hisobingizni to'ldirib qayta urinib ko'ring.",
     tryAgain: "Qayta urinib ko'rish",
     backToDashboard: "Boshqaruv paneliga qaytish",
 
     testimonialsTagline: "Tavsiyalar",
     testimonialsTitle: "Odamlar bosim ostida aniqlik kerak bo'lganda DocNova'ga ishonishadi.",
-    testimonial1: "“Ko'rsatmalar tajribamni kuchli, zamonaviy rezumega aylantirishni osonlashtirdi.”",
-    testimonial2: "“Men standart shablondan voz kechdim va har bir arizada o'zimga ko'proq ishonch hosil qildim.”",
+    testimonial1:
+      "“Ko'rsatmalar tajribamni kuchli, zamonaviy rezumega aylantirishni osonlashtirdi.”",
+    testimonial2:
+      "“Men standart shablondan voz kechdim va har bir arizada o'zimga ko'proq ishonch hosil qildim.”",
 
     faqTagline: "TSS",
     faqTitle: "Biz eng ko'p eshitadigan savollarga javoblar.",
 
     ctaTitle: "Siz kabi qattiq ishlaydigan rezume yaratishga tayyormisiz?",
-    ctaDesc: "Bepul yaratish bilan boshlang, sun'iy intellekt bilan takomillashtiring va keyingi imkoniyatga tayyor bo'lgan mukammal rezumeni eksport qiling.",
+    ctaDesc:
+      "Bepul yaratish bilan boshlang, sun'iy intellekt bilan takomillashtiring va keyingi imkoniyatga tayyor bo'lgan mukammal rezumeni eksport qiling.",
     getStartedToday: "Bugundan boshlang",
 
     footerCopyright: "© 2026 DocNova. Keyingi bobiingizni yarating.",
@@ -202,27 +220,33 @@ export const translations = {
     footerFAQ: "TSS",
 
     featAiWritingTitle: "AI yo'naltirilgan yozish",
-    featAiWritingDesc: "Qoralama notalarni o'tkir, moslashtirilgan bandlarga aylantiring. Bizning AI tajribangizni yorqin qilish uchun kontekstni, ohangni va sanoat standartlarini tushunadi.",
+    featAiWritingDesc:
+      "Qoralama notalarni o'tkir, moslashtirilgan bandlarga aylantiring. Bizning AI tajribangizni yorqin qilish uchun kontekstni, ohangni va sanoat standartlarini tushunadi.",
     featAiBadge: "AI Quvvatlangan",
     featAiStatLabel: "tezroq yozish",
     featAtsTitle: "ATS ga tayyor formatlash",
-    featAtsDesc: "Tuzilmali, skanerlanadigan va arizachilarni kuzatish tizimlariga mos bo'ling. Har bir dizayn Fortune 500 kompaniyalari ishlatadigan eng yaxshi ATS platformalariga qarshi sinovdan o'tgan.",
+    featAtsDesc:
+      "Tuzilmali, skanerlanadigan va arizachilarni kuzatish tizimlariga mos bo'ling. Har bir dizayn Fortune 500 kompaniyalari ishlatadigan eng yaxshi ATS platformalariga qarshi sinovdan o'tgan.",
     featAtsBadge: "ATS Sertifikatlangan",
     featAtsStatLabel: "o'tish darajasi",
     featExportTitle: "Bir bosishda eksport",
-    featExportDesc: "Dizaynni yo'qotmasdan, mukammal rezumelarni PDF yoki DOCX formatida eksport qiling. Rezumeyingiz hamma joyda ajoyib ko'rinishi uchun barcha formatlarda mukammal tasvir.",
+    featExportDesc:
+      "Dizaynni yo'qotmasdan, mukammal rezumelarni PDF yoki DOCX formatida eksport qiling. Rezumeyingiz hamma joyda ajoyib ko'rinishi uchun barcha formatlarda mukammal tasvir.",
     featExportBadge: "PDF va DOCX",
     featExportStatLabel: "eksport vaqti",
     featPreviewTitle: "Real vaqt ko'rinishi",
-    featPreviewDesc: "Yozganingizda rezumeyingizning jonli yangilanishini ko'ring. Yakuniy versiya qanday ko'rinishini endi taxmin qilmang — o'zgarishlar darhol yollovchi ko'rinishi rejimida aks etadi.",
+    featPreviewDesc:
+      "Yozganingizda rezumeyingizning jonli yangilanishini ko'ring. Yakuniy versiya qanday ko'rinishini endi taxmin qilmang — o'zgarishlar darhol yollovchi ko'rinishi rejimida aks etadi.",
     featPreviewBadge: "Jonli Ko'rinish",
     featPreviewStatLabel: "yangilash kechikishi",
     featTemplatesTitle: "Premium shablonlar",
-    featTemplatesDesc: "Professional tarzda yaratilgan shablonlar kutubxonasidan tanlang. Har biri ma'lum bir soha, rol darajasi va vizual uslub uchun tayyorlangan.",
+    featTemplatesDesc:
+      "Professional tarzda yaratilgan shablonlar kutubxonasidan tanlang. Har biri ma'lum bir soha, rol darajasi va vizual uslub uchun tayyorlangan.",
     featTemplatesBadge: "20+ Shablon",
     featTemplatesStatLabel: "dizaynlar",
     featVersionsTitle: "Versiya tarixi",
-    featVersionsDesc: "Turli rollar uchun rezumeyingizning bir nechta versiyasini saqlang. Nusxalang, shoxlang va solishtiring — shunda siz doimo ishlagan versiyaga qaytishingiz mumkin.",
+    featVersionsDesc:
+      "Turli rollar uchun rezumeyingizning bir nechta versiyasini saqlang. Nusxalang, shoxlang va solishtiring — shunda siz doimo ishlagan versiyaga qaytishingiz mumkin.",
     featVersionsBadge: "Avto saqlangan",
     featVersionsStatLabel: "versiyalar",
 
@@ -231,14 +255,99 @@ export const translations = {
     tplProductDesigner: "Mahsulot Dizayneri",
     tplProductDesignerDesc: "Mahsulot portfellari va ijodiy jamoalar uchun yaratilgan.",
     tplStartupOperator: "Startap Operatori",
-    tplStartupOperatorDesc: "O'sish bosqichidagi kompaniyalar uchun moslashuvchan, tezkor dizaynlar.",
+    tplStartupOperatorDesc:
+      "O'sish bosqichidagi kompaniyalar uchun moslashuvchan, tezkor dizaynlar.",
 
     faq1Q: "DocNova birinchi marta rezume yozayotganlar uchun mos keladimi?",
-    faq1A: "Ha. Yo'naltirilgan yaratuvchi dizayn yoki yozish tajribasiga ehtiyoj sezmasdan birinchi rezumeyingizni yaratishni osonlashtiradi.",
+    faq1A:
+      "Ha. Yo'naltirilgan yaratuvchi dizayn yoki yozish tajribasiga ehtiyoj sezmasdan birinchi rezumeyingizni yaratishni osonlashtiradi.",
     faq2Q: "Xuddi shu rezumeni turli rollar uchun moslashtira olamanmi?",
-    faq2A: "Albatta. Siz har bir ariza uchun bo'limlarni nusxalashingiz va sozlashingiz yoki bitta ish stolida bir nechta versiyalarni saqlashingiz mumkin.",
+    faq2A:
+      "Albatta. Siz har bir ariza uchun bo'limlarni nusxalashingiz va sozlashingiz yoki bitta ish stolida bir nechta versiyalarni saqlashingiz mumkin.",
     faq3Q: "Siz PDF va Word-ga eksport qilishni qo'llab-quvvatlaysizmi?",
-    faq3A: "Ha. Rezumeyingizni yollovchilar va ishga qabul qilish guruhlari bilan bo'lishish uchun PDF yoki DOCX formatiga eksport qilishingiz mumkin.",
+    faq3A:
+      "Ha. Rezumeyingizni yollovchilar va ishga qabul qilish guruhlari bilan bo'lishish uchun PDF yoki DOCX formatiga eksport qilishingiz mumkin.",
+
+    // Nav
+    navTools: "Asboblar (Tools)",
+    navTemplates: "Shablonlar",
+    navPricing: "Tariflar",
+    navFAQ: "FAQ",
+
+    // Tools Hub
+    everythingYouNeed: "Barcha ishlarni bitirish uchun",
+    everythingYouNeedHighlight: "kerak bo'lgan hamma narsa.",
+    toolsHubDesc:
+      "Sizning samaradorligingizni oshirish uchun sun'iy intellektga asoslangan vositalar, generatorlar va yordamchi dasturlar to'plami.",
+    searchPlaceholder: "Asboblar, xususiyatlar yoki shablonlarni qidiring...",
+    continueWhereLeftOff: "Qolgan joydan davom eting",
+    allTools: "Barcha Asboblar",
+    myFavorites: "Mening Sevimlilarim ⭐",
+    whatAreYouHereToDo: "Bu yerda nima qilmoqchisiz?",
+    exploreCategories: "Sizga kerak bo'lgan narsani topish uchun toifalarni o'rganing.",
+    noFavorites: "Hali sevimlilar yo'q",
+    clickHeart: "Ushbu joyda saqlash uchun istalgan asbobning yurakchasini bosing.",
+    noToolsFound: "Hech qanday asbob topilmadi",
+    adjustSearch: "Qidiruv so'rovini o'zgartirib ko'ring.",
+    clearSearch: "Qidiruvni tozalash",
+    popular: "OMMABOP",
+    proBadge: "PRO",
+    continue: "Davom etish",
+    ctrlK: "Ctrl+ K",
+    search: "Qidirish",
+
+    // Categories
+    catEdu: "🎓 Ta'lim Markazi",
+    catEduDesc: "O'qish va testlarga tayyorgarlikni tezlashtiradigan aqlli vositalar.",
+    catCareer: "💼 Karyera Markazi",
+    catCareerDesc: "Orzuingizdagi ishga kirish uchun kerak bo'lgan barcha narsa.",
+    catWriting: "✍️ AI Yozuvchi",
+    catWritingDesc: "Ish jarayoningizni tezlashtirish uchun samaradorlik vositalari.",
+    catUtils: "🛠️ Tezkor Yordamchilar",
+    catUtilsDesc: "Kundalik vazifalar uchun qulay asboblar.",
+    catFiles: "📄 Fayllar bilan Ishlash",
+    catFilesDesc: "Hujjatlarni formatlang, aylantiring va boshqaring.",
+
+    // Tools
+    toolIelts: "IELTS Mock Test",
+    toolIeltsDesc: "Barcha qismlar uchun AI baholashiga ega to'liq IELTS simulyatsiyasi.",
+    toolCefr: "CEFR Daraja Testi",
+    toolCefrDesc: "Aniq A1-C2 ingliz tilini bilish darajasini aniqlash.",
+    toolSat: "SAT Raqamli Amaliyot",
+    toolSatDesc: "Matematika va O'qish/Yozish uchun sinov testlari.",
+    toolAiStudy: "AI O'quv Yordamchisi",
+    toolAiStudyDesc: "PDF dan xulosalar, kartochkalar va testlar yarating.",
+    toolResumeBuilder: "Rezume Yaratuvchi",
+    toolResumeBuilderDesc: "Bir necha daqiqada ATS ga mos rezumelar yarating.",
+    toolCvAnalyzer: "CV Tahlilchi",
+    toolCvAnalyzerDesc: "Sizning CV uchun AI bahosi va yaxshilash tavsiyalari.",
+    toolCoverLetter: "Cover Letter AI",
+    toolCoverLetterDesc: "Ish tavsiflariga asoslangan moslashtirilgan motivatsion xatlar yarating.",
+    toolInterviewPrep: "Intervyu Tayyorgarlik AI",
+    toolInterviewPrepDesc: "HR va texnik savollar bilan sinov intervyusi.",
+    toolAiWriterPro: "AI Yozuvchi Pro",
+    toolAiWriterProDesc: "Elektron pochta, hisobot va maqolalarni bir zumda tayyorlang.",
+    toolQrGen: "QR Generator",
+    toolQrGenDesc: "URL yoki matndan zudlik bilan QR kodlar yarating.",
+    toolPasswordGen: "Parol Gen",
+    toolPasswordGenDesc: "Kuchli va xavfsiz parollar yarating.",
+    toolWordCounter: "So'z Hisoblagich",
+    toolWordCounterDesc: "So'zlar, belgilar va o'qish vaqtini hisoblang.",
+    toolMergePdf: "PDF Birlashtirish",
+    toolMergePdfDesc: "Bir nechta PDF fayllarni bittasiga birlashtiring.",
+    toolCompressPdf: "PDF Siqish",
+    toolCompressPdfDesc: "PDF hujjatlaringiz hajmini kamaytiring.",
+    toolPdfToWord: "PDF dan Word ga",
+    toolPdfToWordDesc: "Matnni ajratib oling va PDF ni tahrirlanadigan formatlarga o'zgartiring.",
+
+    // Filters
+    filterResume: "Rezume",
+    filterPdf: "PDF",
+    filterIelts: "IELTS",
+    filterCoverLetter: "Motivatsion xat",
+    filterAiWriter: "AI Yozuvchi",
+    filterTranslator: "Tarjimon",
+    filterGrammar: "Grammatika",
   },
   ru: {
     login: "Войти",
@@ -251,7 +360,8 @@ export const translations = {
     DocNovaFeatures: "Функции DocNova",
     aiFeature: "AI Функция",
     aiWritingTitle: "Написание с помощью AI",
-    aiWritingDesc: "Вставьте черновые заметки и позвольте AI превратить их в чёткие, персонализированные пункты резюме, которые впечатлят рекрутеров и пройдут ATS.",
+    aiWritingDesc:
+      "Вставьте черновые заметки и позвольте AI превратить их в чёткие, персонализированные пункты резюме, которые впечатлят рекрутеров и пройдут ATS.",
     tryExample: "Попробовать пример",
     jobTitle: "Должность",
     roughNotes: "Черновые заметки",
@@ -266,10 +376,12 @@ export const translations = {
     outputPlaceholder: "Улучшенные пункты появятся здесь",
     writingTips: "Советы по написанию",
     proTip: "Совет профессионала",
-    proTipText: "Адаптируйте каждый пункт к конкретному описанию вакансии для увеличения отклика в 3 раза.",
+    proTipText:
+      "Адаптируйте каждый пункт к конкретному описанию вакансии для увеличения отклика в 3 раза.",
     atsFeature: "ATS Функция",
     atsTitle: "ATS-готовое форматирование",
-    atsDesc: "Вставьте резюме и сразу узнайте, как оно работает в системах отслеживания кандидатов, используемых компаниями Fortune 500.",
+    atsDesc:
+      "Вставьте резюме и сразу узнайте, как оно работает в системах отслеживания кандидатов, используемых компаниями Fortune 500.",
     pasteResume: "Вставьте ваше резюме",
     useSample: "Использовать образец",
     analyzing: "Анализируется...",
@@ -319,7 +431,8 @@ export const translations = {
     templateSelected: "✓ Шаблон выбран",
     versionsFeature: "История",
     versionsTitle: "История версий",
-    versionsDesc: "Каждое изменение автоматически сохраняется. Просматривайте, сравнивайте и восстанавливайте любую предыдущую версию.",
+    versionsDesc:
+      "Каждое изменение автоматически сохраняется. Просматривайте, сравнивайте и восстанавливайте любую предыдущую версию.",
     allVersions: "Все версии",
     saveNow: "Сохранить сейчас",
     snapshot: "Снимок",
@@ -337,7 +450,8 @@ export const translations = {
     heroTitle1: "Создайте выдающееся резюме с ",
     heroTitle2: "ясностью, скоростью",
     heroTitle3: " и уверенностью.",
-    heroDesc: "DocNova объединяет помощь ИИ, форматирование для ATS и идеальные шаблоны, чтобы ваша следующая заявка была успешной.",
+    heroDesc:
+      "DocNova объединяет помощь ИИ, форматирование для ATS и идеальные шаблоны, чтобы ваша следующая заявка была успешной.",
     startBuildingFree: "Начать создание бесплатно",
     seeBuilderInAction: "Посмотреть конструктор в действии",
     usedBy: "Используется 12 000+ соискателями",
@@ -351,7 +465,8 @@ export const translations = {
     featuresTitle1: "Всё необходимое, чтобы ",
     featuresTitle2: "создать лучшее резюме ",
     featuresTitle3: "быстрее.",
-    featuresDesc: "Шесть мощных инструментов, один плавный рабочий процесс — создано для профессионалов, которым нужны результаты, а не сложности.",
+    featuresDesc:
+      "Шесть мощных инструментов, один плавный рабочий процесс — создано для профессионалов, которым нужны результаты, а не сложности.",
     exploreFeature: "Изучить функцию",
 
     statActiveUsers: "Активные пользователи",
@@ -360,8 +475,10 @@ export const translations = {
     statAvgBuildTime: "Ср. время создания",
 
     demoTagline: "Демо конструктора резюме",
-    demoTitle: "Посмотрите, как ваша история становится безупречным, готовым для рекрутеров документом.",
-    demoDesc: "Структурированные разделы, умные рекомендации и мгновенный предпросмотр делают процесс простым и профессиональным.",
+    demoTitle:
+      "Посмотрите, как ваша история становится безупречным, готовым для рекрутеров документом.",
+    demoDesc:
+      "Структурированные разделы, умные рекомендации и мгновенный предпросмотр делают процесс простым и профессиональным.",
     profSummaryTag: "Профессиональное резюме",
     profSummaryDesc: "Выделено с помощью ИИ-рекомендаций и измеримого воздействия.",
     expBuilder: "Конструктор опыта",
@@ -371,24 +488,28 @@ export const translations = {
     templatesHeadline: "Выберите макет, который подходит вашей истории и целевой должности.",
 
     pricingTagline: "Тарифы",
-    pricingTitle: "Начните бесплатно и переходите на премиум, когда будете готовы к большему контролю.",
+    pricingTitle:
+      "Начните бесплатно и переходите на премиум, когда будете готовы к большему контролю.",
     viewPlans: "Посмотреть тарифы",
     freePlan: "Бесплатно",
     freePlanDesc: "Создайте и экспортируйте одно безупречное резюме для старта.",
     proPlan: "Pro",
     proPlanDesc: "Разблокируйте больше шаблонов, версионирование и расширенную помощь ИИ.",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Неограниченные возможности, все премиум шаблоны и полный доступ без ограничений.",
+    premiumPlanDesc:
+      "Неограниченные возможности, все премиум шаблоны и полный доступ без ограничений.",
     priceFree: "0 UZS",
     pricePro: "29,000 UZS",
     pricePremium: "59,000 UZS",
     usageLimitTitle: "Лимит исчерпан",
-    usageLimitDesc: "Вы исчерпали свой бесплатный лимит (1 раз) для этого раздела. Чтобы продолжить без ограничений, приобретите подписку Pro или Premium.",
+    usageLimitDesc:
+      "Вы исчерпали свой бесплатный лимит (1 раз) для этого раздела. Чтобы продолжить без ограничений, приобретите подписку Pro или Premium.",
     upgradeNow: "Обновить сейчас",
     closeBtn: "Закрыть",
 
     checkoutTitle: "Безопасная оплата",
-    checkoutDesc: "Выберите свой план и начните пользоваться всеми премиум-функциями DocNova в кратчайшие сроки.",
+    checkoutDesc:
+      "Выберите свой план и начните пользоваться всеми премиум-функциями DocNova в кратчайшие сроки.",
     orderSummary: "Детали заказа",
     paymentMethod: "Способ оплаты",
     cardNumber: "Номер карты",
@@ -398,22 +519,27 @@ export const translations = {
     payNow: "Оплатить",
     processing: "Обработка...",
     paymentSuccess: "Оплата прошла успешно!",
-    paymentSuccessDesc: "Поздравляем, ваш аккаунт обновлен. Теперь вы можете пользоваться всеми премиум-функциями без ограничений.",
+    paymentSuccessDesc:
+      "Поздравляем, ваш аккаунт обновлен. Теперь вы можете пользоваться всеми премиум-функциями без ограничений.",
     paymentFailed: "Оплата отклонена",
-    insufficientFunds: "Недостаточно средств на карте. Пожалуйста, пополните счет и попробуйте снова.",
+    insufficientFunds:
+      "Недостаточно средств на карте. Пожалуйста, пополните счет и попробуйте снова.",
     tryAgain: "Попробовать снова",
     backToDashboard: "Вернуться в панель",
 
     testimonialsTagline: "Отзывы",
     testimonialsTitle: "Люди доверяют DocNova, когда им нужна ясность под давлением.",
-    testimonial1: "«Руководство позволило легко преобразовать мой опыт в сильное, современное резюме.»",
-    testimonial2: "«Я перешел с обычного шаблона и сразу почувствовал себя более уверенно в каждой заявке.»",
+    testimonial1:
+      "«Руководство позволило легко преобразовать мой опыт в сильное, современное резюме.»",
+    testimonial2:
+      "«Я перешел с обычного шаблона и сразу почувствовал себя более уверенно в каждой заявке.»",
 
     faqTagline: "FAQ",
     faqTitle: "Ответы на вопросы, которые мы слышим чаще всего.",
 
     ctaTitle: "Готовы создать резюме, которое работает так же усердно, как и вы?",
-    ctaDesc: "Начните с бесплатной версии, улучшите с помощью ИИ и экспортируйте безупречное резюме, готовое к новым возможностям.",
+    ctaDesc:
+      "Начните с бесплатной версии, улучшите с помощью ИИ и экспортируйте безупречное резюме, готовое к новым возможностям.",
     getStartedToday: "Начните сегодня",
 
     footerCopyright: "© 2026 DocNova. Создайте свою следующую главу.",
@@ -422,27 +548,33 @@ export const translations = {
     footerFAQ: "FAQ",
 
     featAiWritingTitle: "Написание с помощью ИИ",
-    featAiWritingDesc: "Превратите черновые записи в четкие, персонализированные пункты. Наш ИИ понимает контекст, тон и отраслевые стандарты.",
+    featAiWritingDesc:
+      "Превратите черновые записи в четкие, персонализированные пункты. Наш ИИ понимает контекст, тон и отраслевые стандарты.",
     featAiBadge: "На базе ИИ",
     featAiStatLabel: "ускорение написания",
     featAtsTitle: "Форматирование для ATS",
-    featAtsDesc: "Оставайтесь структурированными, легко читаемыми и совместимыми с ATS. Каждый макет протестирован на лучших ATS-платформах.",
+    featAtsDesc:
+      "Оставайтесь структурированными, легко читаемыми и совместимыми с ATS. Каждый макет протестирован на лучших ATS-платформах.",
     featAtsBadge: "Одобрено ATS",
     featAtsStatLabel: "проходимость",
     featExportTitle: "Экспорт в один клик",
-    featExportDesc: "Экспортируйте безупречные резюме в PDF или DOCX без потери макета. Идеальное отображение во всех форматах.",
+    featExportDesc:
+      "Экспортируйте безупречные резюме в PDF или DOCX без потери макета. Идеальное отображение во всех форматах.",
     featExportBadge: "PDF и DOCX",
     featExportStatLabel: "время экспорта",
     featPreviewTitle: "Предпросмотр в реальном времени",
-    featPreviewDesc: "Смотрите, как ваше резюме обновляется по мере набора текста. Больше никаких догадок — изменения отражаются мгновенно.",
+    featPreviewDesc:
+      "Смотрите, как ваше резюме обновляется по мере набора текста. Больше никаких догадок — изменения отражаются мгновенно.",
     featPreviewBadge: "Живой предпросмотр",
     featPreviewStatLabel: "задержка обновления",
     featTemplatesTitle: "Премиум-шаблоны",
-    featTemplatesDesc: "Выберите из библиотеки профессионально разработанных шаблонов для любой отрасли, уровня и визуального стиля.",
+    featTemplatesDesc:
+      "Выберите из библиотеки профессионально разработанных шаблонов для любой отрасли, уровня и визуального стиля.",
     featTemplatesBadge: "20+ шаблонов",
     featTemplatesStatLabel: "дизайнов",
     featVersionsTitle: "История версий",
-    featVersionsDesc: "Сохраняйте несколько версий резюме. Копируйте, создавайте ветки и сравнивайте — вы всегда можете вернуться к лучшей версии.",
+    featVersionsDesc:
+      "Сохраняйте несколько версий резюме. Копируйте, создавайте ветки и сравнивайте — вы всегда можете вернуться к лучшей версии.",
     featVersionsBadge: "Автосохранение",
     featVersionsStatLabel: "версий",
 
@@ -454,11 +586,96 @@ export const translations = {
     tplStartupOperatorDesc: "Гибкие, быстрые макеты для компаний на стадии роста.",
 
     faq1Q: "Подходит ли DocNova для тех, кто пишет резюме впервые?",
-    faq1A: "Да. Конструктор позволяет легко создать первое резюме без опыта в дизайне или написании.",
+    faq1A:
+      "Да. Конструктор позволяет легко создать первое резюме без опыта в дизайне или написании.",
     faq2Q: "Могу ли я адаптировать одно и то же резюме для разных ролей?",
-    faq2A: "Конечно. Вы можете дублировать и настраивать разделы для каждой заявки или сохранять несколько версий.",
+    faq2A:
+      "Конечно. Вы можете дублировать и настраивать разделы для каждой заявки или сохранять несколько версий.",
     faq3Q: "Поддерживаете ли вы экспорт в PDF и Word?",
     faq3A: "Да. Ваше резюме можно экспортировать в PDF или DOCX для отправки рекрутерам.",
+
+    // Nav
+    navTools: "Инструменты",
+    navTemplates: "Шаблоны",
+    navPricing: "Тарифы",
+    navFAQ: "FAQ",
+
+    // Tools Hub
+    everythingYouNeed: "Все, что нужно для",
+    everythingYouNeedHighlight: "выполнения задач.",
+    toolsHubDesc:
+      "Единая коллекция инструментов на базе ИИ, генераторов и утилит для повышения вашей продуктивности.",
+    searchPlaceholder: "Поиск инструментов, функций или шаблонов...",
+    continueWhereLeftOff: "Продолжайте с того места, где остановились",
+    allTools: "Все инструменты",
+    myFavorites: "Мои избранные ⭐",
+    whatAreYouHereToDo: "Что вы хотите сделать?",
+    exploreCategories:
+      "Исследуйте инструменты по категориям, чтобы найти именно то, что вам нужно.",
+    noFavorites: "Пока нет избранных",
+    clickHeart: "Нажмите на значок сердечка на любом инструменте, чтобы сохранить его здесь.",
+    noToolsFound: "Инструменты не найдены",
+    adjustSearch: "Попробуйте изменить поисковый запрос.",
+    clearSearch: "Очистить поиск",
+    popular: "ПОПУЛЯРНЫЙ",
+    proBadge: "ПРО",
+    continue: "Продолжить",
+    ctrlK: "Ctrl+ K",
+    search: "Поиск",
+
+    // Categories
+    catEdu: "🎓 Образовательный центр",
+    catEduDesc: "Умные инструменты для ускорения обучения и подготовки к тестам.",
+    catCareer: "💼 Карьерный центр",
+    catCareerDesc: "Все, что вам нужно, чтобы получить должность вашей мечты.",
+    catWriting: "✍️ ИИ Писатель",
+    catWritingDesc: "Инструменты продуктивности для ускорения вашего рабочего процесса.",
+    catUtils: "🛠️ Быстрые утилиты",
+    catUtilsDesc: "Удобные инструменты для повседневных задач.",
+    catFiles: "📄 Работа с файлами",
+    catFilesDesc: "Форматируйте, конвертируйте и управляйте документами.",
+
+    // Tools
+    toolIelts: "Пробный тест IELTS",
+    toolIeltsDesc: "Полная симуляция IELTS с ИИ-оценкой для всех разделов.",
+    toolCefr: "Тест уровня CEFR",
+    toolCefrDesc: "Точная оценка уровня владения английским A1-C2.",
+    toolSat: "Цифровая практика SAT",
+    toolSatDesc: "Пробные экзамены по математике и чтению/письму.",
+    toolAiStudy: "ИИ помощник в учебе",
+    toolAiStudyDesc: "Создавайте резюме, карточки и тесты из PDF.",
+    toolResumeBuilder: "Конструктор резюме",
+    toolResumeBuilderDesc: "Создавайте ATS-совместимые резюме за считанные минуты.",
+    toolCvAnalyzer: "Анализатор CV",
+    toolCvAnalyzerDesc: "ИИ-оценка и предложения по улучшению вашего CV.",
+    toolCoverLetter: "ИИ сопроводительное письмо",
+    toolCoverLetterDesc:
+      "Создавайте индивидуальные сопроводительные письма на основе описаний вакансий.",
+    toolInterviewPrep: "ИИ подготовка к интервью",
+    toolInterviewPrepDesc: "Пробное интервью с HR и техническими вопросами.",
+    toolAiWriterPro: "ИИ Писатель Pro",
+    toolAiWriterProDesc: "Мгновенно составляйте черновики писем, отчетов и статей.",
+    toolQrGen: "Генератор QR",
+    toolQrGenDesc: "Мгновенно создавайте QR-коды из URL или текста.",
+    toolPasswordGen: "Генератор паролей",
+    toolPasswordGenDesc: "Создавайте надежные и безопасные пароли.",
+    toolWordCounter: "Счетчик слов",
+    toolWordCounterDesc: "Подсчет слов, символов и времени чтения.",
+    toolMergePdf: "Объединить PDF",
+    toolMergePdfDesc: "Объедините несколько файлов PDF в один.",
+    toolCompressPdf: "Сжать PDF",
+    toolCompressPdfDesc: "Уменьшите размер файлов ваших PDF документов.",
+    toolPdfToWord: "PDF в Word",
+    toolPdfToWordDesc: "Извлекайте текст и конвертируйте PDF в редактируемые форматы.",
+
+    // Filters
+    filterResume: "Резюме",
+    filterPdf: "PDF",
+    filterIelts: "IELTS",
+    filterCoverLetter: "Сопроводительное письмо",
+    filterAiWriter: "ИИ Писатель",
+    filterTranslator: "Переводчик",
+    filterGrammar: "Грамматика",
   },
   en: {
     login: "Log in",
@@ -471,7 +688,8 @@ export const translations = {
     DocNovaFeatures: "DocNova Features",
     aiFeature: "AI Feature",
     aiWritingTitle: "AI-Guided Writing",
-    aiWritingDesc: "Paste your rough notes and let AI transform them into sharp, tailored resume bullet points that impress recruiters and pass ATS systems.",
+    aiWritingDesc:
+      "Paste your rough notes and let AI transform them into sharp, tailored resume bullet points that impress recruiters and pass ATS systems.",
     tryExample: "Try an example",
     jobTitle: "Job Title",
     roughNotes: "Your rough notes",
@@ -489,14 +707,15 @@ export const translations = {
     proTipText: "Tailor each bullet to the specific job description for 3x higher callback rates.",
     atsFeature: "ATS Feature",
     atsTitle: "ATS-Ready Formatting",
-    atsDesc: "Paste your resume and instantly see how it performs against Applicant Tracking Systems used by Fortune 500 companies.",
+    atsDesc:
+      "Paste your resume and instantly see how it performs against Applicant Tracking Systems used by Fortune 500 companies.",
     pasteResume: "Paste Your Resume",
     useSample: "Use sample",
     analyzing: "Analyzing...",
     checkATS: "Check ATS Score",
     reset: "Reset",
     atsPlaceholder: "Paste your full resume text here...",
-    atsWaiting: "Paste your resume and click \"Check ATS Score\" to see results",
+    atsWaiting: 'Paste your resume and click "Check ATS Score" to see results',
     atsAnalyzing: "Analyzing your resume against 50+ ATS systems...",
     atsScore: "ATS Score",
     needsWork: "Needs Work",
@@ -532,14 +751,16 @@ export const translations = {
     yourName: "Your Name",
     templatesFeature: "Templates",
     templatesTitle: "Premium Templates",
-    templatesDesc: "Choose from 20+ professionally designed templates crafted for specific industries.",
+    templatesDesc:
+      "Choose from 20+ professionally designed templates crafted for specific industries.",
     preview: "Preview",
     useThis: "Use this",
     selected: "Selected!",
     templateSelected: "✓ Template Selected",
     versionsFeature: "History",
     versionsTitle: "Version History",
-    versionsDesc: "Every change is automatically saved. Browse, preview, compare, and restore any previous version.",
+    versionsDesc:
+      "Every change is automatically saved. Browse, preview, compare, and restore any previous version.",
     allVersions: "All Versions",
     saveNow: "Save now",
     snapshot: "Snapshot",
@@ -557,7 +778,8 @@ export const translations = {
     heroTitle1: "Build a standout resume with ",
     heroTitle2: "clarity, speed,",
     heroTitle3: " and confidence.",
-    heroDesc: "DocNova combines AI guidance, ATS-ready formatting, and polished templates so your next application feels effortless.",
+    heroDesc:
+      "DocNova combines AI guidance, ATS-ready formatting, and polished templates so your next application feels effortless.",
     startBuildingFree: "Start building for free",
     seeBuilderInAction: "See the builder in action",
     usedBy: "Used by 12k+ job seekers",
@@ -571,7 +793,8 @@ export const translations = {
     featuresTitle1: "Everything you need to ",
     featuresTitle2: "ship a better resume ",
     featuresTitle3: "faster.",
-    featuresDesc: "Six powerful tools, one seamless workflow — built for professionals who want results, not complexity.",
+    featuresDesc:
+      "Six powerful tools, one seamless workflow — built for professionals who want results, not complexity.",
     exploreFeature: "Explore feature",
 
     statActiveUsers: "Active users",
@@ -581,7 +804,8 @@ export const translations = {
 
     demoTagline: "Resume builder demo",
     demoTitle: "See how your story becomes a polished, recruiter-ready document.",
-    demoDesc: "Structured sections, smart recommendations, and instant previews make the process simple and professional.",
+    demoDesc:
+      "Structured sections, smart recommendations, and instant previews make the process simple and professional.",
     profSummaryTag: "Professional summary",
     profSummaryDesc: "Highlighted with AI suggestions and measurable impact.",
     expBuilder: "Experience builder",
@@ -598,12 +822,14 @@ export const translations = {
     proPlan: "Pro",
     proPlanDesc: "Unlock more templates, versioning, and advanced AI assistance.",
     premiumPlan: "Premium",
-    premiumPlanDesc: "Unlimited possibilities, all premium templates, and fully unrestricted access.",
+    premiumPlanDesc:
+      "Unlimited possibilities, all premium templates, and fully unrestricted access.",
     priceFree: "0 UZS",
     pricePro: "29,000 UZS",
     pricePremium: "59,000 UZS",
     usageLimitTitle: "Usage limit reached",
-    usageLimitDesc: "You have used your free limit (1 time) for this tool. To continue without restrictions, please upgrade to a Pro or Premium subscription.",
+    usageLimitDesc:
+      "You have used your free limit (1 time) for this tool. To continue without restrictions, please upgrade to a Pro or Premium subscription.",
     upgradeNow: "Upgrade now",
     closeBtn: "Close",
 
@@ -618,7 +844,8 @@ export const translations = {
     payNow: "Complete Payment",
     processing: "Processing...",
     paymentSuccess: "Payment Successful!",
-    paymentSuccessDesc: "Congratulations, your account has been upgraded. You can now use all premium features without limits.",
+    paymentSuccessDesc:
+      "Congratulations, your account has been upgraded. You can now use all premium features without limits.",
     paymentFailed: "Payment Declined",
     insufficientFunds: "Insufficient funds on your card. Please top up your account and try again.",
     tryAgain: "Try again",
@@ -626,14 +853,17 @@ export const translations = {
 
     testimonialsTagline: "Testimonials",
     testimonialsTitle: "People trust DocNova when they need clarity under pressure.",
-    testimonial1: "“The guidance made it easy to translate my experience into a strong, modern resume.”",
-    testimonial2: "“I switched from a generic template and felt immediately more confident in every application.”",
+    testimonial1:
+      "“The guidance made it easy to translate my experience into a strong, modern resume.”",
+    testimonial2:
+      "“I switched from a generic template and felt immediately more confident in every application.”",
 
     faqTagline: "FAQ",
     faqTitle: "Answers to the questions we hear most.",
 
     ctaTitle: "Ready to build a resume that works as hard as you do?",
-    ctaDesc: "Start with a free build, refine with AI, and export a polished resume that feels ready for the next opportunity.",
+    ctaDesc:
+      "Start with a free build, refine with AI, and export a polished resume that feels ready for the next opportunity.",
     getStartedToday: "Get started today",
 
     footerCopyright: "© 2026 DocNova. Build your next chapter.",
@@ -642,27 +872,33 @@ export const translations = {
     footerFAQ: "FAQ",
 
     featAiWritingTitle: "AI-guided writing",
-    featAiWritingDesc: "Turn rough notes into sharp, tailored bullet points. Our AI understands context, tone, and industry standards to make your experience shine.",
+    featAiWritingDesc:
+      "Turn rough notes into sharp, tailored bullet points. Our AI understands context, tone, and industry standards to make your experience shine.",
     featAiBadge: "AI Powered",
     featAiStatLabel: "faster writing",
     featAtsTitle: "ATS-ready formatting",
-    featAtsDesc: "Stay structured, scannable, and aligned with applicant tracking systems. Every layout is tested against top ATS platforms used by Fortune 500 companies.",
+    featAtsDesc:
+      "Stay structured, scannable, and aligned with applicant tracking systems. Every layout is tested against top ATS platforms used by Fortune 500 companies.",
     featAtsBadge: "ATS Certified",
     featAtsStatLabel: "pass rate",
     featExportTitle: "One-click exports",
-    featExportDesc: "Export polished resumes in PDF or DOCX without losing your layout. Pixel-perfect rendering across all formats so your resume looks great everywhere.",
+    featExportDesc:
+      "Export polished resumes in PDF or DOCX without losing your layout. Pixel-perfect rendering across all formats so your resume looks great everywhere.",
     featExportBadge: "PDF & DOCX",
     featExportStatLabel: "export time",
     featPreviewTitle: "Real-time preview",
-    featPreviewDesc: "See your resume update live as you type. No more guessing how the final version will look — your changes are reflected instantly in a recruiter-view mode.",
+    featPreviewDesc:
+      "See your resume update live as you type. No more guessing how the final version will look — your changes are reflected instantly in a recruiter-view mode.",
     featPreviewBadge: "Live Preview",
     featPreviewStatLabel: "update delay",
     featTemplatesTitle: "Premium templates",
-    featTemplatesDesc: "Choose from a curated library of professionally designed templates. Each one is crafted for a specific industry, role level, and visual style.",
+    featTemplatesDesc:
+      "Choose from a curated library of professionally designed templates. Each one is crafted for a specific industry, role level, and visual style.",
     featTemplatesBadge: "20+ Templates",
     featTemplatesStatLabel: "designs",
     featVersionsTitle: "Version history",
-    featVersionsDesc: "Keep multiple versions of your resume for different roles. Duplicate, branch, and compare — so you can always go back to a version that worked.",
+    featVersionsDesc:
+      "Keep multiple versions of your resume for different roles. Duplicate, branch, and compare — so you can always go back to a version that worked.",
     featVersionsBadge: "Auto-saved",
     featVersionsStatLabel: "versions",
 
@@ -674,11 +910,95 @@ export const translations = {
     tplStartupOperatorDesc: "Flexible, fast-moving layouts for growth-stage companies.",
 
     faq1Q: "Is DocNova suitable for first-time document creators?",
-    faq1A: "Yes. The guided builder makes it easy to create your first resume without needing design or writing experience.",
+    faq1A:
+      "Yes. The guided builder makes it easy to create your first resume without needing design or writing experience.",
     faq2Q: "Can I tailor the same resume for different roles?",
-    faq2A: "Absolutely. You can duplicate and adjust sections for each application or save multiple versions in one workspace.",
+    faq2A:
+      "Absolutely. You can duplicate and adjust sections for each application or save multiple versions in one workspace.",
     faq3Q: "Do you support export to PDF and Word?",
-    faq3A: "Yes. Your resume can be exported to PDF or DOCX for sharing with recruiters and hiring teams.",
+    faq3A:
+      "Yes. Your resume can be exported to PDF or DOCX for sharing with recruiters and hiring teams.",
+
+    // Nav
+    navTools: "Tools",
+    navTemplates: "Templates",
+    navPricing: "Pricing",
+    navFAQ: "FAQ",
+
+    // Tools Hub
+    everythingYouNeed: "Everything you need to",
+    everythingYouNeedHighlight: "get things done.",
+    toolsHubDesc:
+      "A unified collection of AI-powered tools, generators, and utilities to boost your productivity.",
+    searchPlaceholder: "Search for tools, features, or templates...",
+    continueWhereLeftOff: "Continue Where You Left Off",
+    allTools: "All Tools",
+    myFavorites: "My Favorites ⭐",
+    whatAreYouHereToDo: "What Are You Here To Do?",
+    exploreCategories: "Explore tools by category to find exactly what you need.",
+    noFavorites: "No favorites yet",
+    clickHeart: "Click the heart icon on any tool to save it here.",
+    noToolsFound: "No tools found",
+    adjustSearch: "Try adjusting your search query.",
+    clearSearch: "Clear search",
+    popular: "POPULAR",
+    proBadge: "PRO",
+    continue: "Continue",
+    ctrlK: "Ctrl+ K",
+    search: "Search",
+
+    // Categories
+    catEdu: "🎓 Education Hub",
+    catEduDesc: "Smart tools to accelerate your learning and test prep.",
+    catCareer: "💼 Career Hub",
+    catCareerDesc: "Everything you need to land your next dream role.",
+    catWriting: "✍️ AI Writing",
+    catWritingDesc: "Productivity tools to accelerate your workflow.",
+    catUtils: "🛠️ Quick Utilities",
+    catUtilsDesc: "Handy tools for everyday tasks.",
+    catFiles: "📄 Work With Files",
+    catFilesDesc: "Format, convert, and manage documents.",
+
+    // Tools
+    toolIelts: "IELTS Mock Test",
+    toolIeltsDesc: "Full IELTS simulation with AI scoring for all sections.",
+    toolCefr: "CEFR Level Test",
+    toolCefrDesc: "Accurate A1-C2 English proficiency assessment.",
+    toolSat: "SAT Digital Practice",
+    toolSatDesc: "Mock exams for Math and Reading/Writing.",
+    toolAiStudy: "AI Study Assistant",
+    toolAiStudyDesc: "Generate summaries, flashcards & quizzes from PDF.",
+    toolResumeBuilder: "Resume Builder",
+    toolResumeBuilderDesc: "Create ATS-friendly resumes in minutes.",
+    toolCvAnalyzer: "CV Analyzer",
+    toolCvAnalyzerDesc: "AI scoring and improvement suggestions for your CV.",
+    toolCoverLetter: "Cover Letter AI",
+    toolCoverLetterDesc: "Generate tailored cover letters based on job descriptions.",
+    toolInterviewPrep: "Interview Prep AI",
+    toolInterviewPrepDesc: "Mock interview with HR and technical questions.",
+    toolAiWriterPro: "AI Writer Pro",
+    toolAiWriterProDesc: "Draft emails, reports, and articles instantly.",
+    toolQrGen: "QR Generator",
+    toolQrGenDesc: "Create QR codes from URLs or text instantly.",
+    toolPasswordGen: "Password Gen",
+    toolPasswordGenDesc: "Generate strong and secure passwords.",
+    toolWordCounter: "Word Counter",
+    toolWordCounterDesc: "Count words, characters, and reading time.",
+    toolMergePdf: "Merge PDF",
+    toolMergePdfDesc: "Combine multiple PDF files into one.",
+    toolCompressPdf: "Compress PDF",
+    toolCompressPdfDesc: "Reduce file size of your PDF documents.",
+    toolPdfToWord: "PDF to Word",
+    toolPdfToWordDesc: "Extract text and convert PDF to editable formats.",
+
+    // Filters
+    filterResume: "Resume",
+    filterPdf: "PDF",
+    filterIelts: "IELTS",
+    filterCoverLetter: "Cover Letter",
+    filterAiWriter: "AI Writer",
+    filterTranslator: "Translator",
+    filterGrammar: "Grammar",
   },
   tr: {
     login: "Giriş yap",
@@ -691,7 +1011,8 @@ export const translations = {
     DocNovaFeatures: "DocNova Özellikleri",
     aiFeature: "AI Özelliği",
     aiWritingTitle: "AI Destekli Yazım",
-    aiWritingDesc: "Taslak notlarınızı yapıştırın ve AI'nın bunları işe alım uzmanlarını etkileyen ve ATS sistemlerinden geçen keskin, özelleştirilmiş özgeçmiş maddelerine dönüştürmesine izin verin.",
+    aiWritingDesc:
+      "Taslak notlarınızı yapıştırın ve AI'nın bunları işe alım uzmanlarını etkileyen ve ATS sistemlerinden geçen keskin, özelleştirilmiş özgeçmiş maddelerine dönüştürmesine izin verin.",
     tryExample: "Örnek deneyin",
     jobTitle: "İş Unvanı",
     roughNotes: "Taslak notlarınız",
@@ -706,17 +1027,19 @@ export const translations = {
     outputPlaceholder: "AI tarafından iyileştirilen maddeler burada görünecek",
     writingTips: "Yazım İpuçları",
     proTip: "Profesyonel ipucu",
-    proTipText: "Geri arama oranlarını 3 kat artırmak için her maddeyi iş ilanına göre özelleştirin.",
+    proTipText:
+      "Geri arama oranlarını 3 kat artırmak için her maddeyi iş ilanına göre özelleştirin.",
     atsFeature: "ATS Özelliği",
     atsTitle: "ATS Uyumlu Biçimlendirme",
-    atsDesc: "Özgeçmişinizi yapıştırın ve Fortune 500 şirketlerinin kullandığı Aday Takip Sistemlerine karşı nasıl performans gösterdiğini anında görün.",
+    atsDesc:
+      "Özgeçmişinizi yapıştırın ve Fortune 500 şirketlerinin kullandığı Aday Takip Sistemlerine karşı nasıl performans gösterdiğini anında görün.",
     pasteResume: "Özgeçmişinizi Yapıştırın",
     useSample: "Örnek kullan",
     analyzing: "Analiz ediliyor...",
     checkATS: "ATS Puanını Kontrol Et",
     reset: "Sıfırla",
     atsPlaceholder: "Özgeçmişinizin tam metnini buraya yapıştırın...",
-    atsWaiting: "Özgeçmişinizi yapıştırın ve \"ATS Puanını Kontrol Et\"e tıklayın",
+    atsWaiting: 'Özgeçmişinizi yapıştırın ve "ATS Puanını Kontrol Et"e tıklayın',
     atsAnalyzing: "Özgeçmişiniz 50+ ATS sistemine karşı analiz ediliyor...",
     atsScore: "ATS Puanı",
     needsWork: "İyileştirme Gerekli",
@@ -752,14 +1075,16 @@ export const translations = {
     yourName: "Adınız",
     templatesFeature: "Şablonlar",
     templatesTitle: "Premium Şablonlar",
-    templatesDesc: "Belirli sektörler için tasarlanmış 20'den fazla profesyonel şablon arasından seçin.",
+    templatesDesc:
+      "Belirli sektörler için tasarlanmış 20'den fazla profesyonel şablon arasından seçin.",
     preview: "Önizleme",
     useThis: "Bunu kullan",
     selected: "Seçildi!",
     templateSelected: "✓ Şablon Seçildi",
     versionsFeature: "Geçmiş",
     versionsTitle: "Sürüm Geçmişi",
-    versionsDesc: "Her değişiklik otomatik olarak kaydedilir. Herhangi bir önceki sürümü göz atın, önizleyin ve geri yükleyin.",
+    versionsDesc:
+      "Her değişiklik otomatik olarak kaydedilir. Herhangi bir önceki sürümü göz atın, önizleyin ve geri yükleyin.",
     allVersions: "Tüm Sürümler",
     saveNow: "Şimdi kaydet",
     snapshot: "Anlık görüntü",
@@ -777,7 +1102,8 @@ export const translations = {
     heroTitle1: "Öne çıkan bir özgeçmişi ",
     heroTitle2: "netlik, hız,",
     heroTitle3: " ve özgüvenle oluşturun.",
-    heroDesc: "DocNova, sonraki başvurunuzun zahmetsiz hissettirmesi için AI rehberliğini, ATS'ye hazır biçimlendirmeyi ve cilalı şablonları birleştirir.",
+    heroDesc:
+      "DocNova, sonraki başvurunuzun zahmetsiz hissettirmesi için AI rehberliğini, ATS'ye hazır biçimlendirmeyi ve cilalı şablonları birleştirir.",
     startBuildingFree: "Ücretsiz oluşturmaya başlayın",
     seeBuilderInAction: "Oluşturucuyu iş başında görün",
     usedBy: "12,000'den fazla iş arayan tarafından kullanılıyor",
@@ -791,7 +1117,8 @@ export const translations = {
     featuresTitle1: "Daha iyi bir özgeçmişi ",
     featuresTitle2: "daha hızlı oluşturmak ",
     featuresTitle3: "için ihtiyacınız olan her şey.",
-    featuresDesc: "Altı güçlü araç, tek bir kesintisiz iş akışı — karmaşıklık değil sonuç isteyen profesyoneller için tasarlandı.",
+    featuresDesc:
+      "Altı güçlü araç, tek bir kesintisiz iş akışı — karmaşıklık değil sonuç isteyen profesyoneller için tasarlandı.",
     exploreFeature: "Özelliği keşfet",
 
     statActiveUsers: "Aktif kullanıcılar",
@@ -801,7 +1128,8 @@ export const translations = {
 
     demoTagline: "Özgeçmiş oluşturucu demosu",
     demoTitle: "Hikayenizin nasıl cilalı, işe alım uzmanına hazır bir belgeye dönüştüğünü görün.",
-    demoDesc: "Yapılandırılmış bölümler, akıllı öneriler ve anında önizlemeler süreci basit ve profesyonel hale getirir.",
+    demoDesc:
+      "Yapılandırılmış bölümler, akıllı öneriler ve anında önizlemeler süreci basit ve profesyonel hale getirir.",
     profSummaryTag: "Profesyonel özet",
     profSummaryDesc: "Yapay zeka önerileri ve ölçülebilir etki ile vurgulanmıştır.",
     expBuilder: "Deneyim oluşturucu",
@@ -816,19 +1144,22 @@ export const translations = {
     freePlan: "Ücretsiz",
     freePlanDesc: "Başlamak için bir cilalı özgeçmiş oluşturun ve dışa aktarın.",
     proPlan: "Pro",
-    proPlanDesc: "Daha fazla şablon, sürüm oluşturma ve gelişmiş yapay zeka yardımının kilidini açın.",
+    proPlanDesc:
+      "Daha fazla şablon, sürüm oluşturma ve gelişmiş yapay zeka yardımının kilidini açın.",
     premiumPlan: "Premium",
     premiumPlanDesc: "Sınırsız olasılıklar, tüm premium şablonlar ve tamamen kısıtlamasız erişim.",
     priceFree: "0 UZS",
     pricePro: "29,000 UZS",
     pricePremium: "59,000 UZS",
     usageLimitTitle: "Kullanım sınırı aşıldı",
-    usageLimitDesc: "Bu araç için ücretsiz sınırınızı (1 kez) kullandınız. Kısıtlama olmadan devam etmek için lütfen Pro veya Premium aboneliğine yükseltin.",
+    usageLimitDesc:
+      "Bu araç için ücretsiz sınırınızı (1 kez) kullandınız. Kısıtlama olmadan devam etmek için lütfen Pro veya Premium aboneliğine yükseltin.",
     upgradeNow: "Şimdi yükselt",
     closeBtn: "Kapat",
 
     checkoutTitle: "Güvenli Ödeme",
-    checkoutDesc: "Satın alma işleminizi tamamlayın ve DocNova premium özelliklerini anında kullanmaya başlayın.",
+    checkoutDesc:
+      "Satın alma işleminizi tamamlayın ve DocNova premium özelliklerini anında kullanmaya başlayın.",
     orderSummary: "Sipariş Özeti",
     paymentMethod: "Ödeme Yöntemi",
     cardNumber: "Kart Numarası",
@@ -838,22 +1169,26 @@ export const translations = {
     payNow: "Ödemeyi Tamamla",
     processing: "İşleniyor...",
     paymentSuccess: "Ödeme Başarılı!",
-    paymentSuccessDesc: "Tebrikler, hesabınız yükseltildi. Artık tüm premium özellikleri sınırsızca kullanabilirsiniz.",
+    paymentSuccessDesc:
+      "Tebrikler, hesabınız yükseltildi. Artık tüm premium özellikleri sınırsızca kullanabilirsiniz.",
     paymentFailed: "Ödeme Reddedildi",
-    insufficientFunds: "Kartınızda yetersiz bakiye. Lütfen hesabınıza para yükleyip tekrar deneyin.",
+    insufficientFunds:
+      "Kartınızda yetersiz bakiye. Lütfen hesabınıza para yükleyip tekrar deneyin.",
     tryAgain: "Tekrar dene",
     backToDashboard: "Gösterge paneline dön",
 
     testimonialsTagline: "Görüşler",
     testimonialsTitle: "İnsanlar baskı altında netliğe ihtiyaç duyduklarında DocNova'e güvenirler.",
     testimonial1: "“Rehberlik, deneyimimi güçlü, modern bir özgeçmişe dönüştürmeyi kolaylaştırdı.”",
-    testimonial2: "“Genel bir şablondan geçiş yaptım ve her başvuruda hemen daha güvende hissettim.”",
+    testimonial2:
+      "“Genel bir şablondan geçiş yaptım ve her başvuruda hemen daha güvende hissettim.”",
 
     faqTagline: "SSS",
     faqTitle: "En çok duyduğumuz soruların cevapları.",
 
     ctaTitle: "Sizin kadar sıkı çalışan bir özgeçmiş oluşturmaya hazır mısınız?",
-    ctaDesc: "Ücretsiz bir oluşturma ile başlayın, yapay zeka ile geliştirin ve bir sonraki fırsata hazır hisseden cilalı bir özgeçmişi dışa aktarın.",
+    ctaDesc:
+      "Ücretsiz bir oluşturma ile başlayın, yapay zeka ile geliştirin ve bir sonraki fırsata hazır hisseden cilalı bir özgeçmişi dışa aktarın.",
     getStartedToday: "Bugün başlayın",
 
     footerCopyright: "© 2026 DocNova. Bir sonraki bölümünüzü oluşturun.",
@@ -862,27 +1197,33 @@ export const translations = {
     footerFAQ: "SSS",
 
     featAiWritingTitle: "Yapay zeka rehberliğinde yazım",
-    featAiWritingDesc: "Taslak notları keskin, kişiselleştirilmiş maddelere dönüştürün. Yapay zekamız, deneyiminizin parlaması için bağlamı, tonu ve endüstri standartlarını anlar.",
+    featAiWritingDesc:
+      "Taslak notları keskin, kişiselleştirilmiş maddelere dönüştürün. Yapay zekamız, deneyiminizin parlaması için bağlamı, tonu ve endüstri standartlarını anlar.",
     featAiBadge: "Yapay Zeka Destekli",
     featAiStatLabel: "daha hızlı yazım",
     featAtsTitle: "ATS'ye hazır biçimlendirme",
-    featAtsDesc: "Yapılandırılmış, taranabilir ve aday takip sistemleriyle uyumlu kalın. Her düzen, Fortune 500 şirketleri tarafından kullanılan en iyi ATS platformlarına karşı test edilir.",
+    featAtsDesc:
+      "Yapılandırılmış, taranabilir ve aday takip sistemleriyle uyumlu kalın. Her düzen, Fortune 500 şirketleri tarafından kullanılan en iyi ATS platformlarına karşı test edilir.",
     featAtsBadge: "ATS Onaylı",
     featAtsStatLabel: "geçiş oranı",
     featExportTitle: "Tek tıkla dışa aktarma",
-    featExportDesc: "Cilalı özgeçmişleri düzeninizi kaybetmeden PDF veya DOCX olarak dışa aktarın. Tüm formatlarda piksel mükemmelliğinde işleme.",
+    featExportDesc:
+      "Cilalı özgeçmişleri düzeninizi kaybetmeden PDF veya DOCX olarak dışa aktarın. Tüm formatlarda piksel mükemmelliğinde işleme.",
     featExportBadge: "PDF ve DOCX",
     featExportStatLabel: "dışa aktarma süresi",
     featPreviewTitle: "Gerçek zamanlı önizleme",
-    featPreviewDesc: "Yazarken özgeçmişinizin canlı olarak güncellendiğini görün. Son sürümün nasıl görüneceğini tahmin etmeye gerek yok.",
+    featPreviewDesc:
+      "Yazarken özgeçmişinizin canlı olarak güncellendiğini görün. Son sürümün nasıl görüneceğini tahmin etmeye gerek yok.",
     featPreviewBadge: "Canlı Önizleme",
     featPreviewStatLabel: "güncelleme gecikmesi",
     featTemplatesTitle: "Premium şablonlar",
-    featTemplatesDesc: "Profesyonelce tasarlanmış şablonlardan oluşan bir kütüphaneden seçim yapın. Her biri belirli bir sektör için hazırlanmıştır.",
+    featTemplatesDesc:
+      "Profesyonelce tasarlanmış şablonlardan oluşan bir kütüphaneden seçim yapın. Her biri belirli bir sektör için hazırlanmıştır.",
     featTemplatesBadge: "20+ Şablon",
     featTemplatesStatLabel: "tasarımlar",
     featVersionsTitle: "Sürüm geçmişi",
-    featVersionsDesc: "Farklı roller için özgeçmişinizin birden fazla sürümünü saklayın. Çoğaltın, dallandırın ve karşılaştırın.",
+    featVersionsDesc:
+      "Farklı roller için özgeçmişinizin birden fazla sürümünü saklayın. Çoğaltın, dallandırın ve karşılaştırın.",
     featVersionsBadge: "Otomatik kaydedilen",
     featVersionsStatLabel: "sürümler",
 
@@ -891,14 +1232,100 @@ export const translations = {
     tplProductDesigner: "Ürün Tasarımcısı",
     tplProductDesignerDesc: "Ürün portföyleri ve yaratıcı ekipler için tasarlandı.",
     tplStartupOperator: "Startup Operatörü",
-    tplStartupOperatorDesc: "Büyüme aşamasındaki şirketler için esnek, hızlı hareket eden düzenler.",
+    tplStartupOperatorDesc:
+      "Büyüme aşamasındaki şirketler için esnek, hızlı hareket eden düzenler.",
 
     faq1Q: "DocNova ilk kez özgeçmiş yazanlar için uygun mu?",
-    faq1A: "Evet. Rehberli oluşturucu, tasarım veya yazma deneyimine ihtiyaç duymadan ilk özgeçmişinizi oluşturmayı kolaylaştırır.",
+    faq1A:
+      "Evet. Rehberli oluşturucu, tasarım veya yazma deneyimine ihtiyaç duymadan ilk özgeçmişinizi oluşturmayı kolaylaştırır.",
     faq2Q: "Aynı özgeçmişi farklı roller için uyarlayabilir miyim?",
-    faq2A: "Kesinlikle. Her uygulama için bölümleri çoğaltabilir ve ayarlayabilir veya birden fazla sürümü kaydedebilirsiniz.",
+    faq2A:
+      "Kesinlikle. Her uygulama için bölümleri çoğaltabilir ve ayarlayabilir veya birden fazla sürümü kaydedebilirsiniz.",
     faq3Q: "PDF ve Word'e dışa aktarmayı destekliyor musunuz?",
-    faq3A: "Evet. Özgeçmişiniz işe alım uzmanlarıyla paylaşılmak üzere PDF veya DOCX olarak dışa aktarılabilir.",
+    faq3A:
+      "Evet. Özgeçmişiniz işe alım uzmanlarıyla paylaşılmak üzere PDF veya DOCX olarak dışa aktarılabilir.",
+
+    // Nav
+    navTools: "Araçlar",
+    navTemplates: "Şablonlar",
+    navPricing: "Fiyatlandırma",
+    navFAQ: "SSS",
+
+    // Tools Hub
+    everythingYouNeed: "İşleri halletmek için",
+    everythingYouNeedHighlight: "ihtiyacınız olan her şey.",
+    toolsHubDesc:
+      "Üretkenliğinizi artırmak için yapay zeka destekli araçlar, oluşturucular ve yardımcı programların birleşik koleksiyonu.",
+    searchPlaceholder: "Araçları, özellikleri veya şablonları arayın...",
+    continueWhereLeftOff: "Kaldığınız Yerden Devam Edin",
+    allTools: "Tüm Araçlar",
+    myFavorites: "Favorilerim ⭐",
+    whatAreYouHereToDo: "Burada Ne Yapmak İstiyorsunuz?",
+    exploreCategories:
+      "Tam olarak ihtiyacınız olanı bulmak için araçları kategoriye göre keşfedin.",
+    noFavorites: "Henüz favori yok",
+    clickHeart: "Buraya kaydetmek için herhangi bir aracın kalp simgesine tıklayın.",
+    noToolsFound: "Araç bulunamadı",
+    adjustSearch: "Arama sorgunuzu ayarlamayı deneyin.",
+    clearSearch: "Aramayı temizle",
+    popular: "POPÜLER",
+    proBadge: "PRO",
+    continue: "Devam et",
+    ctrlK: "Ctrl+ K",
+    search: "Arama",
+
+    // Categories
+    catEdu: "🎓 Eğitim Merkezi",
+    catEduDesc: "Öğreniminizi ve test hazırlığınızı hızlandırmak için akıllı araçlar.",
+    catCareer: "💼 Kariyer Merkezi",
+    catCareerDesc: "Bir sonraki hayalinizdeki rolü elde etmek için ihtiyacınız olan her şey.",
+    catWriting: "✍️ İleri Düzey Yazım",
+    catWritingDesc: "İş akışınızı hızlandırmak için üretkenlik araçları.",
+    catUtils: "🛠️ Hızlı Araçlar",
+    catUtilsDesc: "Günlük görevler için kullanışlı araçlar.",
+    catFiles: "📄 Dosyalarla Çalışın",
+    catFilesDesc: "Belgeleri biçimlendirin, dönüştürün ve yönetin.",
+
+    // Tools
+    toolIelts: "IELTS Deneme Testi",
+    toolIeltsDesc: "Tüm bölümler için yapay zeka puanlaması ile tam IELTS simülasyonu.",
+    toolCefr: "CEFR Seviye Testi",
+    toolCefrDesc: "Doğru A1-C2 İngilizce yeterlilik değerlendirmesi.",
+    toolSat: "SAT Dijital Pratiği",
+    toolSatDesc: "Matematik ve Okuma/Yazma için deneme sınavları.",
+    toolAiStudy: "AI Eğitim Asistanı",
+    toolAiStudyDesc: "PDF'den özetler, bilgi kartları ve sınavlar oluşturun.",
+    toolResumeBuilder: "Özgeçmiş Oluşturucu",
+    toolResumeBuilderDesc: "Dakikalar içinde ATS dostu özgeçmişler oluşturun.",
+    toolCvAnalyzer: "CV Analizörü",
+    toolCvAnalyzerDesc: "CV'niz için yapay zeka puanlaması ve iyileştirme önerileri.",
+    toolCoverLetter: "Kapak Mektubu AI",
+    toolCoverLetterDesc: "İş tanımlarına göre uyarlanmış kapak mektupları oluşturun.",
+    toolInterviewPrep: "Mülakat Hazırlığı AI",
+    toolInterviewPrepDesc: "İK ve teknik sorularla deneme mülakatı.",
+    toolAiWriterPro: "AI Yazar Pro",
+    toolAiWriterProDesc: "E-postaları, raporları ve makaleleri anında tasarlayın.",
+    toolQrGen: "QR Oluşturucu",
+    toolQrGenDesc: "URL'lerden veya metinden anında QR kodları oluşturun.",
+    toolPasswordGen: "Şifre Oluşturucu",
+    toolPasswordGenDesc: "Güçlü ve güvenli şifreler oluşturun.",
+    toolWordCounter: "Kelime Sayacı",
+    toolWordCounterDesc: "Kelimeleri, karakterleri ve okuma süresini sayın.",
+    toolMergePdf: "PDF Birleştirme",
+    toolMergePdfDesc: "Birden fazla PDF dosyasını tek bir dosyada birleştirin.",
+    toolCompressPdf: "PDF Sıkıştırma",
+    toolCompressPdfDesc: "PDF belgelerinizin dosya boyutunu küçültün.",
+    toolPdfToWord: "PDF'den Word'e",
+    toolPdfToWordDesc: "Metni çıkarın ve PDF'yi düzenlenebilir biçimlere dönüştürün.",
+
+    // Filters
+    filterResume: "Özgeçmiş",
+    filterPdf: "PDF",
+    filterIelts: "IELTS",
+    filterCoverLetter: "Kapak Mektubu",
+    filterAiWriter: "İleri Yazar",
+    filterTranslator: "Çevirmen",
+    filterGrammar: "Dilbilgisi",
   },
 } as const;
 
@@ -916,18 +1343,25 @@ const LanguageContext = createContext<LanguageContextType>({
   t: translations.uz,
 });
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("uz");
+export function LanguageProvider({
+  children,
+  initialLang = "uz",
+}: {
+  children: React.ReactNode;
+  initialLang?: Lang;
+}) {
+  const [lang, setLangState] = useState<Lang>(initialLang);
 
   useEffect(() => {
-    const saved = localStorage.getItem("DocNova-lang") as Lang | null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved && translations[saved]) setLangState(saved);
-  }, []);
+    // Sync with local storage if it's different from the cookie, or just update local storage
+    localStorage.setItem("DocNova-lang", lang);
+  }, [lang]);
 
   const setLang = (l: Lang) => {
     setLangState(l);
     localStorage.setItem("DocNova-lang", l);
+    // Also set the cookie so the server knows
+    document.cookie = `NEXT_LOCALE=${l}; path=/; max-age=31536000; SameSite=Lax`;
   };
 
   return (

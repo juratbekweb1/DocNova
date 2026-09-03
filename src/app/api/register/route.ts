@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { registerRateLimiter } from "@/lib/security/rate-limiter";
 
 export async function POST(request: NextRequest) {
-  console.log("ROUTE HANDLER DB URL IS:", process.env.DATABASE_URL);
   try {
     // Rate limiting
     const rateLimitResponse = registerRateLimiter.middleware(request);
@@ -27,10 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "User with this email already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "User with this email already exists" }, { status: 400 });
     }
 
     // Hash password with high cost factor for premium security
@@ -48,11 +44,11 @@ export async function POST(request: NextRequest) {
             organization: {
               create: {
                 name: `${name}'s Personal Workspace`,
-                slug: `personal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-              }
-            }
-          }
-        }
+                slug: `personal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              },
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -61,15 +57,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { message: "User created successfully", user },
-      { status: 201 }
-    );
+    return NextResponse.json({ message: "User created successfully", user }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

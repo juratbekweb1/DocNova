@@ -9,7 +9,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getUserSubscription } from "@/lib/billing/subscription";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -49,6 +48,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://DocNova.example.com" },
 };
 
+import { cookies } from "next/headers";
+import { Lang } from "@/components/providers/language-provider";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -60,8 +62,15 @@ export default async function RootLayout({
     subscription = await getUserSubscription(session.user.id);
   }
 
+  const cookieStore = await cookies();
+  const initialLang = (cookieStore.get("NEXT_LOCALE")?.value as Lang) || "uz";
+
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang={initialLang}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
@@ -71,7 +80,7 @@ export default async function RootLayout({
         >
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>
-              <LanguageProvider>
+              <LanguageProvider initialLang={initialLang}>
                 <Navbar />
                 <main className="flex-1 pt-20">{children}</main>
               </LanguageProvider>

@@ -2,32 +2,32 @@
 
 :root {
   /* Premium Dark Mode - Deep Space + Electric Blue */
-  --primary: #0EA5E9; /* Light Blue 500 */
-  --primary-foreground: #F8FAFC;
-  --secondary: #1E293B; /* Slate 800 */
-  --secondary-foreground: #F8FAFC;
-  --accent: #38BDF8; /* Light Blue 400 */
-  --accent-foreground: #0F172A;
-  
+  --primary: #0ea5e9; /* Light Blue 500 */
+  --primary-foreground: #f8fafc;
+  --secondary: #1e293b; /* Slate 800 */
+  --secondary-foreground: #f8fafc;
+  --accent: #38bdf8; /* Light Blue 400 */
+  --accent-foreground: #0f172a;
+
   /* Background & Surfaces (Premium Deep Blue Dark) */
   --background: #020617; /* Very dark slate */
-  --surface: #0B1220; /* Card background */
-  --surface-elevated: #0F172A; /* Slate 900 */
-  
+  --surface: #0b1220; /* Card background */
+  --surface-elevated: #0f172a; /* Slate 900 */
+
   /* Borders */
-  --border: #1E293B; /* Slate 800 */
+  --border: #1e293b; /* Slate 800 */
   --border-hover: #334155; /* Slate 700 */
   --border-strong: #475569; /* Slate 600 */
-  
+
   /* Typography */
-  --foreground: #F8FAFC; /* Slate 50 */
-  --foreground-secondary: #94A3B8; /* Slate 400 */
-  --foreground-muted: #64748B; /* Slate 500 */
-  
+  --foreground: #f8fafc; /* Slate 50 */
+  --foreground-secondary: #94a3b8; /* Slate 400 */
+  --foreground-muted: #64748b; /* Slate 500 */
+
   /* Feedback States */
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
 
   /* Radius System - Modern */
   --radius-sm: 0.375rem;
@@ -44,19 +44,19 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  
+
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
-  
+
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
   --color-border-strong: var(--border-strong);
-  
+
   --color-foreground: var(--foreground);
   --color-foreground-secondary: var(--foreground-secondary);
   --color-foreground-muted: var(--foreground-muted);
-  
+
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
@@ -66,7 +66,7 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
   --radius-full: var(--radius-full);
-  
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
@@ -74,7 +74,7 @@
 /* Base resets & typography scale */
 body {
   background-color: var(--background);
-  background-image: 
+  background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -91,8 +91,13 @@ body {
 
 /* Premium Animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .animate-float {
@@ -146,9 +151,32 @@ body {
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(135deg, #FCD34D, #F59E0B);
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 20mm;
+  }
+  body {
+    background-color: white !important;
+    background-image: none !important;
+    color: black !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+  .a4-document {
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+    color: black !important;
+    background: transparent !important;
+  }
 }

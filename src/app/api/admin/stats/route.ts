@@ -16,7 +16,7 @@ type Session = {
 export async function GET() {
   try {
     const session = (await getServerSession(auth)) as Session;
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,18 +25,12 @@ export async function GET() {
       where: { id: session.user.id },
     });
 
-    if (!user || user.role !== "ADMIN") {
+    if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Fetch admin stats
-    const [
-      totalUsers,
-      totalResumes,
-      activeUsers,
-      premiumUsers,
-      recentUsers,
-    ] = await Promise.all([
+    const [totalUsers, totalResumes, activeUsers, premiumUsers, recentUsers] = await Promise.all([
       prisma.user.count(),
       prisma.document.count(),
       prisma.user.count({
@@ -79,12 +73,14 @@ export async function GET() {
       }),
     ]);
 
-    const formattedRecentUsers = recentUsers.map((user: { id: string; name: string | null; email: string | null; createdAt: Date }) => ({
-      id: user.id,
-      name: user.name || "Unknown",
-      email: user.email || "No email",
-      createdAt: formatTimeAgo(user.createdAt),
-    }));
+    const formattedRecentUsers = recentUsers.map(
+      (user: { id: string; name: string | null; email: string | null; createdAt: Date }) => ({
+        id: user.id,
+        name: user.name || "Unknown",
+        email: user.email || "No email",
+        createdAt: formatTimeAgo(user.createdAt),
+      })
+    );
 
     return NextResponse.json({
       stats: {
@@ -97,10 +93,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching admin stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch admin stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch admin stats" }, { status: 500 });
   }
 }
 

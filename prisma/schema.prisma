@@ -36,6 +36,9 @@ model User {
   phone         String?
   passwordHash  String?
   role          UserRole  @default(USER)
+  planId        String?
+  aiUsageCount  Int       @default(0)
+  lastResetDate DateTime  @default(now())
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
@@ -72,12 +75,14 @@ model User {
   favoriteTools      UserFavoriteTool[]
   recentTools        UserRecentTool[]
   apiLimit           UserApiLimit?
+  transactions       Transaction[]
 
   @@index([email])
   @@index([role])
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   USER
 }
@@ -410,6 +415,7 @@ model Template {
   category     String
   thumbnailUrl String?
   isPremium    Boolean  @default(false)
+  premiumOnly  Boolean  @default(false)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -430,10 +436,36 @@ model Plan {
   slug                 String  @unique
   stripePriceIdMonthly String?
   stripePriceIdYearly  String?
+  priceMonthly         Float?
+  priceYearly          Float?
+  aiDailyLimit         Int     @default(0)
   features             Json
   isActive             Boolean @default(true)
 
   subscriptions Subscription[]
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Float
+  provider  String
+  status    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model PromoCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  discountType  String    // PERCENTAGE or FIXED
+  discountValue Float
+  validUntil    DateTime?
+  usageLimit    Int?
+  timesUsed     Int       @default(0)
+  createdAt     DateTime  @default(now())
 }
 
 model Subscription {
@@ -541,12 +573,14 @@ model UserRecentTool {
 
 
 model UserApiLimit {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  count     Int      @default(0) // AI usages
-  pdfCount  Int      @default(0) // PDF tools usages
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  count      Int      @default(0) // AI usages
+  pdfCount   Int      @default(0) // PDF tools usages
+  cvCount    Int      @default(0)
+  ieltsCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

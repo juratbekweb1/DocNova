@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { checkApiLimit, increaseApiLimit } from "@/lib/ai-limit";
+import { checkCvLimit, increaseCvLimit } from "@/lib/ai-limit";
 import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const freeLimit = await checkApiLimit(session.user.id);
-    // TODO: check if user is PRO, if so skip limit
-    // Assuming everyone is free for now unless we check subscriptions
-    if (!freeLimit) {
-      return NextResponse.json({ error: "Limit reached", requireUpgrade: true }, { status: 403 });
+    const limitCheck = await checkCvLimit(session.user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: "Limit reached", requireUpgrade: true, upgradeMessage: limitCheck.upgradeMessage },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -49,12 +50,15 @@ ${jobDescription || "N/A"}
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-      }
+      },
     });
 
-    await increaseApiLimit(session.user.id);
+    await increaseCvLimit(session.user.id);
 
-    return NextResponse.json(JSON.parse(response.text || "{}"));
+    return NextResponse.json({
+      ...JSON.parse(response.text || "{}"),
+      warningMessage: limitCheck.warningMessage,
+    });
   } catch (error) {
     console.error("CV Analyzer error:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

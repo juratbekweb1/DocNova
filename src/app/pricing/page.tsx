@@ -5,29 +5,37 @@ import { PricingSection } from "@/components/marketing/pricing-section";
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background pt-10 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div className="bg-background min-h-screen overflow-hidden px-4 pt-10 pb-20 sm:px-6 lg:px-8">
       <PricingSection />
-      
+
       {/* Payment Systems Placeholder */}
-      <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-border/50 relative z-10 px-6">
-        <p className="text-center text-sm font-medium text-foreground-secondary mb-6">
-          Quyidagi to'lov tizimlari orqali ishonchli va xavfsiz to'lang
+      <div className="border-border/50 relative z-10 mx-auto mt-20 max-w-7xl border-t px-6 pt-10">
+        <p className="text-foreground-secondary mb-6 text-center text-sm font-medium">
+          Quyidagi to&apos;lov tizimlari orqali ishonchli va xavfsiz to&apos;lang
         </p>
-        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-          <div className="flex items-center gap-2 font-bold text-xl text-foreground">
-            <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center text-white">C</div>
+        <div className="flex flex-wrap items-center justify-center gap-8 opacity-60 grayscale transition-all duration-500 hover:grayscale-0 md:gap-16">
+          <div className="text-foreground flex items-center gap-2 text-xl font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-500 text-white">
+              C
+            </div>
             Click
           </div>
-          <div className="flex items-center gap-2 font-bold text-xl text-foreground">
-            <div className="w-8 h-8 rounded bg-teal-500 flex items-center justify-center text-white">P</div>
+          <div className="text-foreground flex items-center gap-2 text-xl font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-teal-500 text-white">
+              P
+            </div>
             Payme
           </div>
-          <div className="flex items-center gap-2 font-bold text-xl text-foreground">
-            <div className="w-8 h-8 rounded bg-purple-600 flex items-center justify-center text-white">U</div>
+          <div className="text-foreground flex items-center gap-2 text-xl font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-purple-600 text-white">
+              U
+            </div>
             Uzum Bank
           </div>
-          <div className="flex items-center gap-2 font-bold text-xl text-foreground">
-            <div className="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center text-white">S</div>
+          <div className="text-foreground flex items-center gap-2 text-xl font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-indigo-500 text-white">
+              S
+            </div>
             Stripe
           </div>
         </div>
