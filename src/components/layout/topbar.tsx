@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Bell, Search, LogOut, Settings, User as UserIcon, HelpCircle, PlusCircle, ChevronRight, Menu } from "lucide-react"
-
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
@@ -58,10 +58,14 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
           />
         </div>
 
-        <Link href="/dashboard/documents/new" className="hidden sm:flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary/90 px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] active:scale-[0.98]">
-          <PlusCircle className="h-4 w-4" />
-          Yangi hujjat
-        </Link>
+        {pathname.startsWith("/dashboard") && (
+          <Link href="/dashboard/documents/new" className="hidden sm:flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary/90 px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] active:scale-[0.98]">
+            <PlusCircle className="h-4 w-4" />
+            Yangi hujjat
+          </Link>
+        )}
+
+        <ThemeToggle />
 
         <button className="relative rounded-full p-2 text-slate-400 hover:bg-white/5 hover:text-white transition-colors focus:outline-none">
           <Bell className="h-4 w-4" />

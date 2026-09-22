@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The proxy module uses NextResponse.next() with no arguments
 class MockResponse {
@@ -34,7 +34,7 @@ describe("proxy middleware", () => {
       nextUrl: { pathname: "/dashboard" },
     };
 
-    const response = await middleware(req as never);
+    const response = await middleware(req as never, {} as never);
 
     expect(response.headers.get("X-Frame-Options")).toBe("DENY");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
@@ -50,10 +50,11 @@ describe("proxy middleware", () => {
       nextUrl: { pathname: "/" },
     };
 
-    const response = await middleware(req as never);
+    const response = await middleware(req as never, {} as never);
 
     const hsts = response.headers.get("Strict-Transport-Security");
     expect(hsts).toBeTruthy();
     expect(hsts).toContain("max-age=31536000");
   });
 });
+

@@ -62,6 +62,28 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
 
   const password = watch("password", "");
 
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, "");
+    if (!val.startsWith("998")) {
+      val = "998" + val.replace(/^998/, "");
+    }
+    let formatted = "+998 ";
+    if (val.length > 3) {
+      formatted += val.substring(3, 5);
+    }
+    if (val.length > 5) {
+      formatted += " " + val.substring(5, 8);
+    }
+    if (val.length > 8) {
+      formatted += " " + val.substring(8, 10);
+    }
+    if (val.length > 10) {
+      formatted += " " + val.substring(10, 12);
+    }
+    setValue("phone", formatted, { shouldValidate: true });
+  };
+
   const handleFormSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     setServerError(null);
@@ -188,6 +210,10 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
                 }`}
                 placeholder="+998 90 123 45 67"
                 {...register("phone")}
+                onChange={(e) => {
+                  register("phone").onChange(e);
+                  handlePhoneChange(e);
+                }}
               />
               {errors.phone && (
                 <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>

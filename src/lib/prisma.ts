@@ -1,17 +1,22 @@
 import { PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PGlite } from "@electric-sql/pglite";
+import { PrismaPGlite } from "pglite-prisma-adapter";
 import { env } from "../core/config/env";
+import path from "path";
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({
+  // Use a local folder for the database so data persists
+  const client = new PGlite("./prisma/pglite");
+  const adapter = new PrismaPGlite(client);
+  
+  const prisma = new PrismaClient({
     adapter,
     log: env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
+
+  return prisma;
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { motion, AnimatePresence, Reorder } from "motion/react";
@@ -256,6 +256,50 @@ export function LandingPage() {
   const { t } = useLanguage();
   const [activeDemoTab, setActiveDemoTab] = useState(0);
 
+  const { lang } = useLanguage();
+
+  const mainHubs: Feature[] = [
+    {
+      title: lang === 'uz' ? "AI CV Builder Hub" : "AI CV Builder Hub",
+      description: lang === 'uz' ? "Live preview, ATS formatlash, 20+ shablonlar va bir bosishda eksport funksiyalarini o'zida jamlagan professional rezyume yaratuvchi." : "Professional resume builder with live preview, ATS formatting, 20+ templates, and one-click export.",
+      icon: LayoutTemplate,
+      gradient: "from-primary/20 via-sky-500/10 to-transparent",
+      iconColor: "text-primary",
+      glowColor: "rgba(34, 211, 238, 0.15)",
+      badge: "Premium Builder",
+      badgeColor: "bg-primary/10 text-primary border-primary/15",
+      stat: "20+",
+      statLabel: "Templates",
+      href: "/cv-builder",
+    },
+    {
+      title: lang === 'uz' ? "Nova AI Career Copilot" : "Nova AI Career Copilot",
+      description: lang === 'uz' ? "Karyera va rezyume bo'yicha aqlli yordamchi. Real vaqt rejimida suhbat quring, qimmatli maslahatlar va yo'nalishlar oling." : "Smart assistant for career and resume. Chat in real-time, get valuable tips and guidance.",
+      icon: Brain,
+      gradient: "from-violet-500/20 via-purple-500/10 to-transparent",
+      iconColor: "text-violet-400",
+      glowColor: "rgba(139, 92, 246, 0.15)",
+      badge: "AI Copilot",
+      badgeColor: "bg-violet-400/10 text-violet-300 border-violet-400/30",
+      stat: "24/7",
+      statLabel: "Available",
+      href: "/chat",
+    },
+    {
+      title: lang === 'uz' ? "AI Mock Test & Language Hub" : "AI Mock Test & Language Hub",
+      description: lang === 'uz' ? "Ingliz va Rus tillaridagi sohaviy intervyu testlari. Grammatik hamda mantiqiy tahlil orqali zaif tomonlaringizni kuchaytiring." : "Industry-specific interview tests in EN/RU. Strengthen your weaknesses through grammar and logic analysis.",
+      icon: ShieldCheck,
+      gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
+      iconColor: "text-emerald-400",
+      glowColor: "rgba(52, 211, 153, 0.15)",
+      badge: "Smart Interview",
+      badgeColor: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30",
+      stat: "AI",
+      statLabel: "Analysis",
+      href: "/mock-test",
+    }
+  ];
+
   const features: Feature[] = [
     {
       title: t.featAiWritingTitle,
@@ -331,7 +375,7 @@ export function LandingPage() {
       glowColor: "rgba(96, 165, 250, 0.15)",
       badge: t.featVersionsBadge,
       badgeColor: "bg-blue-400/10 text-blue-300 border-blue-400/30",
-      stat: "∞",
+      stat: "РІв‚¬С›",
       statLabel: t.featVersionsStatLabel,
       href: "/features/versions",
     },
@@ -569,7 +613,7 @@ export function LandingPage() {
                       </p>
                       <div className="text-foreground-secondary mt-2 flex gap-3 text-[10px] font-medium">
                         <span>alex@example.com</span>
-                        <span>•</span>
+                        <span>РІР‚Сћ</span>
                         <span>+1 234 567 890</span>
                       </div>
                     </div>
@@ -646,9 +690,9 @@ export function LandingPage() {
             </div>
           </section>
 
-          {/* ═══════════════════════════════════════════
-             KEY FEATURES — Premium Section
-        ═══════════════════════════════════════════ */}
+          {/* РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’
+             KEY FEATURES РІР‚вЂќ Premium Section
+        РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’РІвЂўС’ */}
           <section id="features" className="relative mx-auto max-w-7xl px-6 py-24 sm:px-8 lg:px-12">
             {/* Ambient background glow */}
             <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -675,9 +719,83 @@ export function LandingPage() {
               <p className="text-foreground-secondary mt-4 text-lg leading-8">{t.featuresDesc}</p>
             </motion.div>
 
-            {/* Feature cards grid */}
-            <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature, index) => {
+              {/* Main Hubs grid */}
+              <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {mainHubs.map((feature, index) => {
+                  const Icon = feature.icon;
+                  return (
+                    <Link key={feature.title} href={feature.href} className="block">
+                      <motion.article
+                        initial={{ opacity: 0, y: 32 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: index * 0.08 }}
+                        className="group bg-background/60 relative h-full overflow-hidden rounded-2xl border border-white/8 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5"
+                        style={{
+                          boxShadow: "0 0 0 0 transparent",
+                        }}
+                        whileHover={{
+                          boxShadow: `0 20px 60px -10px ${feature.glowColor}, 0 0 0 1px rgba(255,255,255,0.08)`,
+                        }}
+                      >
+                        {/* Card gradient background */}
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        />
+  
+                        {/* Shimmer sweep on hover */}
+                        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/4 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+  
+                        <div className="relative flex h-full flex-col">
+                          <div>
+                            {/* Icon + badge row */}
+                            <div className="mb-5 flex items-start justify-between">
+                              <div
+                                className={`flex h-14 w-14 items-center justify-center rounded-2xl border bg-gradient-to-br ${feature.gradient} ${feature.badgeColor}`}
+                              >
+                                <Icon className={`h-7 w-7 ${feature.iconColor}`} />
+                              </div>
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${feature.badgeColor}`}
+                              >
+                                {feature.badge}
+                              </span>
+                            </div>
+  
+                            {/* Stat */}
+                            <div className="mb-3 flex items-baseline gap-1.5">
+                              <span className={`text-3xl font-bold ${feature.iconColor}`}>
+                                {feature.stat}
+                              </span>
+                              <span className="text-foreground-secondary text-xs">
+                                {feature.statLabel}
+                              </span>
+                            </div>
+  
+                            <h3 className="text-foreground text-xl font-bold tracking-tight">
+                              {feature.title}
+                            </h3>
+                            <p className="text-foreground-secondary mt-3 text-sm leading-relaxed">
+                              {feature.description}
+                            </p>
+                          </div>
+  
+                          <div className="mt-8 flex items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <span className={`text-sm font-semibold ${feature.iconColor}`}>
+                              {(t as any).learnMore || "Batafsil"}
+                            </span>
+                            <ArrowRight className={`h-5 w-5 ${feature.iconColor}`} />
+                          </div>
+                        </div>
+                      </motion.article>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Feature cards grid */}
+              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
                   <Link key={feature.title} href={feature.href} className="block">
@@ -1003,3 +1121,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+

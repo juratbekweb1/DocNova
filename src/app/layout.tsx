@@ -22,30 +22,36 @@ const geistMono = Geist_Mono({
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://DocNova.example.com"),
+  metadataBase: new URL("https://docnova.uz"),
   title: {
-    default: "DocNova | AI-Powered Resume Builder",
+    default: "DocNova | AI yordamida Rezyume va Intervyu tayyorlash",
     template: "%s | DocNova",
   },
-  description:
-    "Create polished resumes with AI guidance, ATS-ready formatting, and export-ready templates.",
-  keywords: ["resume builder", "AI resume", "ATS resume", "career tools"],
-  authors: [{ name: "DocNova" }],
+  description: "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga (Mock Test) tayyorgarlik ko'ring. Uzb/Rus tillarida yordam beradi.",
+  keywords: ["rezyume builder", "AI resume", "ATS resume", "mock test", "intervyu tayyorgarlik", "karyera yordamchisi"],
+  authors: [{ name: "DocNova Team" }],
   openGraph: {
-    title: "DocNova | AI-Powered Resume Builder",
-    description:
-      "Create polished resumes with AI guidance, ATS-ready formatting, and export-ready templates.",
-    url: "https://DocNova.example.com",
+    title: "DocNova | AI yordamida Rezyume va Intervyu",
+    description: "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga tayyorgarlik ko'ring.",
+    url: "https://docnova.uz",
     siteName: "DocNova",
     type: "website",
+    images: [
+      {
+        url: "https://docnova.uz/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "DocNova Platformasi",
+      }
+    ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "DocNova | AI-Powered Resume Builder",
-    description:
-      "Create polished resumes with AI guidance, ATS-ready formatting, and export-ready templates.",
+    title: "DocNova | AI Karyera Yordamchisi",
+    description: "O'z karyerangizni DocNova bilan boshlang.",
+    images: ["https://docnova.uz/og-image.jpg"],
   },
-  alternates: { canonical: "https://DocNova.example.com" },
+  alternates: { canonical: "https://docnova.uz" },
 };
 
 import { cookies } from "next/headers";
@@ -68,15 +74,19 @@ export default async function RootLayout({
   return (
     <html
       lang={initialLang}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      translate="no"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased overflow-x-hidden`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="google" content="notranslate" />
+      </head>
+      <body className="flex min-h-full flex-col overflow-x-hidden" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          value={{ dark: "dark", light: "light" }}
+          defaultTheme="system"
+          enableSystem
         >
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>
@@ -91,3 +101,4 @@ export default async function RootLayout({
     </html>
   );
 }
+

@@ -24,14 +24,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email || typeof credentials.email !== 'string' || !credentials.email.trim()) {
+          throw new Error('Email requirement failed: valid email string is required.');
+        }
+        
+        if (!credentials?.password) {
           return null;
         }
 
-        const email = credentials.email as string;
+        const email = credentials.email.trim().toLowerCase();
 
-        // Check account lockout
-        const lockoutResult = await checkAccountLockout(email);
+        // Check account lockout with database error handling
+        let lockoutResult;
+        try {
+          lockoutResult = await checkAccountLockout(email);
+        } catch (error: any) {
+          if (error.code === 'ECONNREFUSED' || (error.message && error.message.includes('invocation'))) {
+            throw new Error('Ma\'lumotlar bazasiga ulanib bo\'lmadi. Iltimos, PostgreSQL ishlayotganiga va DATABASE_URL to\'g\'riligiga ishonch hosil qiling.');
+          }
+          throw error;
+        }
+
         if (lockoutResult.isLocked) {
           throw new Error(`Account is locked. Please try again in ${Math.ceil((lockoutResult.lockoutExpires!.getTime() - Date.now()) / 60000)} minutes.`);
         }

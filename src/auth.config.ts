@@ -1,6 +1,7 @@
 import type { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
+import { normalizeRole } from "@/lib/roles";
 
 export const authConfig = {
   providers: [
@@ -20,7 +21,7 @@ export const authConfig = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = normalizeRole(token.role) ?? "USER";
         session.user.username = token.username as string | null;
         session.user.displayName = token.displayName as string | null;
         session.user.avatar = token.avatar as string | null;
@@ -35,7 +36,12 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         const u = user as unknown as Record<string, unknown>;
-        token.role = u.role;
+        const directRole = normalizeRole(u.role);
+
+        if (directRole) {
+          token.role = directRole;
+        }
+
         token.username = u.username;
         token.displayName = u.displayName;
         token.avatar = u.avatar;
@@ -44,7 +50,21 @@ export const authConfig = {
         token.sessionVersion = u.sessionVersion;
         token.twoFactorEnabled = u.twoFactorEnabled;
       }
-      
+
+      if (token.id && !token.role) {
+        const { prisma } = await import("@/lib/prisma");
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+
+        token.role = normalizeRole(dbUser?.role) ?? "USER";
+      }
+
+      if (!token.role) {
+        token.role = "USER";
+      }
+
       // Handle session updates (e.g., when user updates profile)
       if (trigger === "update" && session) {
         if (session.username) token.username = session.username;
@@ -55,7 +75,7 @@ export const authConfig = {
         if (session.sessionVersion !== undefined) token.sessionVersion = session.sessionVersion;
         if (session.twoFactorEnabled !== undefined) token.twoFactorEnabled = session.twoFactorEnabled;
       }
-      
+
       return token;
     },
   },

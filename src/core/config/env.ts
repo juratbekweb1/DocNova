@@ -8,6 +8,9 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(1).optional(),
     AUTH_URL: z.string().url().optional(),
     GEMINI_API_KEY: z.string().min(1).optional(),
+    TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+    TELEGRAM_WEBHOOK_SECRET: z.string().min(1).optional(),
+    TELEGRAM_ADMIN_CHAT_ID: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),

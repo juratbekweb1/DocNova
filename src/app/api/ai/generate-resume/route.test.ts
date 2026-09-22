@@ -83,7 +83,25 @@ describe("POST /api/ai/generate-resume", () => {
     });
   });
 
-  // Test E: Malformed AI JSON response → 502
+  // Test E: localhost should be accepted even outside development mode
+  it("allows localhost requests when no app URL is configured", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+
+    const req = makeRequest(
+      {
+        rawInput: "I worked as a frontend developer for 3 years building React applications.",
+      },
+      { origin: "http://localhost:3000" }
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  // Test F: Malformed AI JSON response → 502
   it("returns 502 when provider returns unparseable JSON", async () => {
     const { getAIProvider } = await import("@/core/ai/provider-factory");
     vi.mocked(getAIProvider).mockReturnValueOnce({
@@ -95,7 +113,7 @@ describe("POST /api/ai/generate-resume", () => {
 
     const req = makeRequest({
       rawInput: "I worked as a developer for 5 years building great products.",
-    });
+    }, { origin: "http://localhost:3000" });
     const res = await POST(req);
     expect(res.status).toBe(502);
     const json = await res.json();
@@ -104,7 +122,7 @@ describe("POST /api/ai/generate-resume", () => {
     expect(JSON.stringify(json)).not.toContain("SyntaxError");
   });
 
-  // Test F: GET method is rejected
+  // Test G: GET method is rejected
   it("returns error for GET requests", async () => {
     const res = await GET();
     expect(res.status).toBe(405);

@@ -11,6 +11,8 @@ import { Container } from "@/components/ui/container";
 import { motion, AnimatePresence } from "motion/react";
 import { Globe, ChevronDown, User, LogOut, Shield } from "lucide-react";
 import { useLanguage, Lang } from "@/components/providers/language-provider";
+import { UsageIndicator } from "./usage-indicator";
+
 
 const languages = [
   { code: "uz" as Lang, label: "O'zbek", flag: "🇺🇿" },
@@ -88,7 +90,9 @@ export function Navbar() {
 
           {session ? (
             <>
-
+              <div className="hidden md:block">
+                <UsageIndicator />
+              </div>
               {/* User Menu */}
               <div className="relative hidden md:block">
                 <button
@@ -157,3 +161,4 @@ export function Navbar() {
     </ScrollHeader>
   );
 }
+

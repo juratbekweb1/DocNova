@@ -5,7 +5,7 @@ export interface NavItem {
 
 export const mainNavConfig: NavItem[] = [
   {
-    title: "Asboblar (Tools)",
+    title: "Asboblar",
     href: "/tools",
   },
   {

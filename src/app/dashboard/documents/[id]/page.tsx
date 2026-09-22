@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Download, Settings, History, Maximize2 } from "lucide-react";
+import { Save, Download, Settings, History, Maximize2, Send } from "lucide-react";
 
 export default function DocumentEditorPage({ _params }: { _params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("content"); // content vs templates
@@ -28,6 +28,22 @@ export default function DocumentEditorPage({ _params }: { _params: { id: string 
           <button className="flex h-9 items-center gap-2 rounded-lg border border-white/10 px-4 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white">
             <Settings className="h-4 w-4" /> Settings
           </button>
+          
+          <button 
+            className="flex h-9 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/documents/${_params.id}/send-telegram`, { method: "POST" });
+                if (res.ok) alert("Sent to Telegram!");
+                else alert("Failed to send.");
+              } catch (_e) {
+                alert("Error sending to telegram.");
+              }
+            }}
+          >
+            <Send className="h-4 w-4" /> Send to Telegram
+          </button>
+
           <button className="flex h-9 items-center gap-2 rounded-lg bg-cyan-600 px-4 text-sm font-medium text-white transition-colors hover:bg-cyan-500">
             <Download className="h-4 w-4" /> Export
           </button>

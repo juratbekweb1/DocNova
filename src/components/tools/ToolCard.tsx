@@ -1,18 +1,20 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Heart } from "lucide-react";
+import { Clock, Zap } from "lucide-react";
 
 interface ToolCardProps {
   title: string;
   description: string;
   icon: React.ElementType;
   href: string;
+  estimatedTime?: string;
   badge?: string;
   badgeColor?: string;
   className?: string;
+  ctaText?: string;
   isFavorite?: boolean;
-  onToggleFavorite?: (e: React.MouseEvent) => void;
+  onToggleFavorite?: () => void;
 }
 
 export function ToolCard({
@@ -20,16 +22,17 @@ export function ToolCard({
   description,
   icon: Icon,
   href,
+  estimatedTime = "~2 min",
   badge,
   badgeColor = "text-primary bg-primary/10 border-primary/20",
   className,
-  isFavorite = false,
-  onToggleFavorite,
+  ctaText = "Boshlash",
+  isFavorite,
+  onToggleFavorite
 }: ToolCardProps) {
   return (
     <Link href={href} className={cn("block group h-full", className)}>
-      <div className="relative h-full overflow-hidden rounded-2xl bg-surface border border-border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.25)]">
-        {/* Subtle inner glow on hover */}
+      <div className="relative h-full overflow-hidden rounded-2xl bg-surface border border-border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.25)] flex flex-col">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-transparent group-hover:from-primary/5 transition-colors duration-500 pointer-events-none" />
         
         <div className="flex flex-col h-full relative z-10">
@@ -44,24 +47,40 @@ export function ToolCard({
                 </span>
               )}
               {onToggleFavorite && (
-                <button 
-                  onClick={(e) => { e.preventDefault(); onToggleFavorite(e); }}
-                  className="p-1.5 rounded-full hover:bg-surface-elevated border border-transparent hover:border-border transition-colors"
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onToggleFavorite();
+                  }}
+                  className={cn(
+                    "p-1.5 rounded-md hover:bg-surface-elevated transition-colors",
+                    isFavorite ? "text-amber-500" : "text-foreground-muted hover:text-amber-500"
+                  )}
                 >
-                  <Heart className={cn("h-4 w-4 transition-colors", isFavorite ? "fill-error text-error" : "text-foreground-muted hover:text-error")} />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </button>
               )}
             </div>
           </div>
           
-          <div className="mt-auto">
-            <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-300 flex items-center gap-2">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
               {title}
-              <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
             </h3>
-            <p className="text-sm text-foreground-secondary font-medium leading-relaxed">
+            <p className="text-sm text-foreground-secondary font-medium leading-relaxed line-clamp-2">
               {description}
             </p>
+          </div>
+
+          <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground-muted">
+              <Clock className="h-3.5 w-3.5" />
+              Tayyor bo&apos;lish vaqti: {estimatedTime}
+            </div>
+            <button className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              {ctaText}
+              <Zap className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>

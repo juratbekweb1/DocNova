@@ -1,11 +1,12 @@
-import type { MetadataRoute } from "next";
+import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
       allow: "/",
+      disallow: ["/api/", "/dashboard/", "/admin/"],
     },
-    sitemap: "https://DocNova.example.com/sitemap.xml",
+    sitemap: "https://docnova.uz/sitemap.xml",
   };
 }

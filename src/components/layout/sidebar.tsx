@@ -14,58 +14,94 @@ import {
   LayoutTemplate,
   Wand2,
   HelpCircle,
-  Wrench,
+  Users,
+  Tag,
   CreditCard,
+  LogOut,
+  ShieldAlert,
+  Key,
+  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
 import { cn } from "@/lib/utils";
 
-const topNavigation = [
-  { name: "Boshqaruv paneli", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Hujjatlarim", href: "/dashboard/documents", icon: FileText },
-  { name: "Shablonlar", href: "/dashboard/templates", icon: LayoutTemplate },
-  { name: "Tools Hub", href: "/tools", icon: Wrench },
-  { name: "AI Asboblar", href: "/dashboard/ai-tools", icon: Wand2 },
-  { name: "Sevimlilar", href: "/dashboard/favorites", icon: Star },
+const getUserNavigation = () => [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Akademik", href: "/academic", icon: LayoutTemplate },
+  { name: "ATS Analyzer", href: "/dashboard/ats-analyzer", icon: Search },
+  { name: "Hujjatlar", href: "/documents", icon: FileText },
+  { name: "Tahrirlash", href: "/refinement", icon: Wand2 },
+  { name: "Saved Documents", href: "/dashboard/documents", icon: Star },
 ];
 
-const bottomNavigation = [
-  { name: "Tariflar", href: "/pricing", icon: CreditCard },
-  { name: "Sozlamalar", href: "/dashboard/settings/profile", icon: Settings },
-  { name: "Yordam", href: "/help", icon: HelpCircle },
+const getAdminNavigation = () => [
+  { name: "Telemetry", href: "/admin", icon: LayoutDashboard },
+  { name: "Pricing Engine", href: "/admin/pricing", icon: CreditCard },
+  { name: "Promo Codes", href: "/admin/promo", icon: Tag },
+  { name: "Users (CRM)", href: "/admin/users", icon: Users },
+];
+
+const getSuperAdminNavigation = () => [
+  { name: "Overview", href: "/super-admin", icon: LayoutDashboard },
+  { name: "Role Management", href: "/super-admin/roles", icon: ShieldAlert },
+  { name: "API Keys", href: "/super-admin/api-keys", icon: Key },
+  { name: "Global Settings", href: "/super-admin/settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
+  let topNavigation = getUserNavigation();
+  let title = "DocNova";
+  
+  if (pathname.startsWith("/super-admin")) {
+    topNavigation = getSuperAdminNavigation();
+    title = "Super Admin";
+  } else if (pathname.startsWith("/admin")) {
+    topNavigation = getAdminNavigation();
+    title = "Admin Panel";
+  }
+
+  const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/academic" || pathname === "/documents" || pathname === "/refinement";
+
+  const bottomNavigation = isDashboardRoute 
+    ? [
+        { name: "Settings & Profile", href: "/dashboard/settings/profile", icon: Settings },
+        { name: "Help & Support", href: "/help", icon: HelpCircle },
+      ]
+    : [
+        { name: "Exit to Dashboard", href: "/dashboard", icon: LogOut },
+      ];
+
   return (
-    <div className="border-border bg-background text-foreground-secondary flex h-full w-[260px] flex-col border-r">
+    <div className="border-border bg-background text-foreground-secondary flex h-full w-64 flex-col border-r">
       <div className="mt-2 flex h-14 items-center px-6">
         <Link href="/" className="text-foreground flex items-center gap-2.5 text-lg font-bold">
           <div className="from-primary to-accent text-primary-foreground shadow-primary/20 flex h-7 w-7 items-center justify-center rounded bg-gradient-to-br text-[10px] shadow-lg">
             DN
           </div>
-          <span className="tracking-tight">DocNova</span>
+          <span className="tracking-tight">{title}</span>
         </Link>
       </div>
 
-      <div className="mt-8 px-4">
-        <Link href="/dashboard/documents/new">
-          <button className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_-3px_rgba(56,189,248,0.4)] active:scale-[0.98]">
-            <PlusCircle className="h-4 w-4" />
-            Yangi hujjat
-          </button>
-        </Link>
-      </div>
+      {isDashboardRoute && (
+        <div className="mt-8 px-4">
+          <Link href="/dashboard/documents/new">
+            <button className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_-3px_rgba(56,189,248,0.4)] active:scale-[0.98]">
+              <PlusCircle className="h-4 w-4" />
+              Yangi hujjat
+            </button>
+          </Link>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto py-6">
         <nav className="grid items-start gap-1 px-3">
           {topNavigation.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              (item.href !== "/dashboard" && item.href !== "/admin" && item.href !== "/super-admin" && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}
@@ -105,7 +141,7 @@ export function Sidebar() {
       <div className="mt-auto px-3 pb-4">
         <nav className="grid items-start gap-1">
           {bottomNavigation.map((item) => {
-            const isActive = pathname.startsWith("/dashboard/settings") && item.name === "Settings";
+            const isActive = pathname.startsWith(item.href) && item.href !== "/dashboard";
             return (
               <Link
                 key={item.name}

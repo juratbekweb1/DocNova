@@ -1,24 +1,14 @@
+version: '3.8'
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: docnova
-      POSTGRES_USER: docnova
-      POSTGRES_PASSWORD: docnova_dev
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docnova-app
+    restart: always
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-  
-  pgadmin:
-    image: dpage/pgadmin4
+      - "3000:3000"
+    env_file:
+      - .env.production
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@docnova.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-
-volumes:
-  pgdata:
+      - NODE_ENV=production

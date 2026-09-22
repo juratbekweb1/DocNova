@@ -28,36 +28,43 @@ model Organization {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  phone         String?
-  passwordHash  String?
-  role          UserRole  @default(USER)
-  planId        String?
-  aiUsageCount  Int       @default(0)
-  lastResetDate DateTime  @default(now())
+  id                  String    @id @default(cuid())
+  name                String?
+  email               String?   @unique
+  emailVerified       DateTime?
+  image               String?
+  phone               String?
+  passwordHash        String?
+  role                UserRole  @default(USER)
+  planId              String?
+  aiUsageCount        Int       @default(0)
+  lastResetDate       DateTime  @default(now())
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
   lockedUntil         DateTime?
   failedLoginAttempts Int       @default(0)
 
-  username            String?   @unique
-  displayName         String?
-  bio                 String?   @db.Text
-  country             String?
-  language            String?
-  theme               String?
-  timezone            String?
-  avatar              String?
-  lastLoginAt         DateTime?
-  lastSeenAt          DateTime?
-  twoFactorEnabled    Boolean   @default(false)
-  twoFactorSecret     String?
-  sessionVersion      Int       @default(0)
+  username         String?   @unique
+  displayName      String?
+  bio              String?   @db.Text
+  country          String?
+  language         String?
+  theme            String?
+  timezone         String?
+  avatar           String?
+  lastLoginAt      DateTime?
+  lastSeenAt       DateTime?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  sessionVersion   Int       @default(0)
+
+  // Telegram Integration
+  telegramId        String? @unique
+  telegramUsername  String?
+  telegramChatId    String?
+  isTelegramLinked  Boolean @default(false)
+  telegramLinkToken String? @unique
 
   accounts           Account[]
   sessions           Session[]
@@ -66,21 +73,38 @@ model User {
   securityEvents     SecurityEvent[]
   emailVerifications EmailVerification[]
   backupCodes        BackupRecoveryCode[]
-  
-  folders            Folder[]
-  documents          Document[]
-  activities         Activity[]
-  aiConversations    AIConversation[]
-  jobApplications    JobApplication[]
-  favoriteTools      UserFavoriteTool[]
-  recentTools        UserRecentTool[]
-  apiLimit           UserApiLimit?
-  transactions       Transaction[]
+
+  folders         Folder[]
+  documents       Document[]
+  activities      Activity[]
+  aiConversations AIConversation[]
+  jobApplications JobApplication[]
+  favoriteTools   UserFavoriteTool[]
+  recentTools     UserRecentTool[]
+  apiLimit        UserApiLimit?
+  transactions    Transaction[]
+  atsAnalyses     AtsAnalysis[]
+
+  plan            SubscriptionTier @default(FREE)
+  subscriptionEndDate DateTime?
+  paymentStatus       String?          @default("NONE") // e.g. PAID, PENDING, NONE
+  dailyAiCount    Int              @default(0)
+  lastRequestDate DateTime         @default(now())
+  mockTestCount   Int              @default(0)
+  resumeCount     Int              @default(0)
+  chatMessages    ChatMessage[]
+  mockTests       MockTestSession[]
 
   @@index([email])
   @@index([role])
 }
 
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  PREMIUM
+}
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -88,12 +112,12 @@ enum UserRole {
 }
 
 model BackupRecoveryCode {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  code      String   @unique
-  used      Boolean  @default(false)
+  code      String    @unique
+  used      Boolean   @default(false)
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -167,12 +191,12 @@ model VerificationToken {
 }
 
 model PasswordReset {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   email     String
-  token     String   @unique
+  token     String    @unique
   expires   DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([email])
   @@index([token])
@@ -240,9 +264,9 @@ model Folder {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  parent       Folder?  @relation("FolderToFolder", fields: [parentId], references: [id])
-  children     Folder[] @relation("FolderToFolder")
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Folder?       @relation("FolderToFolder", fields: [parentId], references: [id])
+  children     Folder[]      @relation("FolderToFolder")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id])
   documents    Document[]
 
@@ -282,19 +306,20 @@ model Document {
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
 
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization?    @relation(fields: [organizationId], references: [id])
-  folder       Folder?          @relation(fields: [folderId], references: [id])
-  template     Template?        @relation(fields: [templateId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  folder       Folder?       @relation(fields: [folderId], references: [id])
+  template     Template?     @relation(fields: [templateId], references: [id])
 
-  metadata     DocumentMetadata[]
-  sections     DocumentSection[]
-  versions     DocumentVersion[]
-  assets       DocumentAsset[]
-  shares       Share[]
-  activities   Activity[]
+  metadata        DocumentMetadata[]
+  sections        DocumentSection[]
+  versions        DocumentVersion[]
+  assets          DocumentAsset[]
+  shares          Share[]
+  activities      Activity[]
   aiConversations AIConversation[]
   jobApplications JobApplication[]
+  atsAnalyses     AtsAnalysis[]
 
   @@index([userId])
   @@index([organizationId])
@@ -343,7 +368,7 @@ model DocumentVersion {
   createdAt  DateTime @default(now())
   createdBy  String?
 
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
   scores   DocumentScore[]
 
   @@unique([documentId, version])
@@ -367,7 +392,7 @@ model Share {
   id          String    @id @default(cuid())
   documentId  String
   token       String    @unique
-  permissions String    // "view", "edit", "comment"
+  permissions String // "view", "edit", "comment"
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
 
@@ -397,7 +422,7 @@ model AIConversation {
   documentId   String
   userId       String
   systemPrompt String?  @db.Text
-  messages     Json     // Chat history
+  messages     Json // Chat history
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -420,7 +445,7 @@ model Template {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  documents    Document[]
+  documents Document[]
 
   @@index([slug])
   @@index([category])
@@ -454,13 +479,14 @@ model Transaction {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
 model PromoCode {
   id            String    @id @default(cuid())
   code          String    @unique
-  discountType  String    // PERCENTAGE or FIXED
+  discountType  String // PERCENTAGE or FIXED
   discountValue Float
   validUntil    DateTime?
   usageLimit    Int?
@@ -505,8 +531,8 @@ model JobApplication {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([documentId])
@@ -533,11 +559,10 @@ model DocumentScore {
   analysisContext  String?  @db.Text // e.g. job description hash
   createdAt        DateTime @default(now())
 
-  version          DocumentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  version DocumentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@index([versionId])
 }
-
 
 // -----------------------------------------------------------------------------
 // TOOLS HUB MODELS
@@ -549,7 +574,7 @@ model UserFavoriteTool {
   toolId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, toolId])
   @@index([userId])
@@ -564,13 +589,12 @@ model UserRecentTool {
   route      String
   lastUsedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, toolId])
   @@index([userId])
   @@index([lastUsedAt])
 }
-
 
 model UserApiLimit {
   id         String   @id @default(cuid())
@@ -582,6 +606,66 @@ model UserApiLimit {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model AtsAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  documentId        String?
+  resumeText        String?  @db.Text
+  jobDescription    String?  @db.Text
+  overallScore      Int
+  keywordScore      Int
+  formatScore       Int
+  completenessScore Int
+  feedback          Json
+  createdAt         DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([documentId])
+}
+
+model SecurityLog {
+  id        String   @id @default(cuid())
+  eventType String // e.g., RATE_LIMIT, BRUTE_FORCE, MALICIOUS_PAYLOAD
+  ipAddress String?
+  userAgent String?
+  path      String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// PRE-AI PLATFORM MODELS
+// -----------------------------------------------------------------------------
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model MockTestSession {
+  id           String   @id @default(cuid())
+  userId       String
+  language     String   // "EN" | "RU"
+  score        Int?
+  feedbackJson Json?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}

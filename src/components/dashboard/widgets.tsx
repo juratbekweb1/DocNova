@@ -10,14 +10,14 @@ import {
   FileBadge,
   MoreVertical,
   Star,
-  FileSignature,
-  FileCheck,
-  FileSpreadsheet,
-  Award,
   Clock,
   CheckCircle2,
   PenTool,
   PlusCircle,
+  GraduationCap,
+  PencilRuler,
+  Search,
+  Sparkles,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -31,10 +31,10 @@ export function WelcomeWidget({
 }) {
   return (
     <div className="col-span-full mb-4">
-      <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+      <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
         Xush kelibsiz, {user?.name?.split(" ")[0] || "Yaratuvchi"} 👋
       </h2>
-      <p className="mt-2 text-lg font-light text-slate-400">
+      <p className="mt-2 text-lg font-light text-foreground-secondary">
         Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada
         tayyorlang.
       </p>
@@ -106,59 +106,64 @@ export function StatCardsWidget() {
 export function QuickCreateWidget() {
   const items = [
     {
-      title: "Rezyume",
-      typeId: "resume",
-      desc: "Ish izlash uchun professional rezyume",
+      title: "Coursework Generator",
+      typeId: "coursework",
+      desc: "Generate structured academic coursework automatically.",
+      icon: GraduationCap,
+      href: "/academic/coursework"
+    },
+    {
+      title: "Essay / Report Builder",
+      typeId: "ai-writer",
+      desc: "Build compelling essays and detailed reports.",
+      icon: PencilRuler,
+      href: "/academic/essay-builder"
+    },
+    {
+      title: "Official Applications",
+      typeId: "applications",
+      desc: "Generate official university and workplace application forms.",
       icon: FileText,
-    },
-    { title: "CV", typeId: "cv", desc: "Batafsil akademik yoki ilmiy CV", icon: FileBadge },
-    {
-      title: "Cover Letter",
-      typeId: "cover-letter",
-      desc: "Moslashtirilgan yozma murojaat",
-      icon: FileSignature,
+      href: "/documents/applications"
     },
     {
-      title: "Ariza",
-      typeId: "application",
-      desc: "Rasmiy ish yoki o'qish arizasi",
-      icon: Briefcase,
+      title: "Coursework-to-Slide",
+      typeId: "coursework-to-slide",
+      desc: "Generate PPTX presentations from your coursework.",
+      icon: Sparkles,
+      href: "/academic/coursework-to-slide"
     },
     {
-      title: "Hisobot",
-      typeId: "report",
-      desc: "Loyihalar va ish hisoboti",
-      icon: FileSpreadsheet,
+      title: "Plagiarism Detector",
+      typeId: "ai-detector",
+      desc: "Scan your documents for plagiarism and AI text.",
+      icon: Search,
+      href: "/refinement/ai-detector"
     },
     {
-      title: "Shartnoma",
-      typeId: "contract",
-      desc: "Huquqiy va biznes shartnomalar",
-      icon: FileCheck,
-    },
-    {
-      title: "Sertifikat",
-      typeId: "certificate",
-      desc: "Yutuqlar va tasdiqlovchi hujjat",
-      icon: Award,
+      title: "Resume Builder",
+      typeId: "resume-builder",
+      desc: "Create ATS-friendly resumes in minutes.",
+      icon: FileBadge,
+      href: "/documents/resume-builder"
     },
   ];
 
   return (
     <div className="col-span-full">
-      <h3 className="mb-4 text-lg font-semibold tracking-tight text-white">Tezkor yaratish</h3>
+      <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Tezkor yaratish</h3>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {items.map((item, i) => (
-          <Link key={i} href={`/dashboard/create/${item.typeId}`}>
+          <Link key={i} href={item.href}>
             <motion.div
               whileHover={{ y: -2 }}
-              className="group flex h-full cursor-pointer flex-col rounded-[20px] border border-white/5 bg-[#0a0f1c] p-5 transition-all hover:border-white/10 hover:bg-[#0f172a] hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]"
+              className="group flex h-full cursor-pointer flex-col rounded-[20px] border border-border bg-surface p-5 transition-all hover:border-primary/50 hover:bg-surface-elevated hover:shadow-lg"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800/50 text-slate-400 transition-colors group-hover:bg-cyan-500/10 group-hover:text-cyan-400">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <item.icon className="h-5 w-5" />
               </div>
-              <h4 className="mb-1 font-semibold text-white">{item.title}</h4>
-              <p className="text-xs leading-relaxed font-light text-slate-400">{item.desc}</p>
+              <h4 className="mb-1 font-semibold text-foreground">{item.title}</h4>
+              <p className="text-xs leading-relaxed font-light text-foreground-secondary">{item.desc}</p>
             </motion.div>
           </Link>
         ))}

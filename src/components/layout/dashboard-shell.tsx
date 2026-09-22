@@ -43,7 +43,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
               onClick={() => setIsMobileMenuOpen(false)} 
             />
-            <div className="relative z-50 flex h-full w-[260px] flex-col overflow-hidden shadow-2xl animate-in slide-in-from-left duration-300">
+            <div className="relative z-50 flex h-full w-64 flex-col overflow-hidden shadow-2xl animate-in slide-in-from-left duration-300">
               <Sidebar />
             </div>
           </div>
