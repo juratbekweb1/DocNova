@@ -5,6 +5,10 @@ export interface NavItem {
 
 export const mainNavConfig: NavItem[] = [
   {
+    title: "AI bilan aloqa",
+    href: "/chat",
+  },
+  {
     title: "Asboblar",
     href: "/tools",
   },

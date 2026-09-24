@@ -23,42 +23,44 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
     return { isPremium: false, features: DEFAULT_FREE_PLAN_FEATURES };
   }
 
-  // Find the user's primary organization (usually they just have one)
-  const orgUser = await prisma.organizationUser.findFirst({
-    where: { userId, role: "OWNER" },
-    include: {
-      organization: {
-        include: {
-          subscriptions: {
-            where: {
-              status: "active",
-              // Optional: Check period end date if required
-              // currentPeriodEnd: { gt: new Date() }
-            },
-            include: {
-              plan: true,
-            },
-            orderBy: {
-              createdAt: 'desc'
-            },
-            take: 1
+  try {
+    const orgUser = await prisma.organizationUser.findFirst({
+      where: { userId, role: "OWNER" },
+      include: {
+        organization: {
+          include: {
+            subscriptions: {
+              where: {
+                status: "active",
+              },
+              include: {
+                plan: true,
+              },
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  if (!orgUser || !orgUser.organization.subscriptions.length) {
+    if (!orgUser || !orgUser.organization.subscriptions.length) {
+      return { isPremium: false, features: DEFAULT_FREE_PLAN_FEATURES };
+    }
+
+    const activeSub = orgUser.organization.subscriptions[0];
+
+    return {
+      isPremium: true,
+      planSlug: activeSub.plan.slug,
+      planName: activeSub.plan.name,
+      expiresAt: activeSub.currentPeriodEnd,
+      features: (activeSub.plan.features as Record<string, unknown>) || {},
+    };
+  } catch (error) {
+    console.error("Failed to fetch subscription, defaulting to FREE:", error);
     return { isPremium: false, features: DEFAULT_FREE_PLAN_FEATURES };
   }
-
-  const activeSub = orgUser.organization.subscriptions[0];
-
-  return {
-    isPremium: true,
-    planSlug: activeSub.plan.slug,
-    planName: activeSub.plan.name,
-    expiresAt: activeSub.currentPeriodEnd,
-    features: (activeSub.plan.features as Record<string, unknown>) || {},
-  };
 }

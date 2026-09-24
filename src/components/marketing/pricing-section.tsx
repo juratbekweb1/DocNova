@@ -58,9 +58,9 @@ export function PricingSection() {
     {
       name: "PRO",
       title: t.proPlan || "Pro",
-      price: formatPrice(getDbPrice("pro", isYearly), isYearly ? "566,400" : "59,000"),
+      price: formatPrice(getDbPrice("pro", isYearly), isYearly ? "287,900" : "29,990"),
       period: isYearly ? "/ Yil" : "/ Oy",
-      billingDetails: isYearly ? "Oyiga 47,200 so'm dan aylanadi" : "Har oy to'lanadi",
+      billingDetails: isYearly ? "Oyiga 23,990 so'm dan aylanadi" : "Har oy to'lanadi",
       description: t.proPlanDesc || "Karyerangizni yangi bosqichga ko'taring.",
       features: [
         { name: "10-15 ta ATS premium shablonlar", included: true },
@@ -78,9 +78,9 @@ export function PricingSection() {
     {
       name: "PREMIUM",
       title: t.premiumPlan || "Premium",
-      price: formatPrice(getDbPrice("premium", isYearly), isYearly ? "758,400" : "79,000"),
+      price: formatPrice(getDbPrice("premium", isYearly), isYearly ? "479,900" : "49,990"),
       period: isYearly ? "/ Yil" : "/ Oy",
-      billingDetails: isYearly ? "Oyiga 63,200 so'm dan aylanadi" : "Har oy to'lanadi",
+      billingDetails: isYearly ? "Oyiga 39,990 so'm dan aylanadi" : "Har oy to'lanadi",
       description: t.premiumPlanDesc || "Cheksiz imkoniyatlar, barcha cheklovlardan ozod bo'ling.",
       features: [
         { name: "Barcha PRO imkoniyatlar", included: true },

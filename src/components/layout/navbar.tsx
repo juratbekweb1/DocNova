@@ -33,9 +33,9 @@ export function Navbar() {
 
   return (
     <ScrollHeader>
-      <Container className="flex h-20 items-center justify-between">
+      <Container className="flex h-16 md:h-20 items-center justify-between gap-4">
         {/* Left: Logo */}
-        <div className="flex items-center">
+        <div className="flex items-center shrink-0">
           <Logo />
         </div>
 
@@ -45,7 +45,7 @@ export function Navbar() {
         </div>
 
         {/* Right: Desktop Actions & Mobile Menu Toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 shrink-0">
           {/* Language Selector (Visible to all) */}
           <div className="relative hidden md:block">
             <button
@@ -145,12 +145,12 @@ export function Navbar() {
               </div>
             </>
           ) : (
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login" className="text-sm font-bold text-foreground/80 hover:text-amber-600 dark:hover:text-primary transition-all duration-300 px-4 py-2 hover:drop-shadow-sm hover:-translate-y-0.5">
+            <div className="hidden md:flex items-center gap-4">
+              <Link href="/login" className="text-sm font-medium text-foreground/80 hover:text-white transition-all duration-300">
                 {t.login}
               </Link>
-              <Link href="/register" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-accent transition-all duration-300">
-                {t.getStarted || "Ro'yxatdan o'tish"}
+              <Link href="/register" className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:shadow-md hover:bg-accent transition-all duration-300">
+                {t.getStarted || "Boshlash"}
               </Link>
             </div>
           )}

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
 
-  serverExternalPackages: ["@prisma/client", "@prisma/engines", "@electric-sql/pglite", "pglite-prisma-adapter"],
+  serverExternalPackages: ["@prisma/client", "@prisma/engines", "@electric-sql/pglite", "pglite-prisma-adapter", "bcrypt", "bcryptjs"],
   turbopack: {},
   images: {
     remotePatterns: [

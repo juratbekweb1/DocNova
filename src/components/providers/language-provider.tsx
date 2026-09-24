@@ -171,8 +171,8 @@ export const translations = {
     premiumPlanDesc:
       "Cheksiz imkoniyatlar, barcha premium shablonlar va to'liq cheklovsiz foydalanish.",
     priceFree: "0 UZS",
-    pricePro: "29,000 UZS",
-    pricePremium: "59,000 UZS",
+    pricePro: "29,990 UZS",
+    pricePremium: "49,990 UZS",
     usageLimitTitle: "Foydalanish limiti tugadi",
     usageLimitDesc:
       "Siz ushbu bo'limdan bepul foydalanish limitingizni (1 marta) ishlatib bo'ldingiz. Cheklovsiz davom etish uchun Pro yoki Premium obunasini xarid qiling.",
@@ -269,6 +269,7 @@ export const translations = {
       "Ha. Rezumeyingizni yollovchilar va ishga qabul qilish guruhlari bilan bo'lishish uchun PDF yoki DOCX formatiga eksport qilishingiz mumkin.",
 
     // Nav
+    navChat: "AI bilan aloqa",
     navTools: "Asboblar (Tools)",
     navTemplates: "Shablonlar",
     navPricing: "Tariflar",
@@ -499,8 +500,8 @@ export const translations = {
     premiumPlanDesc:
       "Неограниченные возможности, все премиум шаблоны и полный доступ без ограничений.",
     priceFree: "0 UZS",
-    pricePro: "29,000 UZS",
-    pricePremium: "59,000 UZS",
+    pricePro: "29,990 UZS",
+    pricePremium: "49,990 UZS",
     usageLimitTitle: "Лимит исчерпан",
     usageLimitDesc:
       "Вы исчерпали свой бесплатный лимит (1 раз) для этого раздела. Чтобы продолжить без ограничений, приобретите подписку Pro или Premium.",
@@ -595,6 +596,7 @@ export const translations = {
     faq3A: "Да. Ваше резюме можно экспортировать в PDF или DOCX для отправки рекрутерам.",
 
     // Nav
+    navChat: "AI Chat",
     navTools: "Инструменты",
     navTemplates: "Шаблоны",
     navPricing: "Тарифы",
@@ -825,8 +827,8 @@ export const translations = {
     premiumPlanDesc:
       "Unlimited possibilities, all premium templates, and fully unrestricted access.",
     priceFree: "0 UZS",
-    pricePro: "29,000 UZS",
-    pricePremium: "59,000 UZS",
+    pricePro: "29,990 UZS",
+    pricePremium: "49,990 UZS",
     usageLimitTitle: "Usage limit reached",
     usageLimitDesc:
       "You have used your free limit (1 time) for this tool. To continue without restrictions, please upgrade to a Pro or Premium subscription.",
@@ -920,6 +922,7 @@ export const translations = {
       "Yes. Your resume can be exported to PDF or DOCX for sharing with recruiters and hiring teams.",
 
     // Nav
+    navChat: "AI Chat",
     navTools: "Tools",
     navTemplates: "Templates",
     navPricing: "Pricing",
@@ -1149,8 +1152,8 @@ export const translations = {
     premiumPlan: "Premium",
     premiumPlanDesc: "Sınırsız olasılıklar, tüm premium şablonlar ve tamamen kısıtlamasız erişim.",
     priceFree: "0 UZS",
-    pricePro: "29,000 UZS",
-    pricePremium: "59,000 UZS",
+    pricePro: "29,990 UZS",
+    pricePremium: "49,990 UZS",
     usageLimitTitle: "Kullanım sınırı aşıldı",
     usageLimitDesc:
       "Bu araç için ücretsiz sınırınızı (1 kez) kullandınız. Kısıtlama olmadan devam etmek için lütfen Pro veya Premium aboneliğine yükseltin.",
@@ -1246,6 +1249,7 @@ export const translations = {
       "Evet. Özgeçmişiniz işe alım uzmanlarıyla paylaşılmak üzere PDF veya DOCX olarak dışa aktarılabilir.",
 
     // Nav
+    navChat: "AI Chat",
     navTools: "Araçlar",
     navTemplates: "Şablonlar",
     navPricing: "Fiyatlandırma",

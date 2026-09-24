@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { logSecurityEvent } from "@/lib/security-logger";
 
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   try {
     const secret = req.headers.get("x-internal-secret");

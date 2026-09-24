@@ -19,6 +19,8 @@ export function NavLinks({ className, itemClassName, onLinkClick }: NavLinksProp
 
   const getNavTitle = (href: string, defaultTitle: string) => {
     switch (href) {
+      case "/chat":
+        return t.navChat || defaultTitle;
       case "/tools":
         return t.navTools || defaultTitle;
       case "/dashboard/templates":
@@ -33,7 +35,7 @@ export function NavLinks({ className, itemClassName, onLinkClick }: NavLinksProp
   };
 
   return (
-    <nav className={cn("flex items-center gap-10 lg:gap-14 xl:gap-20 justify-center w-full", className)}>
+    <nav className={cn("flex items-center gap-6 lg:gap-8 justify-center", className)}>
       {mainNavConfig.map((item) => {
         const isActive = pathname === item.href;
 
@@ -43,7 +45,7 @@ export function NavLinks({ className, itemClassName, onLinkClick }: NavLinksProp
             href={item.href}
             onClick={onLinkClick}
             className={cn(
-              "focus-visible:ring-primary relative rounded-md px-1 py-1 text-[15px] font-bold transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none",
+              "focus-visible:ring-primary relative rounded-md px-1 py-1 text-sm lg:text-[15px] font-bold whitespace-nowrap transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none",
               "after:from-primary after:to-accent after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 after:bg-gradient-to-r after:transition-all after:duration-300 hover:after:w-full",
               isActive
                 ? "dark:text-primary text-amber-600 after:w-full"

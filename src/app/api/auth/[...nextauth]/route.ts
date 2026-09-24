@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 import NextAuth from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 
+export const runtime = 'nodejs';
+
 // next-auth v4 App Router handler.
 // Next.js 15+ passes params as a Promise, but next-auth v4 expects sync params.
 // We must await the params and reconstruct a compatible context object.

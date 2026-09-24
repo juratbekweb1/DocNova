@@ -3,7 +3,7 @@ import { AppError } from "@/core/shared/errors";
 import { PromptLibrary } from "./prompt-library";
 
 const GEMINI_API_BASE =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 const TIMEOUT_MS = 15_000;
 
 export class GeminiProvider implements IAIProvider {

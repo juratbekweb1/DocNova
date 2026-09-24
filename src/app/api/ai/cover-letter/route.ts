@@ -35,7 +35,7 @@ Instructions:
 Write a cover letter that is 3-4 paragraphs long. It should be engaging, highlight the skills provided, and match the specified tone. Do not include placeholders like "[Your Phone Number]" - just write the body of the letter. Return plain text only.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
     });
 
