@@ -144,6 +144,13 @@ export default function ToolsHubPage() {
       description: t.catEduDesc || "Smart tools to accelerate your learning and test prep.",
       tools: [
         {
+          title: t.sidebarCoursework || "Kurs ishi uchun (AI Generator)",
+          description: t.toolCourseworkDesc || "OTM, fan va mavzu bo'yicha to'liq kurs ishi va referat yaratish.",
+          icon: GraduationCap,
+          href: "/coursework",
+          badge: "HOT",
+        },
+        {
           title: "Universal Mock Test",
           description: "4 ta qadamli haqiqiy til imtihoni simulyatsiyasi (IELTS, TOPIK, TRKI).",
           icon: GraduationCap,

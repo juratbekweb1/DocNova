@@ -256,8 +256,6 @@ export function LandingPage() {
   const { t } = useLanguage();
   const [activeDemoTab, setActiveDemoTab] = useState(0);
 
-  const { lang } = useLanguage();
-
   const mainHubs: Feature[] = [
     {
       title: t.hubCvBuilderTitle || "AI CV Builder Hub",

@@ -7,6 +7,8 @@ export type Lang = "uz" | "ru" | "en" | "tr";
 export const translations = {
   uz: {
     sidebarDashboard: "Boshqaruv paneli",
+    sidebarCoursework: "Kurs ishi uchun",
+    navCoursework: "Kurs ishi uchun",
     sidebarAcademic: "Akademik",
     sidebarAts: "ATS Tahlili",
     sidebarDocuments: "Hujjatlar",
@@ -451,6 +453,8 @@ export const translations = {
   },
   ru: {
     sidebarDashboard: "Панель управления",
+    sidebarCoursework: "Для курсовых работ",
+    navCoursework: "Для курсовых работ",
     sidebarAcademic: "Академический",
     sidebarAts: "ATS Анализатор",
     sidebarDocuments: "Документы",
@@ -879,6 +883,8 @@ export const translations = {
   },
   en: {
     sidebarDashboard: "Dashboard",
+    sidebarCoursework: "For Coursework",
+    navCoursework: "For Coursework",
     sidebarAcademic: "Academic",
     sidebarAts: "ATS Analyzer",
     sidebarDocuments: "Documents",
@@ -1302,6 +1308,8 @@ export const translations = {
   },
   tr: {
     sidebarDashboard: "Gösterge Paneli",
+    sidebarCoursework: "Dönem Ödevi / Tez İçin",
+    navCoursework: "Dönem Ödevi İçin",
     sidebarAcademic: "Akademik",
     sidebarAts: "ATS Analizörü",
     sidebarDocuments: "Belgeler",
@@ -1758,6 +1766,7 @@ export function LanguageProvider({
       const saved = localStorage.getItem("DocNova-lang") as Lang;
       if (saved && (saved === "uz" || saved === "ru" || saved === "en" || saved === "tr")) {
         if (saved !== lang) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setLangState(saved);
         }
         document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000; SameSite=Lax`;
@@ -1765,6 +1774,7 @@ export function LanguageProvider({
     } catch (e) {
       console.error(e);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setLang = (l: Lang) => {

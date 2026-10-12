@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Key,
   Search,
+  GraduationCap,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -32,12 +33,12 @@ export function Sidebar() {
   const { t } = useLanguage();
 
   const userNavigation = [
-    { name: t.sidebarDashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: t.sidebarAcademic || "Akademik", href: "/academic", icon: LayoutTemplate },
-    { name: t.sidebarAts || "ATS Analyzer", href: "/dashboard/ats-analyzer", icon: Search },
+    { name: t.sidebarDashboard || "Boshqaruv paneli", href: "/dashboard", icon: LayoutDashboard },
+    { name: t.sidebarCoursework || "Kurs ishi uchun", href: "/coursework", icon: GraduationCap },
     { name: t.sidebarDocuments || "Hujjatlar", href: "/documents", icon: FileText },
+    { name: t.sidebarAts || "ATS Tahlili", href: "/dashboard/ats-analyzer", icon: Search },
     { name: t.sidebarRefinement || "Tahrirlash", href: "/refinement", icon: Wand2 },
-    { name: t.sidebarSaved || "Saved Documents", href: "/dashboard/documents", icon: Star },
+    { name: t.sidebarSaved || "Saqlangan hujjatlar", href: "/dashboard/documents", icon: Star },
   ];
 
   const adminNavigation = [
@@ -65,7 +66,7 @@ export function Sidebar() {
     title = t.adminPanelTitle || "Admin Panel";
   }
 
-  const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/academic" || pathname === "/documents" || pathname === "/refinement";
+  const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/academic" || pathname === "/coursework" || pathname === "/documents" || pathname === "/refinement";
 
   const bottomNavigation = isDashboardRoute 
     ? [

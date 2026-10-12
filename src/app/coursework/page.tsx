@@ -54,16 +54,16 @@ export default function CourseworkGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 pt-20 text-white md:p-8">
+    <div className="min-h-screen bg-background p-4 pt-6 text-foreground md:p-8">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 lg:grid-cols-12 print:m-0 print:block print:max-w-none print:p-0">
         {/* Left Side: Form */}
-        <div className="sticky top-24 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl lg:col-span-5 print:hidden">
-          <h1 className="mb-6 text-2xl font-bold text-blue-400">
-            🎓 AI Kurs Ishi va Referat Generatori
+        <div className="sticky top-24 rounded-2xl border border-border bg-surface p-6 shadow-xl lg:col-span-5 print:hidden">
+          <h1 className="mb-6 text-2xl font-bold text-primary flex items-center gap-2">
+            🎓 Kurs ishi va Referat Generatori
           </h1>
           <form onSubmit={handleGenerate} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">OTM nomi</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">OTM nomi</label>
               <input
                 type="text"
                 name="university"
@@ -71,12 +71,12 @@ export default function CourseworkGenerator() {
                 value={formData.university}
                 onChange={handleChange}
                 placeholder="O'zbekiston Milliy Universiteti..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Fan nomi</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Fan nomi</label>
               <input
                 type="text"
                 name="subject"
@@ -84,12 +84,12 @@ export default function CourseworkGenerator() {
                 value={formData.subject}
                 onChange={handleChange}
                 placeholder="Informatika va AT..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Mavzu</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Mavzu</label>
               <input
                 type="text"
                 name="topic"
@@ -97,12 +97,12 @@ export default function CourseworkGenerator() {
                 value={formData.topic}
                 onChange={handleChange}
                 placeholder="Sun'iy intellektning ta'limdagi o'rni..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Talaba F.I.Sh</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Talaba F.I.Sh</label>
               <input
                 type="text"
                 name="studentName"
@@ -110,12 +110,12 @@ export default function CourseworkGenerator() {
                 value={formData.studentName}
                 onChange={handleChange}
                 placeholder="Aliyev Vali..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Ilmiy rahbar</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Ilmiy rahbar</label>
               <input
                 type="text"
                 name="teacherName"
@@ -123,24 +123,24 @@ export default function CourseworkGenerator() {
                 value={formData.teacherName}
                 onChange={handleChange}
                 placeholder="Prof. Qodirov A..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Yil</label>
+              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Yil</label>
               <input
                 type="text"
                 name="year"
                 required
                 value={formData.year}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm font-medium text-red-500">
+              <div className="flex items-center gap-2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-sm font-medium text-red-500">
                 <span>⚠️</span> {error}
               </div>
             )}
@@ -148,12 +148,12 @@ export default function CourseworkGenerator() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary hover:bg-primary/90 px-4 py-3 font-semibold text-primary-foreground shadow-lg transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <svg
-                    className="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+                    className="mr-3 -ml-1 h-5 w-5 animate-spin text-primary-foreground"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -175,7 +175,7 @@ export default function CourseworkGenerator() {
                   Generatsiya qilinmoqda...
                 </>
               ) : (
-                "Yaratish 🚀"
+                "Kurs ishini yaratish 🚀"
               )}
             </button>
           </form>

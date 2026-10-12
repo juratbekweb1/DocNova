@@ -113,7 +113,7 @@ export function QuickCreateWidget() {
       typeId: "coursework",
       desc: t.toolCourseworkDesc || "Generate structured academic coursework automatically.",
       icon: GraduationCap,
-      href: "/academic/coursework"
+      href: "/coursework"
     },
     {
       title: t.toolEssay || "Essay / Report Builder",

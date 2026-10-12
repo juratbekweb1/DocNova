@@ -8,7 +8,7 @@ export default function AcademicHubPage() {
       title: "Kurs ishi generatori",
       description: "Strukturalangan akademik kurs ishlarini avtomatik yarating.",
       icon: GraduationCap,
-      href: "/academic/coursework",
+      href: "/coursework",
       estimatedTime: "~5 min"
     },
     {

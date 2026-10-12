@@ -21,6 +21,8 @@ export function NavLinks({ className, itemClassName, onLinkClick }: NavLinksProp
     switch (href) {
       case "/chat":
         return t.navChat || defaultTitle;
+      case "/coursework":
+        return t.navCoursework || defaultTitle;
       case "/tools":
         return t.navTools || defaultTitle;
       case "/dashboard/templates":
