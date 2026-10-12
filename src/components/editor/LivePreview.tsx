@@ -39,7 +39,7 @@ export function LivePreview({ document }: { document: FullDocument }) {
         </div>
       </div>
       
-      <div className="flex-1 overflow-auto bg-[#020617] p-4 flex justify-center items-start no-scrollbar relative">
+      <div className="flex-1 overflow-auto bg-background p-4 flex justify-center items-start no-scrollbar relative">
         <div className="absolute inset-0 bg-[url(/grid.svg)] opacity-[0.05] pointer-events-none" />
         
         <div className="origin-top scale-[0.45] xl:scale-[0.5] transition-transform relative z-10">

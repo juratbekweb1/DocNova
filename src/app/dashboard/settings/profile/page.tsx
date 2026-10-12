@@ -21,11 +21,11 @@ export default async function SettingsProfilePage() {
         title="Profile" 
         description="This is how others will see you on the site."
       />
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border bg-surface p-6 shadow-sm">
         <ProfileForm />
       </div>
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm mt-6">
+      <div className="rounded-xl border bg-surface p-6 shadow-sm mt-6">
         <TelegramIntegration 
           isLinked={user?.isTelegramLinked || false} 
           telegramUsername={user?.telegramUsername} 

@@ -50,13 +50,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
     try {
       if (path.startsWith("/api/auth/")) {
-        if (hasUpstashConfig) {
-          const result = await upstashAuthRateLimit!.limit(`auth_${ip}`);
-          success = result.success;
-        } else {
-          const result = memoryRateLimit(`auth_${ip}`, 5, 60000);
-          success = result.success;
-        }
+        // Never block authentication / OAuth callbacks
+        success = true;
       } else if (path.startsWith("/api/ai/")) {
         if (hasUpstashConfig) {
           const result = await upstashAiRateLimit!.limit(`ai_${ip}`);

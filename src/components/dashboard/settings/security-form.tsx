@@ -197,7 +197,7 @@ export function SecurityForm() {
             </div>
             <div>
               <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground-secondary">
                 Add an extra layer of security to your account.
               </p>
             </div>
@@ -272,7 +272,7 @@ export function SecurityForm() {
           </div>
           <div>
             <h3 className="text-lg font-medium">Change Password</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-secondary">
               Update your password associated with your account.
             </p>
           </div>

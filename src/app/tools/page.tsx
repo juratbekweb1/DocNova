@@ -144,6 +144,13 @@ export default function ToolsHubPage() {
       description: t.catEduDesc || "Smart tools to accelerate your learning and test prep.",
       tools: [
         {
+          title: "Universal Mock Test",
+          description: "4 ta qadamli haqiqiy til imtihoni simulyatsiyasi (IELTS, TOPIK, TRKI).",
+          icon: GraduationCap,
+          href: "/tools/mock-test",
+          badge: "NEW",
+        },
+        {
           title: t.toolIelts || "IELTS Mock Test",
           description: t.toolIeltsDesc || "Full IELTS simulation with AI scoring for all sections.",
           icon: GraduationCap,

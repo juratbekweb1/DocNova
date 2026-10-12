@@ -115,7 +115,7 @@ export function NewDocumentFlow() {
               <button
                 onClick={() => handleCreate('scratch')}
                 disabled={isCreating}
-                className="group relative flex flex-col items-center text-center rounded-[24px] border border-white/5 bg-[#0a0f1c] p-8 transition-all hover:-translate-y-1 hover:border-white/10 hover:bg-[#0f172a] hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative flex flex-col items-center text-center rounded-[24px] border border-white/5 bg-[#0a0f1c] p-8 transition-all hover:-translate-y-1 hover:border-white/10 hover:bg-surface hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800 text-slate-400 transition-colors group-hover:bg-slate-700 group-hover:text-white">
                   <PenTool className="h-6 w-6" />
@@ -128,7 +128,7 @@ export function NewDocumentFlow() {
               <button
                 onClick={() => handleCreate('template')}
                 disabled={isCreating}
-                className="group relative flex flex-col items-center text-center rounded-[24px] border border-white/5 bg-[#0a0f1c] p-8 transition-all hover:-translate-y-1 hover:border-white/10 hover:bg-[#0f172a] hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative flex flex-col items-center text-center rounded-[24px] border border-white/5 bg-[#0a0f1c] p-8 transition-all hover:-translate-y-1 hover:border-white/10 hover:bg-surface hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 transition-colors group-hover:bg-blue-500/20 group-hover:text-blue-300">
                   <LayoutTemplate className="h-6 w-6" />

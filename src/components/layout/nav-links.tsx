@@ -45,7 +45,7 @@ export function NavLinks({ className, itemClassName, onLinkClick }: NavLinksProp
             href={item.href}
             onClick={onLinkClick}
             className={cn(
-              "focus-visible:ring-primary relative rounded-md px-1 py-1 text-sm lg:text-[15px] font-bold whitespace-nowrap transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none",
+              "block focus-visible:ring-primary relative rounded-md px-1 py-1 text-sm lg:text-[15px] font-bold whitespace-nowrap transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none",
               "after:from-primary after:to-accent after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 after:bg-gradient-to-r after:transition-all after:duration-300 hover:after:w-full",
               isActive
                 ? "dark:text-primary text-amber-600 after:w-full"

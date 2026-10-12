@@ -38,7 +38,7 @@ export function TelegramIntegration({ isLinked, telegramUsername }: { isLinked: 
         </div>
         <div>
           <h3 className="text-lg font-medium">Telegram Bot Integration</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground-secondary">
             {isLinked 
               ? `Linked to @${telegramUsername || "Telegram User"}`
               : "Receive notifications and documents directly in Telegram."}

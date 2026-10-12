@@ -8,7 +8,7 @@ export default function SettingsAccountPage() {
         title="Account" 
         description="Manage your account security and email settings."
       />
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border bg-surface p-6 shadow-sm">
         <AccountForm />
       </div>
     </div>

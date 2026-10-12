@@ -80,7 +80,7 @@ export function SessionsForm() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-medium">Active Sessions</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-secondary">
               Devices that are currently logged into your account.
             </p>
           </div>
@@ -111,7 +111,7 @@ export function SessionsForm() {
           {sessions.map((session) => (
             <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-surface-elevated p-3 text-muted-foreground">
+                <div className="rounded-full bg-surface-elevated p-3 text-foreground-secondary">
                   <session.icon className="h-6 w-6" />
                 </div>
                 <div>
@@ -123,7 +123,7 @@ export function SessionsForm() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                  <div className="flex items-center gap-1 text-sm text-foreground-secondary mt-1">
                     <Globe className="h-3 w-3" />
                     <span>{session.location}</span>
                     <span className="mx-1">•</span>
@@ -133,8 +133,8 @@ export function SessionsForm() {
               </div>
               
               <div className="mt-4 sm:mt-0 flex sm:flex-col items-center sm:items-end justify-between">
-                <p className="text-sm text-muted-foreground">{session.lastActive}</p>
-                <p className="text-xs text-muted-foreground font-mono mt-1">IP: {session.ip}</p>
+                <p className="text-sm text-foreground-secondary">{session.lastActive}</p>
+                <p className="text-xs text-foreground-secondary font-mono mt-1">IP: {session.ip}</p>
               </div>
             </div>
           ))}

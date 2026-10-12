@@ -91,7 +91,7 @@ export function ActiveSectionEditor({ section, onChange }: ActiveSectionEditorPr
         value={value || ""} 
         onChange={(e) => onChange(e.target.value)}
         style={{ minHeight }}
-        className="w-full bg-[#020617] border border-white/10 rounded-lg p-4 text-base text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 resize-y transition-shadow shadow-inner leading-relaxed" 
+        className="w-full bg-background border border-white/10 rounded-lg p-4 text-base text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 resize-y transition-shadow shadow-inner leading-relaxed" 
         placeholder={placeholder}
       />
     </div>

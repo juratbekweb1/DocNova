@@ -32,8 +32,8 @@ export function ToolCard({
 }: ToolCardProps) {
   return (
     <Link href={href} className={cn("block group h-full", className)}>
-      <div className="relative h-full overflow-hidden rounded-2xl bg-surface border border-border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.25)] flex flex-col">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-transparent group-hover:from-primary/5 transition-colors duration-500 pointer-events-none" />
+      <div className="relative h-full overflow-hidden rounded-2xl bg-surface border border-border p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary hover:shadow-[0_0_30px_-5px_rgba(56,189,248,0.4)] flex flex-col">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-transparent group-hover:from-primary/20 group-hover:via-primary/5 transition-colors duration-500 pointer-events-none" />
         
         <div className="flex flex-col h-full relative z-10">
           <div className="flex items-start justify-between mb-4">

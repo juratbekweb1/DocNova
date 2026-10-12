@@ -29,7 +29,7 @@ export function UsageIndicator() {
 
   return (
     <div className="flex items-center gap-3 px-3 py-1.5 bg-surface-elevated border border-border rounded-lg shadow-sm">
-      <div className="flex flex-col gap-1 w-24">
+      <div className="flex flex-col gap-1 w-32">
         <div className="flex justify-between items-center text-[10px] font-bold">
           <span className="text-foreground-secondary uppercase tracking-wider">{data.plan}</span>
           <span className={isCritical ? "text-red-500" : "text-primary"}>

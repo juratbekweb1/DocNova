@@ -125,7 +125,7 @@ export function PrivacyForm() {
           </div>
           <div>
             <h3 className="text-lg font-medium">Data Export</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-secondary">
               Request a copy of your personal data stored on DocNova.
             </p>
           </div>

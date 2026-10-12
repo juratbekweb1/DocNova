@@ -6,6 +6,39 @@ export type Lang = "uz" | "ru" | "en" | "tr";
 
 export const translations = {
   uz: {
+    sidebarDashboard: "Boshqaruv paneli",
+    sidebarAcademic: "Akademik",
+    sidebarAts: "ATS Tahlili",
+    sidebarDocuments: "Hujjatlar",
+    sidebarRefinement: "Tahrirlash",
+    sidebarSaved: "Saqlangan hujjatlar",
+    sidebarSettings: "Sozlamalar va Profil",
+    sidebarHelp: "Yordam va Qo'llab-quvvatlash",
+    topbarSearch: "Hujjatlarni qidirish...",
+    topbarNewDoc: "Yangi hujjat",
+    topbarProfile: "Profil",
+    topbarSettings: "Sozlamalar",
+    topbarHelp: "Yordam",
+    topbarLogout: "Tizimdan chiqish",
+    welcomeGreeting: "Xush kelibsiz",
+    welcomeSubtitle: "Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada tayyorlang.",
+    activePlanLabel: "Faol tarif",
+    aiGenerationsLabel: "AI Yaratishlar",
+    cvAnalyzerLabel: "CV Tahlili",
+    ieltsMocksLabel: "IELTS Sinovlari",
+    quickCreateTitle: "Tezkor yaratish",
+    toolCoursework: "Kurs ishi generatori",
+    toolCourseworkDesc: "Tuzilgan akademik kurs ishlarini avtomatik yarating.",
+    toolEssay: "Insho / Hisobot yaratuvchi",
+    toolEssayDesc: "Ta'sirchan insholar va batafsil hisobotlar tuzing.",
+    toolApplications: "Rasmiy arizalar",
+    toolApplicationsDesc: "Universitet va ish joyi uchun rasmiy ariza shakllarini yarating.",
+    toolSlides: "Kurs ishidan taqdimotga",
+    toolSlidesDesc: "Kurs ishingizdan PPTX taqdimotlar yarating.",
+    toolPlagiarism: "Plagiat tekshiruvchi",
+    toolPlagiarismDesc: "Hujjatlaringizni plagiat va AI matniga tekshiring.",
+    toolResume: "Rezyume yaratuvchi",
+    toolResumeDesc: "Daqiqalar ichida ATS-do'stona rezyumelar yarating.",
     // Navbar
     login: "Kirish",
     getStarted: "Boshlash",
@@ -349,8 +382,107 @@ export const translations = {
     filterAiWriter: "AI Yozuvchi",
     filterTranslator: "Tarjimon",
     filterGrammar: "Grammatika",
+    // Admin Panel & Nav
+    adminTitle: "Admin Boshqaruv Paneli",
+    adminSubtitle: "Saytning to'liq statistikasi, kirish-chiqishlar va moliyaviy holati.",
+    adminOnline: "Tizim faol (Online)",
+    adminTotalUsers: "Jami Foydalanuvchilar",
+    adminMrr: "Oylik Tushum (MRR)",
+    adminAiTokens: "Jami AI Tokenlar",
+    adminActiveSubs: "Faol Obunalar",
+    adminRecentUsers: "So'nggi Ro'yxatdan O'tganlar",
+    adminSecurityLogs: "Xavfsizlik Jurnali",
+    adminColUser: "Foydalanuvchi",
+    adminColRole: "Rol",
+    adminColDate: "Sana",
+    adminColEvent: "Hodisa",
+    adminColIp: "IP Manzil",
+    adminNavTelemetry: "Statistika",
+    adminNavPricing: "Tariflar",
+    adminNavPromo: "Promokodlar",
+    adminNavUsers: "Foydalanuvchilar",
+    adminExitDashboard: "Boshqaruv paneliga qaytish",
+    superAdminTitle: "Bosh Admin",
+    adminPanelTitle: "Admin Panel",
+
+    // Dashboard Recent Documents & Statuses
+    recentDocsTitle: "So'nggi hujjatlar",
+    viewAll: "Barchasini ko'rish",
+    noDocsTitle: "Hali hujjatlaringiz yo'q",
+    noDocsDesc: "AI yordamida birinchi professional hujjatingizni bir necha daqiqada yarating.",
+    createNewDoc: "Yangi hujjat yaratish",
+    statusCompleted: "Tayyor",
+    statusInProgress: "Jarayonda",
+    statusDraft: "Qoralama",
+
+    // Documents Page
+    documentsTitle: "Hujjatlar",
+    documentsDesc: "Rezyumelar, arizalar va barcha hujjatlaringizni boshqaring.",
+
+    // Plans
+    planFree: "Tekin (Free)",
+    planPro: "Pro",
+    planPremium: "Premium",
+
+    // AI Tools
+    aiToolsTitle: "AI Asboblar Markazi",
+    aiToolsDesc: "Kuchli AI yordamchilari bilan karyera hujjatlaringizni mukammallashtiring.",
+    toolImproveWriting: "Yozuvni yaxshilash",
+    toolImproveWritingDesc: "Matnni joylashtiring va AI uni professional ohangga keltiradi.",
+    toolGenSummary: "Rezyume xulosasi yaratish",
+    toolGenSummaryDesc: "Kuchli va ta'sirchan professional xulosa yarating.",
+    toolGenExp: "Tajriba bandlarini tuzish",
+    toolGenExpDesc: "Oddiy qoralamalarni kuchli rezyume bandlariga aylantiring.",
+    toolGenCover: "Muqova xati yaratish",
+    toolGenCoverDesc: "Vakansiyaga moslashtirilgan shaxsiy muqova xati tuzing.",
+    toolAtsAnalyzer: "ATS Tahlilchi",
+    toolAtsAnalyzerDesc: "Rezyumeyingizni zamonaviy ATS talablariga mosligini tekshiring.",
+    toolTranslate: "Professional Tarjima",
+    toolTranslateDesc: "Hujjatlarni professional uslubni saqlagan holda tarjima qiling.",
+
+    // Main Hubs (Landing Page)
+    hubCvBuilderTitle: "AI CV Builder Hub",
+    hubCvBuilderDesc: "Live preview, ATS formatlash, 20+ shablonlar va bir bosishda eksport funksiyalarini o'zida jamlagan professional rezyume yaratuvchi.",
+    hubCopilotTitle: "Nova AI Career Copilot",
+    hubCopilotDesc: "Karyera va rezyume bo'yicha aqlli yordamchi. Real vaqt rejimida suhbat quring, qimmatli maslahatlar va yo'nalishlar oling.",
+    hubMockTestTitle: "AI Mock Test & Til Hubi",
+    hubMockTestDesc: "Ingliz va Rus tillaridagi sohaviy intervyu testlari. Grammatik hamda mantiqiy tahlil orqali zaif tomonlaringizni kuchaytiring.",
+
   },
   ru: {
+    sidebarDashboard: "Панель управления",
+    sidebarAcademic: "Академический",
+    sidebarAts: "ATS Анализатор",
+    sidebarDocuments: "Документы",
+    sidebarRefinement: "Редактирование",
+    sidebarSaved: "Сохраненные документы",
+    sidebarSettings: "Настройки и Профиль",
+    sidebarHelp: "Помощь и Поддержка",
+    topbarSearch: "Поиск документов...",
+    topbarNewDoc: "Новый документ",
+    topbarProfile: "Профиль",
+    topbarSettings: "Настройки",
+    topbarHelp: "Помощь",
+    topbarLogout: "Выйти из системы",
+    welcomeGreeting: "Добро пожаловать",
+    welcomeSubtitle: "Какой документ вы хотите создать сегодня? Создавайте профессиональные документы за считанные минуты с помощью ИИ.",
+    activePlanLabel: "Текущий тариф",
+    aiGenerationsLabel: "Генерации ИИ",
+    cvAnalyzerLabel: "Анализ резюме",
+    ieltsMocksLabel: "IELTS Тесты",
+    quickCreateTitle: "Быстрое создание",
+    toolCoursework: "Генератор курсовых",
+    toolCourseworkDesc: "Создавайте структурированные академические курсовые работы автоматически.",
+    toolEssay: "Конструктор эссе / отчетов",
+    toolEssayDesc: "Создавайте убедительные эссе и подробные отчеты.",
+    toolApplications: "Официальные заявления",
+    toolApplicationsDesc: "Создавайте официальные бланки заявлений для университетов и работы.",
+    toolSlides: "Курсовая в презентацию",
+    toolSlidesDesc: "Создавайте презентации PPTX из вашей курсовой работы.",
+    toolPlagiarism: "Проверка на плагиат",
+    toolPlagiarismDesc: "Проверяйте документы на плагиат и текст, созданный ИИ.",
+    toolResume: "Конструктор резюме",
+    toolResumeDesc: "Создавайте резюме, совместимые с ATS, за считанные минуты.",
     login: "Войти",
     getStarted: "Начать",
     dashboard: "Панель управления",
@@ -678,8 +810,107 @@ export const translations = {
     filterAiWriter: "ИИ Писатель",
     filterTranslator: "Переводчик",
     filterGrammar: "Грамматика",
+    // Admin Panel & Nav
+    adminTitle: "Панель администратора",
+    adminSubtitle: "Полная статистика сайта, логи и финансы.",
+    adminOnline: "Система онлайн",
+    adminTotalUsers: "Всего пользователей",
+    adminMrr: "Ежемесячный доход (MRR)",
+    adminAiTokens: "Всего токенов ИИ",
+    adminActiveSubs: "Активные подписки",
+    adminRecentUsers: "Недавние пользователи",
+    adminSecurityLogs: "Журнал безопасности",
+    adminColUser: "Пользователь",
+    adminColRole: "Роль",
+    adminColDate: "Дата",
+    adminColEvent: "Событие",
+    adminColIp: "IP адрес",
+    adminNavTelemetry: "Телеметрия",
+    adminNavPricing: "Тарифные планы",
+    adminNavPromo: "Промокоды",
+    adminNavUsers: "Пользователи (CRM)",
+    adminExitDashboard: "Вернуться в панель",
+    superAdminTitle: "Главный Администратор",
+    adminPanelTitle: "Панель Администратора",
+
+    // Dashboard Recent Documents & Statuses
+    recentDocsTitle: "Последние документы",
+    viewAll: "Смотреть все",
+    noDocsTitle: "У вас пока нет документов",
+    noDocsDesc: "Создайте свой первый профессиональный документ с помощью ИИ за несколько минут.",
+    createNewDoc: "Создать новый документ",
+    statusCompleted: "Готово",
+    statusInProgress: "В процессе",
+    statusDraft: "Черновик",
+
+    // Documents Page
+    documentsTitle: "Документы",
+    documentsDesc: "Управляйте вашими резюме, заявлениями и документами.",
+
+    // Plans
+    planFree: "Бесплатный",
+    planPro: "Про (Pro)",
+    planPremium: "Премиум (Premium)",
+
+    // AI Tools
+    aiToolsTitle: "Центр ИИ-инструментов",
+    aiToolsDesc: "Улучшайте документы для карьеры с мощными ИИ-помощниками.",
+    toolImproveWriting: "Улучшить текст",
+    toolImproveWritingDesc: "Вставьте текст, и ИИ придаст ему профессиональный тон.",
+    toolGenSummary: "Создать саммари",
+    toolGenSummaryDesc: "Создайте сильное профессиональное резюме о себе.",
+    toolGenExp: "Опыт работы",
+    toolGenExpDesc: "Превратите простые заметки в сильные пункты резюме.",
+    toolGenCover: "Сопроводительное письмо",
+    toolGenCoverDesc: "Создайте персонализированное сопроводительное письмо.",
+    toolAtsAnalyzer: "ATS Анализатор",
+    toolAtsAnalyzerDesc: "Проверьте резюме на соответствие требованиям ATS.",
+    toolTranslate: "Профессиональный перевод",
+    toolTranslateDesc: "Переводите документы с сохранением делового стиля.",
+
+    // Main Hubs (Landing Page)
+    hubCvBuilderTitle: "AI Конструктор резюме",
+    hubCvBuilderDesc: "Профессиональный конструктор резюме с предпросмотром в реальном времени, форматированием ATS, 20+ шаблонами и экспортом в 1 клик.",
+    hubCopilotTitle: "Nova AI Карьерный Копилот",
+    hubCopilotDesc: "Умный помощник по карьере и резюме. Общайтесь в реальном времени, получайте ценные советы и рекомендации.",
+    hubMockTestTitle: "AI Пробный тест и Языковой хаб",
+    hubMockTestDesc: "Отраслевые тесты на собеседованиях на английском и русском языках. Усиливайте слабые стороны с помощью анализа грамматики и логики.",
+
   },
   en: {
+    sidebarDashboard: "Dashboard",
+    sidebarAcademic: "Academic",
+    sidebarAts: "ATS Analyzer",
+    sidebarDocuments: "Documents",
+    sidebarRefinement: "Refinement",
+    sidebarSaved: "Saved Documents",
+    sidebarSettings: "Settings & Profile",
+    sidebarHelp: "Help & Support",
+    topbarSearch: "Search documents...",
+    topbarNewDoc: "New Document",
+    topbarProfile: "Profile",
+    topbarSettings: "Settings",
+    topbarHelp: "Help",
+    topbarLogout: "Sign out",
+    welcomeGreeting: "Welcome",
+    welcomeSubtitle: "What document will you create today? Build professional documents in minutes with AI.",
+    activePlanLabel: "Active Plan",
+    aiGenerationsLabel: "AI Generations",
+    cvAnalyzerLabel: "CV Analyzer",
+    ieltsMocksLabel: "IELTS Mocks",
+    quickCreateTitle: "Quick Create",
+    toolCoursework: "Coursework Generator",
+    toolCourseworkDesc: "Generate structured academic coursework automatically.",
+    toolEssay: "Essay / Report Builder",
+    toolEssayDesc: "Build compelling essays and detailed reports.",
+    toolApplications: "Official Applications",
+    toolApplicationsDesc: "Generate official university and workplace application forms.",
+    toolSlides: "Coursework-to-Slide",
+    toolSlidesDesc: "Generate PPTX presentations from your coursework.",
+    toolPlagiarism: "Plagiarism Detector",
+    toolPlagiarismDesc: "Scan your documents for plagiarism and AI text.",
+    toolResume: "Resume Builder",
+    toolResumeDesc: "Create ATS-friendly resumes in minutes.",
     login: "Log in",
     getStarted: "Get Started",
     dashboard: "Dashboard",
@@ -1002,8 +1233,107 @@ export const translations = {
     filterAiWriter: "AI Writer",
     filterTranslator: "Translator",
     filterGrammar: "Grammar",
+    // Admin Panel & Nav
+    adminTitle: "Admin Dashboard",
+    adminSubtitle: "Full site telemetry, logs, and financials.",
+    adminOnline: "System Online",
+    adminTotalUsers: "Total Users",
+    adminMrr: "Monthly Revenue (MRR)",
+    adminAiTokens: "Total AI Tokens",
+    adminActiveSubs: "Active Subscriptions",
+    adminRecentUsers: "Recent Users",
+    adminSecurityLogs: "Security Logs",
+    adminColUser: "User",
+    adminColRole: "Role",
+    adminColDate: "Date",
+    adminColEvent: "Event",
+    adminColIp: "IP Address",
+    adminNavTelemetry: "Telemetry",
+    adminNavPricing: "Pricing Engine",
+    adminNavPromo: "Promo Codes",
+    adminNavUsers: "Users (CRM)",
+    adminExitDashboard: "Exit to Dashboard",
+    superAdminTitle: "Super Admin",
+    adminPanelTitle: "Admin Panel",
+
+    // Dashboard Recent Documents & Statuses
+    recentDocsTitle: "Recent Documents",
+    viewAll: "View All",
+    noDocsTitle: "No documents yet",
+    noDocsDesc: "Create your first professional document with AI in minutes.",
+    createNewDoc: "Create New Document",
+    statusCompleted: "Completed",
+    statusInProgress: "In Progress",
+    statusDraft: "Draft",
+
+    // Documents Page
+    documentsTitle: "Documents",
+    documentsDesc: "Manage your resumes, applications, and documents.",
+
+    // Plans
+    planFree: "Free",
+    planPro: "Pro",
+    planPremium: "Premium",
+
+    // AI Tools
+    aiToolsTitle: "AI Tools Center",
+    aiToolsDesc: "Supercharge your career documents with powerful AI assistants.",
+    toolImproveWriting: "Improve Writing",
+    toolImproveWritingDesc: "Paste text and AI improves its professional tone.",
+    toolGenSummary: "Generate Summary",
+    toolGenSummaryDesc: "Generate a strong professional summary.",
+    toolGenExp: "Generate Experience",
+    toolGenExpDesc: "Turn simple notes into strong resume bullets.",
+    toolGenCover: "Generate Cover Letter",
+    toolGenCoverDesc: "Generate a personalized cover letter.",
+    toolAtsAnalyzer: "ATS Analyzer",
+    toolAtsAnalyzerDesc: "Analyze your resume against ATS requirements.",
+    toolTranslate: "Translate",
+    toolTranslateDesc: "Translate documents preserving professional tone.",
+
+    // Main Hubs (Landing Page)
+    hubCvBuilderTitle: "AI CV Builder Hub",
+    hubCvBuilderDesc: "Professional resume builder with live preview, ATS formatting, 20+ templates, and one-click export.",
+    hubCopilotTitle: "Nova AI Career Copilot",
+    hubCopilotDesc: "Smart assistant for career and resume. Chat in real-time, get valuable tips and guidance.",
+    hubMockTestTitle: "AI Mock Test & Language Hub",
+    hubMockTestDesc: "Industry-specific interview tests in EN/RU. Strengthen your weaknesses through grammar and logic analysis.",
+
   },
   tr: {
+    sidebarDashboard: "Gösterge Paneli",
+    sidebarAcademic: "Akademik",
+    sidebarAts: "ATS Analizörü",
+    sidebarDocuments: "Belgeler",
+    sidebarRefinement: "Düzenleme",
+    sidebarSaved: "Kaydedilen Belgeler",
+    sidebarSettings: "Ayarlar ve Profil",
+    sidebarHelp: "Yardım ve Destek",
+    topbarSearch: "Belgelerde ara...",
+    topbarNewDoc: "Yeni Belge",
+    topbarProfile: "Profil",
+    topbarSettings: "Ayarlar",
+    topbarHelp: "Yardım",
+    topbarLogout: "Çıkış Yap",
+    welcomeGreeting: "Hoş geldiniz",
+    welcomeSubtitle: "Bugün hangi belgeyi oluşturacaksınız? Yapay zeka ile dakikalar içinde profesyonel belgeler hazırlayın.",
+    activePlanLabel: "Aktif Plan",
+    aiGenerationsLabel: "Yapay Zeka Üretimleri",
+    cvAnalyzerLabel: "CV Analizörü",
+    ieltsMocksLabel: "IELTS Denemeleri",
+    quickCreateTitle: "Hızlı Oluştur",
+    toolCoursework: "Ders İşi Oluşturucu",
+    toolCourseworkDesc: "Otomatik olarak yapılandırılmış akademik ödevler oluşturun.",
+    toolEssay: "Makale / Rapor Oluşturucu",
+    toolEssayDesc: "Etkileyici makaleler ve ayrıntılı raporlar oluşturun.",
+    toolApplications: "Resmi Başvurular",
+    toolApplicationsDesc: "Üniversite ve iş yeri için resmi başvuru formları oluşturun.",
+    toolSlides: "Ödevden Slayta",
+    toolSlidesDesc: "Ders ödevinizden PPTX sunumları oluşturun.",
+    toolPlagiarism: "İntihal Tespiti",
+    toolPlagiarismDesc: "Belgelerinizi intihal ve yapay zeka metni açısından tarayın.",
+    toolResume: "Özgeçmiş Oluşturucu",
+    toolResumeDesc: "Dakikalar içinde ATS dostu özgeçmişler oluşturun.",
     login: "Giriş yap",
     getStarted: "Başla",
     dashboard: "Gösterge paneli",
@@ -1330,6 +1660,72 @@ export const translations = {
     filterAiWriter: "İleri Yazar",
     filterTranslator: "Çevirmen",
     filterGrammar: "Dilbilgisi",
+    // Admin Panel & Nav
+    adminTitle: "Yönetici Paneli",
+    adminSubtitle: "Tam site istatistikleri, günlükler ve finansal durum.",
+    adminOnline: "Sistem Çevrimiçi",
+    adminTotalUsers: "Toplam Kullanıcı",
+    adminMrr: "Aylık Gelir (MRR)",
+    adminAiTokens: "Toplam Yapay Zeka Jetonları",
+    adminActiveSubs: "Aktif Abonelikler",
+    adminRecentUsers: "Son Kullanıcılar",
+    adminSecurityLogs: "Güvenlik Günlüğü",
+    adminColUser: "Kullanıcı",
+    adminColRole: "Rol",
+    adminColDate: "Tarih",
+    adminColEvent: "Olay",
+    adminColIp: "IP Adresi",
+    adminNavTelemetry: "Telemetri",
+    adminNavPricing: "Fiyatlandırma Motoru",
+    adminNavPromo: "Promosyon Kodları",
+    adminNavUsers: "Kullanıcılar",
+    adminExitDashboard: "Panele Dön",
+    superAdminTitle: "Süper Yönetici",
+    adminPanelTitle: "Yönetici Paneli",
+
+    // Dashboard Recent Documents & Statuses
+    recentDocsTitle: "Son Belgeler",
+    viewAll: "Tümünü Gör",
+    noDocsTitle: "Henüz belgeniz yok",
+    noDocsDesc: "Yapay zeka ile dakikalar içinde ilk profesyonel belgenizi oluşturun.",
+    createNewDoc: "Yeni Belge Oluştur",
+    statusCompleted: "Tamamlandı",
+    statusInProgress: "Devam Ediyor",
+    statusDraft: "Taslak",
+
+    // Documents Page
+    documentsTitle: "Belgeler",
+    documentsDesc: "Özgeçmişlerinizi, başvurularınızı ve belgelerinizi yönetin.",
+
+    // Plans
+    planFree: "Ücretsiz",
+    planPro: "Pro",
+    planPremium: "Premium",
+
+    // AI Tools
+    aiToolsTitle: "Yapay Zeka Araçları Merkezi",
+    aiToolsDesc: "Kariyer belgelerinizi güçlü yapay zeka yardımcılarıyla geliştirin.",
+    toolImproveWriting: "Yazımı İyileştir",
+    toolImproveWritingDesc: "Metni yapıştırın ve yapay zeka profesyonel bir tona getirsin.",
+    toolGenSummary: "Özet Oluştur",
+    toolGenSummaryDesc: "Güçlü bir profesyonel özet oluşturun.",
+    toolGenExp: "Deneyim Maddeleri",
+    toolGenExpDesc: "Basit notları güçlü özgeçmiş maddelerine dönüştürün.",
+    toolGenCover: "Kapak Mektubu Oluştur",
+    toolGenCoverDesc: "Kişiselleştirilmiş bir kapak mektubu oluşturun.",
+    toolAtsAnalyzer: "ATS Analizörü",
+    toolAtsAnalyzerDesc: "Özgeçmişinizi ATS gereksinimlerine göre analiz edin.",
+    toolTranslate: "Çeviri",
+    toolTranslateDesc: "Belgeleri profesyonel tonu koruyarak çevirin.",
+
+    // Main Hubs (Landing Page)
+    hubCvBuilderTitle: "AI Özgeçmiş Merkezi",
+    hubCvBuilderDesc: "Canlı önizleme, ATS biçimlendirmesi, 20+ şablon ve tek tıkla dışa aktarma içeren profesyonel özgeçmiş oluşturucu.",
+    hubCopilotTitle: "Nova AI Kariyer Asistanı",
+    hubCopilotDesc: "Kariyer ve özgeçmiş için akıllı asistan. Gerçek zamanlı sohbet edin, değerli ipuçları ve rehberlik alın.",
+    hubMockTestTitle: "AI Deneme Sınavı ve Dil Merkezi",
+    hubMockTestDesc: "İngilizce ve Rusça sektörel mülakat testleri. Dilbilgisi ve mantık analiziyle zayıf yönlerinizi güçlendirin.",
+
   },
 } as const;
 
@@ -1356,20 +1752,37 @@ export function LanguageProvider({
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
 
+  // Sync state with localStorage on client mount if available
   useEffect(() => {
-    // Sync with local storage if it's different from the cookie, or just update local storage
-    localStorage.setItem("DocNova-lang", lang);
-  }, [lang]);
+    try {
+      const saved = localStorage.getItem("DocNova-lang") as Lang;
+      if (saved && (saved === "uz" || saved === "ru" || saved === "en" || saved === "tr")) {
+        if (saved !== lang) {
+          setLangState(saved);
+        }
+        document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const setLang = (l: Lang) => {
     setLangState(l);
-    localStorage.setItem("DocNova-lang", l);
-    // Also set the cookie so the server knows
-    document.cookie = `NEXT_LOCALE=${l}; path=/; max-age=31536000; SameSite=Lax`;
+    try {
+      localStorage.setItem("DocNova-lang", l);
+      document.cookie = `NEXT_LOCALE=${l}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (e) {
+      console.error(e);
+    }
+    // Instant reload so all server and client components immediately switch language!
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
+    <LanguageContext.Provider value={{ lang, setLang, t: (translations[lang] || translations.uz) as Translations }}>
       {children}
     </LanguageContext.Provider>
   );

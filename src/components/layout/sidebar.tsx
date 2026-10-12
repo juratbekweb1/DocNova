@@ -24,54 +24,56 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
-const getUserNavigation = () => [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Akademik", href: "/academic", icon: LayoutTemplate },
-  { name: "ATS Analyzer", href: "/dashboard/ats-analyzer", icon: Search },
-  { name: "Hujjatlar", href: "/documents", icon: FileText },
-  { name: "Tahrirlash", href: "/refinement", icon: Wand2 },
-  { name: "Saved Documents", href: "/dashboard/documents", icon: Star },
-];
-
-const getAdminNavigation = () => [
-  { name: "Telemetry", href: "/admin", icon: LayoutDashboard },
-  { name: "Pricing Engine", href: "/admin/pricing", icon: CreditCard },
-  { name: "Promo Codes", href: "/admin/promo", icon: Tag },
-  { name: "Users (CRM)", href: "/admin/users", icon: Users },
-];
-
-const getSuperAdminNavigation = () => [
-  { name: "Overview", href: "/super-admin", icon: LayoutDashboard },
-  { name: "Role Management", href: "/super-admin/roles", icon: ShieldAlert },
-  { name: "API Keys", href: "/super-admin/api-keys", icon: Key },
-  { name: "Global Settings", href: "/super-admin/settings", icon: Settings },
-];
+import { useLanguage } from "@/components/providers/language-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { t } = useLanguage();
 
-  let topNavigation = getUserNavigation();
+  const userNavigation = [
+    { name: t.sidebarDashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: t.sidebarAcademic || "Akademik", href: "/academic", icon: LayoutTemplate },
+    { name: t.sidebarAts || "ATS Analyzer", href: "/dashboard/ats-analyzer", icon: Search },
+    { name: t.sidebarDocuments || "Hujjatlar", href: "/documents", icon: FileText },
+    { name: t.sidebarRefinement || "Tahrirlash", href: "/refinement", icon: Wand2 },
+    { name: t.sidebarSaved || "Saved Documents", href: "/dashboard/documents", icon: Star },
+  ];
+
+  const adminNavigation = [
+    { name: t.adminNavTelemetry || "Telemetry", href: "/admin", icon: LayoutDashboard },
+    { name: t.adminNavPricing || "Pricing Engine", href: "/admin/pricing", icon: CreditCard },
+    { name: t.adminNavPromo || "Promo Codes", href: "/admin/promo", icon: Tag },
+    { name: t.adminNavUsers || "Users (CRM)", href: "/admin/users", icon: Users },
+  ];
+
+  const superAdminNavigation = [
+    { name: t.sidebarDashboard || "Overview", href: "/super-admin", icon: LayoutDashboard },
+    { name: "Role Management", href: "/super-admin/roles", icon: ShieldAlert },
+    { name: "API Keys", href: "/super-admin/api-keys", icon: Key },
+    { name: t.sidebarSettings || "Global Settings", href: "/super-admin/settings", icon: Settings },
+  ];
+
+  let topNavigation = userNavigation;
   let title = "DocNova";
   
   if (pathname.startsWith("/super-admin")) {
-    topNavigation = getSuperAdminNavigation();
-    title = "Super Admin";
+    topNavigation = superAdminNavigation;
+    title = t.superAdminTitle || "Super Admin";
   } else if (pathname.startsWith("/admin")) {
-    topNavigation = getAdminNavigation();
-    title = "Admin Panel";
+    topNavigation = adminNavigation;
+    title = t.adminPanelTitle || "Admin Panel";
   }
 
   const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/academic" || pathname === "/documents" || pathname === "/refinement";
 
   const bottomNavigation = isDashboardRoute 
     ? [
-        { name: "Settings & Profile", href: "/dashboard/settings/profile", icon: Settings },
-        { name: "Help & Support", href: "/help", icon: HelpCircle },
+        { name: t.sidebarSettings || "Settings & Profile", href: "/dashboard/settings/profile", icon: Settings },
+        { name: t.sidebarHelp || "Help & Support", href: "/help", icon: HelpCircle },
       ]
     : [
-        { name: "Exit to Dashboard", href: "/dashboard", icon: LogOut },
+        { name: t.adminExitDashboard || "Exit to Dashboard", href: "/dashboard", icon: LogOut },
       ];
 
   return (
@@ -90,7 +92,7 @@ export function Sidebar() {
           <Link href="/dashboard/documents/new">
             <button className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_15px_-3px_rgba(56,189,248,0.4)] active:scale-[0.98]">
               <PlusCircle className="h-4 w-4" />
-              Yangi hujjat
+              {t.topbarNewDoc || "Yangi hujjat"}
             </button>
           </Link>
         </div>

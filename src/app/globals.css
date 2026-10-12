@@ -1,40 +1,52 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
 
 :root {
-  /* Premium Dark Mode - Deep Space + Electric Blue */
-  --primary: #0ea5e9; /* Light Blue 500 */
-  --primary-foreground: #f8fafc;
-  --secondary: #1e293b; /* Slate 800 */
-  --secondary-foreground: #f8fafc;
-  --accent: #38bdf8; /* Light Blue 400 */
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #38bdf8;
   --accent-foreground: #0f172a;
-
-  /* Background & Surfaces (Premium Deep Blue Dark) */
-  --background: #020617; /* Very dark slate */
-  --surface: #0b1220; /* Card background */
-  --surface-elevated: #0f172a; /* Slate 900 */
-
-  /* Borders */
-  --border: #1e293b; /* Slate 800 */
-  --border-hover: #334155; /* Slate 700 */
-  --border-strong: #475569; /* Slate 600 */
-
-  /* Typography */
-  --foreground: #f8fafc; /* Slate 50 */
-  --foreground-secondary: #94a3b8; /* Slate 400 */
-  --foreground-muted: #64748b; /* Slate 500 */
-
-  /* Feedback States */
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-elevated: #f1f5f9;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --border-strong: #94a3b8;
+  --foreground: #0f172a;
+  --foreground-secondary: #475569;
+  --foreground-muted: #64748b;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
-
-  /* Radius System - Modern */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-full: 9999px;
+}
+
+:root.dark, .dark {
+  --primary: #0ea5e9;
+  --primary-foreground: #f8fafc;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --accent: #38bdf8;
+  --accent-foreground: #0f172a;
+  --background: #020617;
+  --surface: #0b1220;
+  --surface-elevated: #0f172a;
+  --border: #1e293b;
+  --border-hover: #334155;
+  --border-strong: #475569;
+  --foreground: #f8fafc;
+  --foreground-secondary: #94a3b8;
+  --foreground-muted: #64748b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
 }
 
 @theme inline {
@@ -151,7 +163,7 @@ body {
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   background-size: 200% 200%;
   -webkit-background-clip: text;
   background-clip: text;

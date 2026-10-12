@@ -56,6 +56,8 @@ export const metadata: Metadata = {
 
 import { cookies } from "next/headers";
 import { Lang } from "@/components/providers/language-provider";
+import { ThemeEnforcer } from "@/components/providers/theme-enforcer";
+import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper";
 
 export default async function RootLayout({
   children,
@@ -83,16 +85,28 @@ export default async function RootLayout({
         <meta name="google" content="notranslate" />
       </head>
       <body className="flex min-h-full flex-col overflow-x-hidden" suppressHydrationWarning>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (!window.location.pathname.startsWith('/dashboard') && 
+                  !window.location.pathname.startsWith('/admin') && 
+                  !window.location.pathname.startsWith('/super-admin') && 
+                  !window.location.pathname.startsWith('/tools')) {
+                document.body.classList.add('dark');
+              }
+            `,
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
         >
+          <ThemeEnforcer />
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>
               <LanguageProvider initialLang={initialLang}>
-                <Navbar />
-                <main className="flex-1 pt-20">{children}</main>
+                <AppLayoutWrapper>{children}</AppLayoutWrapper>
               </LanguageProvider>
             </SubscriptionProvider>
           </AuthSessionProvider>

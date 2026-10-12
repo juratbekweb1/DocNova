@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { motion, AnimatePresence, Reorder } from "motion/react";
@@ -260,8 +260,8 @@ export function LandingPage() {
 
   const mainHubs: Feature[] = [
     {
-      title: lang === 'uz' ? "AI CV Builder Hub" : "AI CV Builder Hub",
-      description: lang === 'uz' ? "Live preview, ATS formatlash, 20+ shablonlar va bir bosishda eksport funksiyalarini o'zida jamlagan professional rezyume yaratuvchi." : "Professional resume builder with live preview, ATS formatting, 20+ templates, and one-click export.",
+      title: t.hubCvBuilderTitle || "AI CV Builder Hub",
+      description: t.hubCvBuilderDesc || "Professional resume builder with live preview, ATS formatting, 20+ templates, and one-click export.",
       icon: LayoutTemplate,
       gradient: "from-primary/20 via-sky-500/10 to-transparent",
       iconColor: "text-primary",
@@ -273,8 +273,8 @@ export function LandingPage() {
       href: "/cv-builder",
     },
     {
-      title: lang === 'uz' ? "Nova AI Career Copilot" : "Nova AI Career Copilot",
-      description: lang === 'uz' ? "Karyera va rezyume bo'yicha aqlli yordamchi. Real vaqt rejimida suhbat quring, qimmatli maslahatlar va yo'nalishlar oling." : "Smart assistant for career and resume. Chat in real-time, get valuable tips and guidance.",
+      title: t.hubCopilotTitle || "Nova AI Career Copilot",
+      description: t.hubCopilotDesc || "Smart assistant for career and resume. Chat in real-time, get valuable tips and guidance.",
       icon: Brain,
       gradient: "from-violet-500/20 via-purple-500/10 to-transparent",
       iconColor: "text-violet-400",
@@ -286,8 +286,8 @@ export function LandingPage() {
       href: "/chat",
     },
     {
-      title: lang === 'uz' ? "AI Mock Test & Language Hub" : "AI Mock Test & Language Hub",
-      description: lang === 'uz' ? "Ingliz va Rus tillaridagi sohaviy intervyu testlari. Grammatik hamda mantiqiy tahlil orqali zaif tomonlaringizni kuchaytiring." : "Industry-specific interview tests in EN/RU. Strengthen your weaknesses through grammar and logic analysis.",
+      title: t.hubMockTestTitle || "AI Mock Test & Language Hub",
+      description: t.hubMockTestDesc || "Industry-specific interview tests in EN/RU. Strengthen your weaknesses through grammar and logic analysis.",
       icon: ShieldCheck,
       gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
       iconColor: "text-emerald-400",
@@ -472,7 +472,7 @@ export function LandingPage() {
                 </a>
                 <a
                   href="/tools"
-                  className="text-foreground hover:border-primary/30 rounded-full border border-white/20 px-8 py-4 text-lg font-semibold transition-all hover:scale-105 hover:bg-white/10"
+                  className="text-foreground hover:border-primary/30 rounded-full border border-foreground/20 px-8 py-4 text-lg font-semibold transition-all hover:scale-105 hover:bg-foreground/10"
                 >
                   Tools Hub & Demo
                 </a>
@@ -730,7 +730,7 @@ export function LandingPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: index * 0.08 }}
-                        className="group bg-background/60 relative h-full overflow-hidden rounded-2xl border border-white/8 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5"
+                        className="group bg-background/60 relative h-full overflow-hidden rounded-2xl border border-foreground/10 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5"
                         style={{
                           boxShadow: "0 0 0 0 transparent",
                         }}
@@ -744,7 +744,7 @@ export function LandingPage() {
                         />
   
                         {/* Shimmer sweep on hover */}
-                        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/4 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/5 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
   
                         <div className="relative flex h-full flex-col">
                           <div>
@@ -804,7 +804,7 @@ export function LandingPage() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: index * 0.08 }}
-                      className="group bg-background/60 relative h-full overflow-hidden rounded-2xl border border-white/8 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5"
+                      className="group bg-background/60 relative h-full overflow-hidden rounded-2xl border border-foreground/10 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5"
                       style={{
                         boxShadow: "0 0 0 0 transparent",
                       }}
@@ -818,7 +818,7 @@ export function LandingPage() {
                       />
 
                       {/* Shimmer sweep on hover */}
-                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/4 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/5 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
                       <div className="relative flex h-full flex-col">
                         <div>
@@ -879,7 +879,7 @@ export function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-background/50 mt-16 grid grid-cols-2 gap-4 rounded-2xl border border-white/8 p-6 backdrop-blur-sm md:grid-cols-4"
+              className="bg-background/50 mt-16 grid grid-cols-2 gap-4 rounded-2xl border border-foreground/10 p-6 backdrop-blur-sm md:grid-cols-4"
             >
               {[
                 { icon: Users, value: "12k+", label: t.statActiveUsers, color: "text-primary" },
@@ -946,7 +946,7 @@ export function LandingPage() {
                         className={`group flex items-start gap-4 rounded-2xl border p-5 text-left transition-all duration-300 ${
                           isActive
                             ? "border-primary/40 bg-primary/10 shadow-[0_0_30px_-5px_rgba(34,211,238,0.2)]"
-                            : "border-border bg-surface hover:border-white/15 hover:bg-white/10"
+                            : "border-border bg-surface hover:border-foreground/15 hover:bg-foreground/10"
                         }`}
                       >
                         <div

@@ -29,7 +29,7 @@ export default async function ScorePage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Resume Score</h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-foreground-secondary mt-1">
             Analyze your resume against industry standards and ATS algorithms.
           </p>
         </div>
@@ -47,11 +47,11 @@ export default async function ScorePage() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-5xl font-bold text-foreground">{overallScore}</span>
-              <span className="text-sm font-medium text-muted-foreground">/ 100</span>
+              <span className="text-sm font-medium text-foreground-secondary">/ 100</span>
             </div>
           </div>
           <h3 className="text-xl font-bold">Good Score</h3>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-foreground-secondary mt-2">
             Your resume is in the top 20% of applicants, but there&apos;s room for improvement in keywords.
           </p>
           <Button className="mt-6 w-full gap-2">

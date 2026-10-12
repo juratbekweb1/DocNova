@@ -1,13 +1,14 @@
+export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
+import { getGeminiModel } from "@/lib/ai/gemini";
+import { checkUserLimit, trackAIUsage } from "@/lib/limits";
+import { SubscriptionTier } from "@prisma/client";
 
 import { z } from "zod";
 import xss from "xss";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const atsSchema = z.object({
   resumeText: z.string().min(10, "Resume text is too short").max(50000, "Resume text is too long"),
@@ -32,25 +33,28 @@ export async function POST(req: Request) {
     const resumeText = xss(parsed.data.resumeText);
     const jobDescription = xss(parsed.data.jobDescription);
 
-    // 1. Get the user to decrement AI limits
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { apiLimit: true },
+      select: { id: true, plan: true }
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Checking if user has reached limit
-    if (user.role === "USER") {
-      const limit = user.apiLimit?.count ?? 0;
-      if (limit >= 20) { // arbitrary limit for free tier
-        return NextResponse.json({ error: "AI Generation limit reached. Upgrade to Pro." }, { status: 403 });
-      }
+    const userId = user.id;
+    let organizationId: string | undefined = undefined;
+    if (false) {
+       organizationId = (user as any).organizationId;
+    }
+    const plan = (user.plan as any as string) || 'FREE';
+
+    const limitCheck = await checkUserLimit(userId, "resume_analysis");
+    if (limitCheck.limitExceeded) {
+      await trackAIUsage({ userId, organizationId, plan, feature: "RESUME_ANALYSIS", status: "QUOTA_EXCEEDED", errorCode: "LIMIT_EXCEEDED" });
+      return NextResponse.json({ error: limitCheck.error, code: limitCheck.code }, { status: 429 });
     }
 
-    // Construct the prompt
     const prompt = `You are a strict and highly accurate Applicant Tracking System (ATS) simulator. 
 Your job is to analyze the provided resume text against standard ATS compliance rules. 
 If a job description is provided, analyze the resume specifically for that role.
@@ -74,47 +78,75 @@ ${resumeText}
 ${jobDescription || "None provided. Analyze for general best practices."}
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+    const startTime = Date.now();
+    let status: "SUCCESS" | "FAILED" = "SUCCESS";
+    let errorCode: string | undefined = undefined;
+    let resultData: any;
+    let inputTokens = 0;
+    let outputTokens = 0;
 
-    const outputText = response.text;
-    if (!outputText) {
-        throw new Error("Failed to get a response from Gemini.");
+    try {
+      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-3.8-flash");
+      const response = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      const res = await response.response;
+      const outputText = res.text();
+      
+      if (res.usageMetadata) {
+        inputTokens = res.usageMetadata.promptTokenCount || 0;
+        outputTokens = res.usageMetadata.candidatesTokenCount || 0;
+      } else {
+        inputTokens = Math.ceil(prompt.length / 4);
+        outputTokens = Math.ceil((outputText || "").length / 4);
+      }
+      
+      if (!outputText) {
+          throw new Error("Failed to get a response from Gemini.");
+      }
+
+      resultData = JSON.parse(outputText);
+    } catch (apiError: any) {
+      console.error("Gemini ATS API Error:", apiError);
+      status = "FAILED";
+      errorCode = "API_ERROR";
+      return NextResponse.json({ error: "ERROR: " + (apiError.message || apiError.toString()) }, { status: 503 });
+    } finally {
+      const duration = Date.now() - startTime;
+      await trackAIUsage({
+        userId,
+        organizationId,
+        plan,
+        feature: "RESUME_ANALYSIS",
+        status,
+        inputTokens,
+        outputTokens,
+        requestDurationMs: duration,
+        errorCode
+      });
     }
 
-    const resultData = JSON.parse(outputText);
-
-    // Save ATS Analysis
     const atsAnalysis = await prisma.atsAnalysis.create({
       data: {
         userId: user.id,
         resumeText,
         jobDescription,
-        overallScore: resultData.overallScore,
-        keywordScore: resultData.keywordScore,
-        formatScore: resultData.formatScore,
-        completenessScore: resultData.completenessScore,
+        overallScore: resultData.overallScore || 0,
+        keywordScore: resultData.keywordScore || 0,
+        formatScore: resultData.formatScore || 0,
+        completenessScore: resultData.completenessScore || 0,
         feedback: resultData,
       },
-    });
-
-    // Increment usage
-    await prisma.userApiLimit.upsert({
-      where: { userId: user.id },
-      update: { count: { increment: 1 } },
-      create: { userId: user.id, count: 1 },
     });
 
     return NextResponse.json({ success: true, data: atsAnalysis });
 
   } catch (error: unknown) {
     console.error("[ATS_ANALYZER_ERROR]", error);
-    const message = error instanceof Error ? error.message : "Internal Server Error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

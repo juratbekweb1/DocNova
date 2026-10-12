@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from '@/components/providers/language-provider';
 
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -29,14 +30,15 @@ export function WelcomeWidget({
 }: {
   user: { name?: string | null; avatar?: string | null };
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="col-span-full mb-4">
       <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-        Xush kelibsiz, {user?.name?.split(" ")[0] || "Yaratuvchi"} 👋
+        {t.welcomeGreeting || "Xush kelibsiz"}, {user?.name?.split(" ")[0] || "User"} 👋
       </h2>
       <p className="mt-2 text-lg font-light text-foreground-secondary">
-        Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada
-        tayyorlang.
+        {t.welcomeSubtitle || "Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada tayyorlang."}
       </p>
     </div>
   );
@@ -104,46 +106,47 @@ export function StatCardsWidget() {
 }
 
 export function QuickCreateWidget() {
+  const { t } = useLanguage();
   const items = [
     {
-      title: "Coursework Generator",
+      title: t.toolCoursework || "Coursework Generator",
       typeId: "coursework",
-      desc: "Generate structured academic coursework automatically.",
+      desc: t.toolCourseworkDesc || "Generate structured academic coursework automatically.",
       icon: GraduationCap,
       href: "/academic/coursework"
     },
     {
-      title: "Essay / Report Builder",
+      title: t.toolEssay || "Essay / Report Builder",
       typeId: "ai-writer",
-      desc: "Build compelling essays and detailed reports.",
+      desc: t.toolEssayDesc || "Build compelling essays and detailed reports.",
       icon: PencilRuler,
       href: "/academic/essay-builder"
     },
     {
-      title: "Official Applications",
+      title: t.toolApplications || "Official Applications",
       typeId: "applications",
-      desc: "Generate official university and workplace application forms.",
+      desc: t.toolApplicationsDesc || "Generate official university and workplace application forms.",
       icon: FileText,
       href: "/documents/applications"
     },
     {
-      title: "Coursework-to-Slide",
+      title: t.toolSlides || "Coursework-to-Slide",
       typeId: "coursework-to-slide",
-      desc: "Generate PPTX presentations from your coursework.",
+      desc: t.toolSlidesDesc || "Generate PPTX presentations from your coursework.",
       icon: Sparkles,
       href: "/academic/coursework-to-slide"
     },
     {
-      title: "Plagiarism Detector",
+      title: t.toolPlagiarism || "Plagiarism Detector",
       typeId: "ai-detector",
-      desc: "Scan your documents for plagiarism and AI text.",
+      desc: t.toolPlagiarismDesc || "Scan your documents for plagiarism and AI text.",
       icon: Search,
       href: "/refinement/ai-detector"
     },
     {
-      title: "Resume Builder",
+      title: t.toolResume || "Resume Builder",
       typeId: "resume-builder",
-      desc: "Create ATS-friendly resumes in minutes.",
+      desc: t.toolResumeDesc || "Create ATS-friendly resumes in minutes.",
       icon: FileBadge,
       href: "/documents/resume-builder"
     },
@@ -151,7 +154,7 @@ export function QuickCreateWidget() {
 
   return (
     <div className="col-span-full">
-      <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Tezkor yaratish</h3>
+      <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{t.quickCreateTitle || "Tezkor yaratish"}</h3>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {items.map((item, i) => (
           <Link key={i} href={item.href}>
@@ -173,19 +176,21 @@ export function QuickCreateWidget() {
 }
 
 export function RecentDocumentsWidget({ documents = [] }: { documents?: Document[] }) {
+  const { t } = useLanguage();
+
   if (documents.length === 0) {
     return (
-      <Card className="col-span-full flex flex-col items-center justify-center rounded-[24px] border border-white/5 bg-[#0a0f1c] p-12 text-center shadow-xl">
-        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-blue-500/5">
-          <FileText className="h-10 w-10 text-cyan-400/50" />
+      <Card className="col-span-full flex flex-col items-center justify-center rounded-[24px] border border-border bg-surface p-12 text-center shadow-xl">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+          <FileText className="h-10 w-10 text-primary" />
         </div>
-        <h3 className="mb-2 text-xl font-bold text-white">Hali hujjatlaringiz yo&apos;q</h3>
-        <p className="mb-8 max-w-sm font-light text-slate-400">
-          AI yordamida birinchi professional hujjatingizni bir necha daqiqada yarating.
+        <h3 className="mb-2 text-xl font-bold text-foreground">{t.noDocsTitle || "Hali hujjatlaringiz yo'q"}</h3>
+        <p className="mb-8 max-w-sm font-light text-foreground-secondary">
+          {t.noDocsDesc || "AI yordamida birinchi professional hujjatingizni bir necha daqiqada yarating."}
         </p>
         <Link href="/dashboard/documents/new">
-          <Button className="h-auto rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-8 py-6 text-white shadow-[0_0_20px_-5px_rgba(6,182,212,0.4)] transition-all hover:scale-105 hover:opacity-90">
-            <PlusCircle className="mr-2 h-5 w-5" /> Yangi hujjat yaratish
+          <Button className="h-auto rounded-full bg-primary hover:bg-primary/90 px-8 py-4 text-primary-foreground shadow-lg transition-all hover:scale-105">
+            <PlusCircle className="mr-2 h-5 w-5" /> {t.createNewDoc || "Yangi hujjat yaratish"}
           </Button>
         </Link>
       </Card>
@@ -193,14 +198,14 @@ export function RecentDocumentsWidget({ documents = [] }: { documents?: Document
   }
 
   return (
-    <Card className="col-span-full rounded-[24px] border border-white/5 bg-[#0a0f1c] p-6 shadow-xl lg:p-8">
+    <Card className="col-span-full rounded-[24px] border border-border bg-surface p-6 shadow-xl lg:p-8">
       <div className="mb-8 flex items-center justify-between">
-        <h3 className="text-lg font-semibold tracking-tight text-white">So&apos;nggi hujjatlar</h3>
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">{t.recentDocsTitle || "So'nggi hujjatlar"}</h3>
         <Link
           href="/dashboard/documents"
-          className="flex items-center gap-1 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+          className="flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:underline"
         >
-          Barchasini ko&apos;rish <span aria-hidden="true">&rarr;</span>
+          {t.viewAll || "Barchasini ko'rish"} <span aria-hidden="true">&rarr;</span>
         </Link>
       </div>
 
@@ -208,19 +213,19 @@ export function RecentDocumentsWidget({ documents = [] }: { documents?: Document
         {documents.map((document) => {
           const statuses = [
             {
-              label: "Completed",
+              label: t.statusCompleted || "Completed",
               icon: CheckCircle2,
               color: "text-emerald-400",
               bg: "bg-emerald-400/10 border-emerald-400/20",
             },
             {
-              label: "In progress",
+              label: t.statusInProgress || "In progress",
               icon: PenTool,
               color: "text-blue-400",
               bg: "bg-blue-400/10 border-blue-400/20",
             },
             {
-              label: "Draft",
+              label: t.statusDraft || "Draft",
               icon: Clock,
               color: "text-slate-400",
               bg: "bg-slate-400/10 border-slate-400/20",

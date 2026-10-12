@@ -4,14 +4,22 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { CreditCard, ShieldCheck, CheckCircle, Loader2, Lock } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useLanguage } from '@/components/providers/language-provider';
 
 function CheckoutContent() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const _router = useRouter();
+  const { data: session, status } = useSession();
   
   const plan = searchParams?.get('plan') === 'premium' ? 'premium' : 'pro';
+  
+  // If not logged in, redirect to login
+  if (status === 'unauthenticated') {
+    _router.push(`/login?callbackUrl=/checkout?plan=${plan}`);
+    return null;
+  }
   
   const isPremium = plan === 'premium';
   const planName = isPremium ? t.premiumPlan : t.proPlan;
@@ -20,7 +28,6 @@ function CheckoutContent() {
 
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
   const [name, setName] = useState('');
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,23 +52,28 @@ function CheckoutContent() {
     setIsProcessing(true);
     
     try {
-      const res = await fetch('/api/checkout/dev-upgrade', {
+      const res = await fetch('/api/checkout/payx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planSlug: plan })
+        body: JSON.stringify({ plan: plan })
       });
       
-      if (!res.ok) throw new Error("Failed to process upgrade");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to generate payment url");
+      }
       
-      // Clean up legacy localStorage hack
-      localStorage.removeItem('DocNova_subscription');
-      localStorage.removeItem('DocNova_ai_usage');
+      const data = await res.json();
       
-      _router.push('/dashboard?payment=success');
-    } catch (err) {
+      if (data.pay_url) {
+        window.location.href = data.pay_url;
+      } else {
+        throw new Error("No payment url returned");
+      }
+    } catch (err: any) {
       console.error(err);
       setIsProcessing(false);
-      alert("Payment provider is pending configuration. Could not process transaction.");
+      alert(`Xatolik: ${err.message || "To'lov tizimi bilan bog'lanishda xatolik yuz berdi"}`);
     }
   };
 
@@ -112,35 +124,21 @@ function CheckoutContent() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.expiryDate}</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="MM/YY"
-                      maxLength={5}
-                      value={expiry}
-                      onChange={(e) => {
-                        let val = e.target.value.replace(/[^0-9]/g, '');
-                        if (val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
-                        setExpiry(val);
-                      }}
-                      className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.cvv}</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="123"
-                      maxLength={4}
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.expiryDate}</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="MM/YY"
+                    maxLength={5}
+                    value={expiry}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/[^0-9]/g, '');
+                      if (val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
+                      setExpiry(val);
+                    }}
+                    className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  />
                 </div>
               </div>
 

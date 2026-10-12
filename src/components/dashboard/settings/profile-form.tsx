@@ -152,7 +152,7 @@ export function ProfileForm() {
         </Avatar>
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Profile Picture</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground-secondary">
             JPG, GIF or PNG. Max size of 2MB.
           </p>
           <input

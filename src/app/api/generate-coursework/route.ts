@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
@@ -14,8 +15,8 @@ export async function POST(req: Request) {
     const { subject, topic, university, studentName, teacherName, year } = await req.json();
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Rasmiy ishlaydigan aniq model ID: "gemini-1.5-flash" (yoki "gemini-pro")
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Rasmiy ishlaydigan aniq model ID: "gemini-3.8-flash" (yoki "gemini-pro")
+    const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
 
     const prompt = `
 Siz O'zbekiston OTM standartlarini mukammal biladigan senior akademik professorsiz. 
@@ -56,7 +57,7 @@ Struktura strictly quyidagicha bo'lsin:
 # FOYDALANILGAN ADABIYOTLAR RO'YXATI
     `;
 
-    // Agar gemini-1.5-flash ishlamasa fallback qilish
+    // Agar gemini-3.8-flash ishlamasa fallback qilish
     let result;
     try {
       result = await model.generateContent(prompt);

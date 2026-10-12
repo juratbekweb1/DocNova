@@ -121,7 +121,7 @@ export function AccountForm() {
       <Card className="p-6">
         <div className="mb-6">
           <h3 className="text-lg font-medium">Email Address</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground-secondary">
             Update the email address associated with your account.
           </p>
         </div>
@@ -135,7 +135,7 @@ export function AccountForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-foreground-secondary" />
                       <Input placeholder="your@email.com" className="pl-10" {...field} />
                     </div>
                   </FormControl>
@@ -161,7 +161,7 @@ export function AccountForm() {
           </div>
           <div>
             <h3 className="text-lg font-medium text-error">Danger Zone</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-secondary">
               Permanently delete your account and all associated data.
             </p>
           </div>

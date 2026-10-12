@@ -22,7 +22,7 @@ export function DocumentEditorClient({ initialDocument }: { initialDocument: Ful
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col bg-[#020617] overflow-hidden text-slate-200">
+    <div className="flex h-[100dvh] w-full flex-col bg-background overflow-hidden text-slate-200">
       <EditorToolbar 
         title={document.title} 
         onTitleChange={updateTitle}
@@ -48,7 +48,7 @@ export function DocumentEditorClient({ initialDocument }: { initialDocument: Ful
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left: Section Navigator (20%) */}
-        <div className={`w-[260px] shrink-0 border-r border-white/5 bg-[#020617] flex-col hidden md:flex ${mobileTab === 'edit' ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`w-[260px] shrink-0 border-r border-white/5 bg-background flex-col hidden md:flex ${mobileTab === 'edit' ? 'flex' : 'hidden md:flex'}`}>
           <SectionNavigator 
             sections={document.sections} 
             activeSectionId={activeSectionId}
@@ -91,7 +91,7 @@ export function DocumentEditorClient({ initialDocument }: { initialDocument: Ful
         </div>
 
         {/* Right: Preview & AI Panel (40%) */}
-        <div className={`lg:w-[400px] xl:w-[450px] shrink-0 border-l border-white/5 bg-[#020617] flex-col relative overflow-hidden ${mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'} shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.5)] z-20`}>
+        <div className={`lg:w-[400px] xl:w-[450px] shrink-0 border-l border-white/5 bg-background flex-col relative overflow-hidden ${mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'} shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.5)] z-20`}>
           <EditorRightPanel document={document} />
         </div>
       </div>

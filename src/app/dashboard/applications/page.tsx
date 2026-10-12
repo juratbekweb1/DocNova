@@ -19,7 +19,7 @@ export default async function ApplicationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Application Tracker</h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-foreground-secondary mt-1">
             Track your job applications and interview progress.
           </p>
         </div>
@@ -32,8 +32,8 @@ export default async function ApplicationsPage() {
         {columns.map((col) => (
           <div key={col} className="w-80 shrink-0 flex flex-col">
             <div className="mb-3 flex items-center justify-between px-1">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{col}</h3>
-              <span className="bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+              <h3 className="font-semibold text-sm text-foreground-secondary uppercase tracking-wider">{col}</h3>
+              <span className="bg-muted text-foreground-secondary text-xs px-2 py-0.5 rounded-full font-medium">0</span>
             </div>
             
             <div className="flex-1 bg-surface-muted/50 rounded-xl border border-border/50 p-3 flex flex-col gap-3 min-h-[200px]">
@@ -42,7 +42,7 @@ export default async function ApplicationsPage() {
                   <h4 className="font-semibold text-foreground">Senior Frontend Engineer</h4>
                   <p className="text-sm text-primary mb-3">Vercel</p>
                   
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-foreground-secondary">
                     <Briefcase className="h-3 w-3" />
                     <span>Applied 2 days ago</span>
                   </div>

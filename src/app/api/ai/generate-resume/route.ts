@@ -77,11 +77,38 @@ export async function POST(request: NextRequest) {
 
   // 7. Call provider — errors are thrown as AppError (with safe messages)
   let rawText: string;
+  let status: "SUCCESS" | "FAILED" = "SUCCESS";
+  let errorCode: string | undefined = undefined;
+  const startTime = Date.now();
   try {
     rawText = await provider.complete(prompt);
-  } catch (err) {
+  } catch (err: any) {
+    status = "FAILED";
+    errorCode = "API_ERROR";
+    const duration = Date.now() - startTime;
+    import("@/lib/limits").then(({ trackAIUsage }) => {
+      trackAIUsage({
+        plan: "FREE",
+        feature: "DOCUMENT_GENERATION",
+        status,
+        requestDurationMs: duration,
+        errorCode
+      });
+    });
     return errorResponse(err);
   }
+
+  const duration = Date.now() - startTime;
+  import("@/lib/limits").then(({ trackAIUsage }) => {
+    trackAIUsage({
+      plan: "FREE",
+      feature: "DOCUMENT_GENERATION",
+      status,
+      inputTokens: Math.ceil(prompt.length / 4),
+      outputTokens: Math.ceil((rawText || "").length / 4),
+      requestDurationMs: duration
+    });
+  });
 
   // 8. Strip markdown code fences if the model returns them despite instructions
   const jsonText = rawText

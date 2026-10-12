@@ -12,7 +12,7 @@ export function ComingSoon({ title, description }: ComingSoonProps) {
         <Construction className="h-10 w-10 text-primary" />
       </div>
       <h2 className="text-2xl font-bold tracking-tight mb-2">{title}</h2>
-      <p className="text-muted-foreground max-w-sm">
+      <p className="text-foreground-secondary max-w-sm">
         {description ||
           "This feature is currently under active development. We're working hard to bring this to you soon."}
       </p>

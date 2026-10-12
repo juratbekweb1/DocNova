@@ -10,7 +10,7 @@ export function EditorRightPanel({ document }: { document: FullDocument }) {
   const [activeTab, setActiveTab] = useState<"preview" | "assistant">("preview");
 
   return (
-    <div className="flex h-full flex-col bg-[#020617] text-white">
+    <div className="flex h-full flex-col bg-background text-white">
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border p-4">
         <button

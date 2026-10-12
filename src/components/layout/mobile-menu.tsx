@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Menu, LogOut, User, Shield } from "lucide-react";
 import { MobileDrawer } from "./mobile-drawer";
 import { NavLinks } from "./nav-links";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "next-auth/react";
@@ -14,10 +15,10 @@ import { isAdminRole, isSuperAdminRole } from "@/lib/roles";
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   return (
-    <div className="md:hidden flex items-center">
+    <div className="xl:hidden flex items-center">
       <button
         onClick={() => setIsOpen(true)}
         className="p-2 -mr-2 rounded-md text-foreground-secondary hover:text-foreground hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -29,6 +30,13 @@ export function MobileMenu() {
 
       <MobileDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} side="right">
         <div className="flex flex-col gap-6 h-full">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
+              {lang === "ru" ? "Язык" : lang === "en" ? "Language" : "Til"}
+            </span>
+            <LanguageToggle />
+          </div>
+
           <NavLinks 
             className="flex-col items-start gap-4 w-full" 
             itemClassName="w-full text-base py-2 border-b border-border/10"

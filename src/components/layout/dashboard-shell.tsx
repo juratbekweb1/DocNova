@@ -21,7 +21,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   }
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-[#020617]">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
       {/* Premium Animated Background */}
       <div className="dashboard-animated-bg">
         <div className="dashboard-orb dashboard-orb-1" />

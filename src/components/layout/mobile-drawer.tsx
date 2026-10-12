@@ -99,7 +99,6 @@ export function MobileDrawer({
             aria-hidden="true"
           />
 
-          {/* Drawer */}
           <motion.div
             ref={drawerRef}
             initial="hidden"
@@ -108,14 +107,14 @@ export function MobileDrawer({
             variants={slideVariants}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className={cn(
-              "relative z-[101] w-full max-w-sm bg-surface shadow-2xl h-full flex flex-col border-l border-border/50",
+              "relative z-[101] w-[85%] max-w-sm bg-surface shadow-2xl h-[100dvh] flex flex-col border-l border-border/50",
               className
             )}
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation Menu"
           >
-            <div className="flex items-center justify-between p-4 border-b border-border/10">
+            <div className="flex items-center justify-between p-4 border-b border-border/10 bg-surface">
               <span className="text-sm font-semibold text-foreground">Menu</span>
               <button
                 onClick={onClose}
@@ -125,7 +124,7 @@ export function MobileDrawer({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-surface">
               {children}
             </div>
           </motion.div>

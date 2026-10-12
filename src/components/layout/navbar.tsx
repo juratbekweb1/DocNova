@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 import { Logo } from "./logo";
 import { NavLinks } from "./nav-links";
 import { MobileMenu } from "./mobile-menu";
 import { ScrollHeader } from "./scroll-header";
 import { Container } from "@/components/ui/container";
 import { motion, AnimatePresence } from "motion/react";
-import { Globe, ChevronDown, User, LogOut, Shield } from "lucide-react";
+import { Globe, ChevronDown, User, LogOut, Shield, ArrowUpRight } from "lucide-react";
 import { useLanguage, Lang } from "@/components/providers/language-provider";
 import { UsageIndicator } from "./usage-indicator";
 
@@ -40,14 +40,14 @@ export function Navbar() {
         </div>
 
         {/* Center: Desktop Navigation */}
-        <div className="hidden md:flex flex-1 items-center justify-center">
+        <div className="hidden xl:flex flex-1 items-center justify-center">
           <NavLinks />
         </div>
 
         {/* Right: Desktop Actions & Mobile Menu Toggle */}
         <div className="flex items-center gap-4 shrink-0">
           {/* Language Selector (Visible to all) */}
-          <div className="relative hidden md:block">
+          <div className="relative hidden lg:block">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="flex items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 hover:scale-105 shadow-sm"
@@ -90,11 +90,11 @@ export function Navbar() {
 
           {session ? (
             <>
-              <div className="hidden md:block">
+              <div className="hidden lg:block">
                 <UsageIndicator />
               </div>
               {/* User Menu */}
-              <div className="relative hidden md:block">
+              <div className="relative hidden lg:block">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 hover:border-border-hover hover:scale-105 shadow-sm"
@@ -145,14 +145,7 @@ export function Navbar() {
               </div>
             </>
           ) : (
-            <div className="hidden md:flex items-center gap-4">
-              <Link href="/login" className="text-sm font-medium text-foreground/80 hover:text-white transition-all duration-300">
-                {t.login}
-              </Link>
-              <Link href="/register" className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:shadow-md hover:bg-accent transition-all duration-300">
-                {t.getStarted || "Boshlash"}
-              </Link>
-            </div>
+            <div className="hidden lg:flex items-center gap-4"><button onClick={() => signIn("google", { callbackUrl: "/dashboard" })} className="flex items-center gap-3 rounded-full border border-primary/30 bg-background/50 pl-5 pr-1.5 py-1.5 text-sm font-semibold text-foreground hover:bg-surface-elevated transition-colors shadow-sm cursor-pointer"><span>{t.login}</span><div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"><ArrowUpRight className="h-4 w-4" /></div></button></div>
           )}
           
           <MobileMenu />
@@ -161,4 +154,7 @@ export function Navbar() {
     </ScrollHeader>
   );
 }
+
+
+
 
