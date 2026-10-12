@@ -128,15 +128,19 @@ const FaqItem = ({ faq }: { faq: { question: string; answer: string } }) => {
 };
 
 const AiSummaryDemo = () => {
-  const [input, setInput] = useState(
-    "Worked as a product designer for 5 years. Managed teams, improved engagement by 40%."
-  );
+  const { t } = useLanguage();
+  const [input, setInput] = useState(t.demoInputDefault);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedText, setGeneratedText] = useState("");
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  const fullText =
-    "Highly motivated Product Designer with 5+ years of experience building scalable design systems and improving user engagement by 40%. Proven track record of leading cross-functional teams in agile environments.";
+  React.useEffect(() => {
+    setInput(t.demoInputDefault);
+    setGeneratedText("");
+    setHasGenerated(false);
+  }, [t.demoInputDefault]);
+
+  const fullText = t.demoOutputDefault;
 
   const handleGenerate = () => {
     if (isGenerating) return;
@@ -155,7 +159,7 @@ const AiSummaryDemo = () => {
         i++;
         if (i === fullText.length) clearInterval(interval);
       }, 15);
-    }, 1500);
+    }, 1200);
   };
 
   return (
@@ -165,14 +169,14 @@ const AiSummaryDemo = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="bg-surface-elevated border-border text-foreground-secondary focus:border-primary/50 h-24 w-full resize-none rounded-xl border p-4 text-sm focus:outline-none"
-          placeholder="Yutuqlaringizni yozing..."
+          placeholder={t.demoInputPlaceholder}
         />
         <button
           onClick={handleGenerate}
           disabled={isGenerating || input.length === 0}
           className="bg-primary hover:bg-primary text-foreground absolute right-3 bottom-3 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
         >
-          {isGenerating ? "Yaratilmoqda..." : "Yaratish (Generate)"}
+          {isGenerating ? t.demoGeneratingBtn : t.demoGenerateBtn}
         </button>
       </div>
 
@@ -211,6 +215,7 @@ const AiSummaryDemo = () => {
 };
 
 const ExperienceDragDemo = () => {
+  const { t } = useLanguage();
   const [items, setItems] = useState([
     { id: "1", role: "Senior Product Designer", company: "TechCorp Inc.", year: "2021-Present" },
     { id: "2", role: "UI/UX Designer", company: "StartupHub", year: "2019-2021" },
@@ -220,7 +225,7 @@ const ExperienceDragDemo = () => {
   return (
     <div className="space-y-4">
       <div className="text-foreground-secondary mb-2 text-xs">
-        Tajribalarni o&apos;rnini almashtirish uchun torting (Drag & drop)
+        {t.demoDragHint}
       </div>
       <Reorder.Group axis="y" values={items} onReorder={setItems} className="space-y-2">
         {items.map((item) => (
@@ -243,9 +248,8 @@ const ExperienceDragDemo = () => {
       <div className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4">
         <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
         <p className="text-xs text-emerald-100/90">
-          <span className="font-semibold text-emerald-300">Suggestion:</span> Start this bullet
-          point with a strong action verb like &quot;Spearheaded&quot; or &quot;Architected&quot;
-          instead of &quot;Responsible for&quot;.
+          <span className="font-semibold text-emerald-300">{t.demoSuggestionLabel}</span>{" "}
+          {t.demoSuggestionText}
         </p>
       </div>
     </div>
@@ -258,42 +262,42 @@ export function LandingPage() {
 
   const mainHubs: Feature[] = [
     {
-      title: t.hubCvBuilderTitle || "AI CV Builder Hub",
-      description: t.hubCvBuilderDesc || "Professional resume builder with live preview, ATS formatting, 20+ templates, and one-click export.",
+      title: t.hubCvBuilderTitle || "AI Rezyume (CV) Yaratuvchi",
+      description: t.hubCvBuilderDesc || "20+ zamonaviy shablonlar, qulay tahrirlagich va bir bosishda PDF yoki Word formatida yuklab olish imkoniyati.",
       icon: LayoutTemplate,
       gradient: "from-primary/20 via-sky-500/10 to-transparent",
       iconColor: "text-primary",
       glowColor: "rgba(34, 211, 238, 0.15)",
-      badge: "Premium Builder",
+      badge: t.hubCvBuilderBadge || "Rezyume Shablonlar",
       badgeColor: "bg-primary/10 text-primary border-primary/15",
-      stat: "20+",
-      statLabel: "Templates",
+      stat: t.hubCvBuilderStat || "20+",
+      statLabel: t.hubCvBuilderStatLabel || "Dizaynlar",
       href: "/cv-builder",
     },
     {
-      title: t.hubCopilotTitle || "Nova AI Career Copilot",
-      description: t.hubCopilotDesc || "Smart assistant for career and resume. Chat in real-time, get valuable tips and guidance.",
+      title: t.hubCopilotTitle || "AI Karyera & Suhbat Maslahatchisi",
+      description: t.hubCopilotDesc || "24/7 ishlaydigan aqlli yordamchi. Rezyumeni kuchaytirish, ish topish, ish beruvchilar bilan suhbatdan o'tish bo'yicha maslahat oling.",
       icon: Brain,
       gradient: "from-violet-500/20 via-purple-500/10 to-transparent",
       iconColor: "text-violet-400",
       glowColor: "rgba(139, 92, 246, 0.15)",
-      badge: "AI Copilot",
+      badge: t.hubCopilotBadge || "AI Maslahatchi",
       badgeColor: "bg-violet-400/10 text-violet-300 border-violet-400/30",
-      stat: "24/7",
-      statLabel: "Available",
+      stat: t.hubCopilotStat || "24/7",
+      statLabel: t.hubCopilotStatLabel || "Onlayn Yordam",
       href: "/chat",
     },
     {
-      title: t.hubMockTestTitle || "AI Mock Test & Language Hub",
-      description: t.hubMockTestDesc || "Industry-specific interview tests in EN/RU. Strengthen your weaknesses through grammar and logic analysis.",
+      title: t.hubMockTestTitle || "Xorijiy Tillar & Ish Suhbati (Mock Test)",
+      description: t.hubMockTestDesc || "Ingliz, Rus va Turk tillarini o'rganish, IELTS/CEFR darajasini tekshirish hamda ishga kirishdagi suhbatlarga (intervyu) AI bilan jonli tayyorgarlik ko'rish.",
       icon: ShieldCheck,
       gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
       iconColor: "text-emerald-400",
       glowColor: "rgba(52, 211, 153, 0.15)",
-      badge: "Smart Interview",
+      badge: t.hubMockTestBadge || "Til & Intervyu",
       badgeColor: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30",
-      stat: "AI",
-      statLabel: "Analysis",
+      stat: t.hubMockTestStat || "AI",
+      statLabel: t.hubMockTestStatLabel || "Test & Tahlil",
       href: "/mock-test",
     }
   ];
@@ -373,7 +377,7 @@ export function LandingPage() {
       glowColor: "rgba(96, 165, 250, 0.15)",
       badge: t.featVersionsBadge,
       badgeColor: "bg-blue-400/10 text-blue-300 border-blue-400/30",
-      stat: "РІв‚¬С›",
+      stat: "∞",
       statLabel: t.featVersionsStatLabel,
       href: "/features/versions",
     },
