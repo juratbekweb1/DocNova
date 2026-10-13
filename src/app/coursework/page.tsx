@@ -127,9 +127,9 @@ export default function CourseworkGenerator() {
 
   return (
     <div className="min-h-screen bg-background p-4 pt-6 text-foreground md:p-8">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 lg:grid-cols-12 print:m-0 print:block print:max-w-none print:p-0">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 lg:grid-cols-12 w-full min-w-0 print:m-0 print:block print:max-w-none print:p-0">
         {/* Left Side: Form */}
-        <div className="sticky top-24 rounded-2xl border border-border bg-surface p-6 shadow-xl lg:col-span-5 print:hidden">
+        <div className="sticky top-24 rounded-2xl border border-border bg-surface p-6 shadow-xl lg:col-span-5 min-w-0 print:hidden">
           <h1 className="mb-6 text-2xl font-bold text-primary flex items-center gap-2">
             🎓 Kurs ishi va Referat Generatori
           </h1>
@@ -254,7 +254,7 @@ export default function CourseworkGenerator() {
         </div>
 
         {/* Right Side: A4 Preview */}
-        <div className="flex flex-col items-center lg:col-span-7 print:block print:w-full">
+        <div className="flex flex-col items-center lg:col-span-7 w-full min-w-0 print:block print:w-full">
           {result && (
             <div className="mb-4 flex w-full justify-end print:hidden">
               <button
@@ -266,12 +266,13 @@ export default function CourseworkGenerator() {
             </div>
           )}
 
-          <div className="flex w-full justify-center overflow-x-auto print:block print:w-full">
+          <div className="flex w-full justify-center overflow-x-auto max-w-full p-2 print:block print:w-full print:p-0">
             <div
-              className="a4-document prose prose-slate max-w-none shrink-0 bg-white p-[25mm] text-black shadow-2xl"
+              className="a4-document prose prose-slate max-w-full shrink-0 bg-white p-6 sm:p-10 md:p-[25mm] text-black shadow-2xl"
               style={{
                 width: "210mm",
                 minHeight: "297mm",
+                maxWidth: "100%",
               }}
             >
               {result ? (

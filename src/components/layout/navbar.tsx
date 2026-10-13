@@ -33,28 +33,28 @@ export function Navbar() {
 
   return (
     <ScrollHeader>
-      <Container className="flex h-16 md:h-20 items-center justify-between gap-4">
+      <Container size="full" className="flex h-16 md:h-20 items-center justify-between gap-2 xl:gap-4 px-4 sm:px-6 lg:px-8 max-w-[1536px]">
         {/* Left: Logo */}
         <div className="flex items-center shrink-0">
           <Logo />
         </div>
 
         {/* Center: Desktop Navigation */}
-        <div className="hidden xl:flex flex-1 items-center justify-center">
+        <div className="hidden xl:flex flex-1 items-center justify-center min-w-0 px-2">
           <NavLinks />
         </div>
 
         {/* Right: Desktop Actions & Mobile Menu Toggle */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Language Selector (Visible to all) */}
           <div className="relative hidden lg:block">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 hover:scale-105 shadow-sm"
+              className="flex items-center gap-1.5 rounded-xl bg-surface border border-border px-2.5 py-1.5 text-xs xl:text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 shadow-sm"
             >
-              <Globe className="h-4 w-4 text-foreground-secondary" />
+              <Globe className="h-3.5 w-3.5 text-foreground-secondary" />
               <span>{languages.find((l) => l.code === lang)?.flag}</span>
-              <span className="max-w-[80px] truncate">{languages.find((l) => l.code === lang)?.label}</span>
+              <span className="max-w-[75px] truncate">{languages.find((l) => l.code === lang)?.label}</span>
               <ChevronDown className="h-3 w-3 text-foreground-secondary" />
             </button>
 
@@ -90,20 +90,20 @@ export function Navbar() {
 
           {session ? (
             <>
-              <div className="hidden lg:block">
+              <div className="hidden lg:block shrink-0">
                 <UsageIndicator />
               </div>
               {/* User Menu */}
-              <div className="relative hidden lg:block">
+              <div className="relative hidden lg:block shrink-0">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 hover:border-border-hover hover:scale-105 shadow-sm"
+                  className="flex items-center gap-2 rounded-xl bg-surface border border-border px-2.5 py-1.5 text-xs xl:text-sm font-medium text-foreground transition-all duration-200 hover:bg-border/50 hover:border-border-hover shadow-sm"
                 >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-sm">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-sm shrink-0">
                     {session.user?.name?.[0] || "U"}
                   </div>
-                  <span className="max-w-[100px] truncate">{session.user?.name}</span>
-                  <ChevronDown className="h-3 w-3 text-foreground-secondary" />
+                  <span className="max-w-[75px] xl:max-w-[100px] 2xl:max-w-[130px] truncate">{session.user?.name}</span>
+                  <ChevronDown className="h-3 w-3 text-foreground-secondary shrink-0" />
                 </button>
 
                 <AnimatePresence>
