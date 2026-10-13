@@ -86,8 +86,10 @@ export default function CourseworkGenerator() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const documentRef = React.useRef<HTMLDivElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -123,6 +125,31 @@ export default function CourseworkGenerator() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!documentRef.current) return;
+    setDownloading(true);
+
+    try {
+      // SSR muammolarini oldini olish uchun dinamik import
+      const html2pdf = (await import("html2pdf.js")).default;
+      const cleanStudentName = formData.studentName?.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "DocNova";
+      const opt = {
+        margin: [15, 15, 15, 15] as [number, number, number, number],
+        filename: `Kurs_ishi_${cleanStudentName}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+      };
+
+      await (html2pdf as any)().set(opt).from(documentRef.current).save();
+    } catch (err) {
+      console.error("PDF yuklab olishda xatolik:", err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const cleanResult = React.useMemo(() => {
@@ -262,19 +289,30 @@ export default function CourseworkGenerator() {
 
         {/* Right Side: A4 Preview */}
         <div className="flex flex-col items-center lg:col-span-7 w-full min-w-0 print:block print:w-full">
-          {result && (
-            <div className="mb-4 flex w-full justify-end print:hidden">
+          {cleanResult && (
+            <div className="mb-4 flex flex-wrap items-center justify-end gap-3 w-full print:hidden">
+              <button
+                onClick={handleDownloadPDF}
+                disabled={downloading}
+                className="flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <span className="text-lg">{downloading ? "⏳" : "📥"}</span>
+                <span>{downloading ? "Yuklanmoqda..." : "PDF yuklab olish"}</span>
+              </button>
+
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2 font-medium text-white shadow-lg transition-all hover:bg-emerald-700"
+                className="flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
               >
-                <span className="text-xl">🖨️</span> PDF Yuklash / Chop Etish
+                <span className="text-lg">🖨️</span>
+                <span>Chop etish</span>
               </button>
             </div>
           )}
 
           <div className="flex w-full justify-center overflow-x-auto max-w-full p-2 print:block print:w-full print:p-0">
             <div
+              ref={documentRef}
               className="a4-document prose prose-slate max-w-full shrink-0 bg-white p-6 sm:p-10 md:p-[25mm] text-black shadow-2xl"
               style={{
                 width: "210mm",
