@@ -55,7 +55,7 @@ Write a cover letter that is 3-4 paragraphs long. It should be engaging, highlig
     let outputTokens = 0;
 
     try {
-      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-3.8-flash");
+      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-1.5-flash");
       const response = await model.generateContent(prompt);
 
       const res = await response.response;

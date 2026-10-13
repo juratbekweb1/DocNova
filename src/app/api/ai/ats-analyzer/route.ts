@@ -86,7 +86,7 @@ ${jobDescription || "None provided. Analyze for general best practices."}
     let outputTokens = 0;
 
     try {
-      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-3.8-flash");
+      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-1.5-flash");
       const response = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {

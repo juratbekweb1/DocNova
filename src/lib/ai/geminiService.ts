@@ -3,7 +3,7 @@ import { AI_PROMPTS } from "./prompts";
 
 export async function generateChatResponse(message: string): Promise<string> {
   try {
-    const model = getGeminiModel("gemini-3.8-flash");
+    const model = getGeminiModel("gemini-1.5-flash");
     
     // In a real app we'd pass message history. For now, we prepend system prompt.
     const prompt = `${AI_PROMPTS.NOVA_SYSTEM}\n\nUser: ${message}`;
@@ -19,7 +19,7 @@ export async function generateChatResponse(message: string): Promise<string> {
 
 export async function generateMockTestQuestion(lang: string, role: string, difficulty: string): Promise<string> {
   try {
-    const model = getGeminiModel("gemini-3.8-flash");
+    const model = getGeminiModel("gemini-1.5-flash");
     
     const systemPrompt = AI_PROMPTS.MOCK_TEST_SYSTEM;
     const prompt = `${systemPrompt}\n\nUser is starting a new interview. Role: ${role}, Difficulty: ${difficulty}, Language: ${lang}. Start by asking them to introduce themselves and their experience. REMEMBER to output strictly in the requested JSON format!`;
@@ -42,7 +42,7 @@ export async function generateMockTestQuestion(lang: string, role: string, diffi
 
 export async function evaluateMockTestAnswer(answer: string, questionCount: number) {
   try {
-    const model = getGeminiModel("gemini-3.8-flash");
+    const model = getGeminiModel("gemini-1.5-flash");
     
     const systemPrompt = AI_PROMPTS.MOCK_TEST_SYSTEM;
     const isLastQuestion = questionCount >= 5;

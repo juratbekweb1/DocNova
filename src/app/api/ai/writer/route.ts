@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     let outputTokens = 0;
 
     try {
-      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-3.8-flash");
+      const model = getGeminiModel(process.env.GEMINI_MODEL || "gemini-1.5-flash");
       const response = await model.generateContent(prompt);
       const res = await response.response;
       result = res.text() || "";

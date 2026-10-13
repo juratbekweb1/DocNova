@@ -136,7 +136,7 @@ export async function trackAIUsage({
   plan,
   feature,
   provider = "gemini",
-  model = process.env.GEMINI_MODEL || "gemini-3.8-flash",
+  model = process.env.GEMINI_MODEL || "gemini-1.5-flash",
   status,
   inputTokens = 0,
   outputTokens = 0,
