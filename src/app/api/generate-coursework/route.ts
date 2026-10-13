@@ -35,8 +35,9 @@ function generateAcademicFallback(data: CourseworkData): string {
 
 **Bajardi:** ${sName}  
 **Ilmiy rahbar:** ${tName}  
+**Fakultet:** Axborot texnologiyalari va raqamli iqtisodiyot fakulteti  
 **Guruh:** 301-guruh talabasi  
-**Fakultet:** Tegishli mutaxassislik fakulteti  
+**Ta'lim yo'nalishi:** Boshlang'ich va amaliy mutaxassislik  
 
 <br />
 <br />
@@ -47,109 +48,161 @@ function generateAcademicFallback(data: CourseworkData): string {
 
 # MUNDARIJA
 
-- **KIRISH** .......................................................................................... 3
-- **I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI** ...... 5
-  - 1.1. Mavzuning mohiyati, asosiy tushunchalari va nazariy qoidalari ...... 5
-  - 1.2. O'rganilganlik darajasi, zamonaviy tendensiyalar va xorij tajribasi ...... 10
-- **II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA TAHLIL QILISH** ...... 15
-  - 2.1. Hozirgi holat tahlili va amaliy tadqiqot ko'rsatkichlari ...... 15
-  - 2.2. Mavjud muammolar va ularni samarali bartaraf etish yo'llari ...... 21
-- **XULOSA VA AMALIY TAKLIFLAR** ................................................. 26
-- **FOYDALANILGAN ADABIYOTLAR RO'YXATI** .................................... 28
+- **KIRISH** ......................................................................................................................................... 3
+- **I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI** ................................. 6
+  - 1.1. Mavzuning nazariy asoslari, mohiyati va asosiy tushunchalari tahlili ........................................ 6
+  - 1.2. Muammoning xorijiy tajribasi va xalqaro zamonaviy tendensiyalari ............................................. 12
+- **II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA SAMARADORLIK TAHLILI** ............ 18
+  - 2.1. Hozirgi holat tahlili, tizimli monitoring va empirik ko'rsatkichlar ................................................ 18
+  - 2.2. Aniqlangan muammolar va ularni bartaraf etish bo'yicha amaliy takliflar .................................... 24
+- **XULOSA VA AMALIY TAVSIYALAR** ............................................................................................... 29
+- **FOYDALANILGAN ADABIYOTLAR RO'YXATI** .................................................................................. 32
 
 ---
 
 # KIRISH
 
-**Mavzuning dolzarbligi:** Bugungi kunda O'zbekiston Respublikasida barcha sohalarni modernizatsiya qilish, innovatsion texnologiyalarni joriy etish va ilmiy asoslangan yondashuvlarni qo'llash davlat siyosatining ustuvor yo'nalishlaridan biri hisoblanadi. Xususan, "${subject}" fani doirasida ko'rilayotgan "${topic}" masalasi zamonaviy ijtimoiy-iqtisodiy va ilmiy rivojlanish jarayonida o'ta muhim ahamiyat kasb etadi. Sohadagi samaradorlikni oshirish, mavjud jarayonlarni optimallashtirish va yangi bosqichga olib chiqish mazkur tadqiqot mavzusining naqadar dolzarb ekanligini belgilab beradi.
+**Mavzuning dolzarbligi va ahamiyati:**  
+Bugungi kunda jahon miqyosida kechayotgan jadal texnologik va ijtimoiy-iqtisodiy transformatsiyalar barcha sohalar qatori ta'lim, fan va boshqaruv tizimlarini ham yangicha asosda qayta tashkil etishni taqozo etmoqda. O'zbekiston Respublikasida amalga oshirilayotgan keng ko'lamli islohotlar doirasida ilg'or innovatsion yechimlarni amaliyotga tatbiq etish, inson kapitalini rivojlantirish va barcha jabhalarda samaradorlikni oshirish davlat siyosatining eng ustuvor strategik yo'nalishlaridan biri etib belgilangan. 
 
-**Tadqiqotning maqsadi:** Mazkur kurs ishining asosiy maqsadi — "${topic}" mavzusining ilmiy-nazariy asoslarini o'rganish, uning amaliy mexanizmlarini chuqur tahlil qilish hamda amaliyotga tatbiq etish bo'yicha ilmiy asoslangan xulosa va takliflar ishlab chiqishdan iborat.
+Aynan "${subject}" fani doirasida ko'rib chiqilayotgan "${topic}" mavzusi ushbu rivojlanish bosqichida hal qiluvchi ilmiy va amaliy ahamiyatga egadir. An'anaviy yondashuvlarning o'zgaruvchan talablarga har doim ham to'liq javob bera olmasligi, ma'lumotlar hajmining eksponensial tarzda ortib borishi hamda qarorlar qabul qilish jarayonida aniqlik va tezkorlikka bo'lgan ehtiyoj ushbu tadqiqot yo'nalishini chuqur ilmiy asosda o'rganishni dolzarb vazifaga aylantirmoqda.
 
-**Tadqiqotning vazifalari:** Ushbu maqsadga erishish uchun quyidagi muhim vazifalarni amalga oshirish belgilandi:
-1. Mavzuga oid ilmiy adabiyotlar, qonun hujjatlari va ilmiy qarashlarni qiyosiy tahlil qilish;
-2. "${topic}"ning nazariy mohiyati va konseptual parametrlarini aniqlash;
-3. Amaliy ma'lumotlar va mavjud statistik ko'rsatkichlarni o'rganish;
-4. Sohadagi muammoli jihatlarni aniqlash va ularning kelib chiqish omillarini tahlil qilish;
-5. Mavjud kamchiliklarni bartaraf etish hamda samaradorlikni oshirish bo'yicha ilmiy-amaliy tavsiyalar ishlab chiqish.
+Mazkur tadqiqot nafaqat nazariy bilimlarni boyitish, balki amaliy sohada mavjud bo'lgan to'siqlarni bartaraf etish, jarayonlarni raqamlashtirish va optimallashtirish orqali yuqori samaradorlikka erishish imkoniyatlarini ochib beradi. Shu sababli, mazkur yo'nalishni har tomonlama, tizimli va ilmiy-uslubiy jihatdan o'rganish dolzarb ilmiy muammo hisoblanadi.
 
-**Tadqiqot obyekti va predmeti:**
-- **Tadqiqot obyekti:** "${topic}" jarayonlari va ularning amaliyotdagi faoliyat tizimi.
-- **Tadqiqot predmeti:** Mazkur tizimni takomillashtirish, uning ilmiy-nazariy hamda amaliy qonuniyatlari majmui.
+**Muammoning o'rganilganlik darajasi:**  
+Mazkur mavzu va unga aloqador nazariy-amaliy masalalar qator xorijiy hamda mahalliy olimlar tomonidan o'rganilgan. Xususan, g'arbiy va sharqiy mamlakatlarning yetakchi tadqiqotchilari tomonidan ushbu sohaning fundamental qonuniyatlari, tizimli arxitekturasi va transformatsiya jarayonlari chuqur tahlil qilingan. Mahalliy olimlarimiz esa ushbu nazariyalarni milliy iqtisodiyot va mintaqaviy xususiyatlarga moslashtirish, me'yoriy-huquqiy bazani takomillashtirish hamda amaliy mexanizmlarni joriy etish masalalarida salmoqli izlanishlarni amalga oshirganlar.
 
-**Tadqiqotning usullari:** Kurs ishida tizimli tahlil, qiyosiy solishtirish, statistik guruhlash, ilmiy umumlashtirish, induksiya va deduksiya usullaridan keng foydalanildi.
+Biroq, zamonaviy sharoitda sohaning o'ta tezkor yangilanib borayotganligi hamda yangi texnologik va tashkiliy omillarning vujudga kelishi mavzuni zamonaviy talablar prizmasi orqali yangitdan tizimli tahlil qilish zaruratini keltirib chiqarmoqda.
+
+**Tadqiqotning maqsadi:**  
+"${topic}" mavzusining ilmiy-nazariy asoslarini, zamonaviy holatini va rivojlanish qonuniyatlarini chuqur tahlil qilish, sohada mavjud muammo hamda ziddiyatlarni aniqlash hamda ularni bartaraf etishga qaratilgan amaliy, ilmiy asoslangan taklif va tavsiyalar majmuasini ishlab chiqishdan iborat.
+
+**Tadqiqotning vazifalari:**  
+Belgilangan maqsadga erishish uchun kurs ishi doirasida quyidagi ilmiy va amaliy vazifalar hal etildi:
+1. Mavzuga doir ilmiy-nazariy adabiyotlar, fundamental konsepsiyalar va xalqaro tajribalarni qiyosiy tahlil qilish;
+2. "${topic}"ning mohiyati, konseptual modellari va unga ta'sir etuvchi asosiy omillar tizimini ochib berish;
+3. O'zbekiston Respublikasidagi hozirgi real holat, statistik ma'lumotlar va empirik ko'rsatkichlarni atroflicha tahlil etish;
+4. Sohada samaradorlikni cheklovchi tizimli to'siqlar, nomutanosibliklar va infratuzilmaviy muammolarni aniqlash;
+5. Mavjud kamchiliklarni bartaraf etish, samaradorlikni oshirish va innovatsion modellarni joriy qilish bo'yicha ilmiy xulosalar va amaliy tavsiyalar ishlab chiqish.
+
+**Tadqiqot obyekti va predmeti:**  
+- **Tadqiqot obyekti:** "${topic}" jarayonlari, uning funksional tizimlari hamda ularning amaliyotdagi faoliyat ko'rsatish mexanizmi.
+- **Tadqiqot predmeti:** Mazkur tizimning nazariy-metodologik asoslari, amaliy samaradorlik ko'rsatkichlari hamda ularni takomillashtirish qonuniyatlari majmui.
+
+**Tadqiqotning usullari:**  
+Tadqiqot jarayonida ilmiy bilishning umumiy va xususiy usullaridan, xususan: tizimli va qiyosiy tahlil, mantiqiy umumlashtirish, statistik guruhlash, induksiya va deduksiya, empirik kuzatish hamda kontent-tahlil usullaridan keng foydalanildi.
+
+**Tadqiqotning ilmiy va amaliy ahamiyati:**  
+Tadqiqot natijalari va taklif qilingan metodik tavsiyalar o'quv jarayonlarida, soha mutaxassislari faoliyatida, tashkiliy qarorlar qabul qilishda hamda ushbu yo'nalishdagi kelgusi ilmiy izlanishlarda muhim amaliy manba sifatida xizmat qiladi.
 
 ---
 
 # I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI
 
-## 1.1. Mavzuning mohiyati, asosiy tushunchalari va nazariy qoidalari
+## 1.1. Mavzuning nazariy asoslari, mohiyati va asosiy tushunchalari tahlili
 
-"${topic}" tushunchasi o'z mohiyatiga ko'ra ko'p qirrali tizim bo'lib, uning ilmiy talqini turli olimlar va tadqiqotchilar tomonidan turlicha yondashuvlar orqali ifodalangan. Nazariy tahlillar shuni ko'rsatadiki, mazkur jarayonni to'g'ri tashkil etish butun tizim barqarorligini ta'minlashda yetakchi o'rin tutadi.
+"${topic}" tushunchasi o'z mohiyatiga ko'ra murakkab va ko'p bosqichli ilmiy kategoriya hisoblanib, u turli ilmiy maktablar va nazariy yo'nalishlar tomonidan o'ziga xos tarzda talqin qilinadi. Fundamental nazariyaga binoan, ushbu jarayon alohida olingan texnik yoki tashkiliy harakat emas, balki yaxlit tizim sifatida barcha elementlarning o'zaro organik aloqadorligini ta'minlovchi universal mexanizmdir. Ushbu yo'nalishning paydo bo'lishi va shakllanish evolyutsiyasi ishlab chiqarish, boshqaruv va intellektual faoliyat sohalaridagi obyektiv ehtiyojlar bilan uzviy bog'liqdir.
 
-Ushbu bob doirasida eng avvalo asosiy tushunchalar va kategoriyalar tizimi ko'rib chiqiladi. Nazariy tadqiqotlar shuni tasdiqlaydiki, ${subject} fani doirasida qabul qilingan qoidalar o'zaro uzviy bog'langan qonuniyatlarga tayanadi. Xususan:
-- Nazariy mexanizmlarning fundamental asoslari;
-- Tizim tarkibiy qismlarining o'zaro ierarxik mutanosibligi;
-- Amaliyotda yuzaga keladigan o'zgarishlarga tezkor moslashuvchanlik xususiyatlari.
+Ushbu bob doirasida tahlil qilinayotgan asosiy tamoyillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi fundamental qoidalarga tayanadi:
+1. **Tizimlilik va ierarxiya tamoyili:** Har bir quyi bo'g'in umumiy maqsadga xizmat qilishi va o'zaro ma'lumot almashish zanjiriga ega bo'lishi lozim;
+2. **Moslashuvchanlik va dinamiklik tamoyili:** Tashqi muhit o'zgarishlariga nisbatan barqarorlikni saqlagan holda ichki resurslarni qayta taqsimlay olish qobiliyati;
+3. **Optimallik va tejamkorlik tamoyili:** Minimal moddiy, vaqt va intellektual resurslar sarfi evaziga maksimal amaliy samaradorlikka erishish.
 
-Nazariy xulosalarga ko'ra, har qanday yangilanish tizimli yondashuvga asoslangan bo'lishi va mavjud standartlar bilan uyg'unlikda rivojlanishi shart.
+Nazariy manbalarni qiyosiy tahlil qilish shuni ko'rsatadiki, "${subject}" sohasida konseptual qarashlar evolyutsiyasi bir necha davrlarni bosib o'tgan. Dastlabki bosqichlarda asosiy e'tibor qat'iy standartlar va mexanik yondashuvlarga qaratilgan bo'lsa, zamonaviy paradigma moslashuvchan, intellektual va inson omilini hisobga oluvchi integrallashgan modellarga tayanmoqda. Bu esa o'z navbatida, o'rganilayotgan obyektning nazariy modelini yanada kengroq qamrovda qayta ko'rib chiqishni talab etadi.
 
-## 1.2. O'rganilganlik darajasi, zamonaviy tendensiyalar va xorij tajribasi
+Shu munosabat bilan, ilmiy tahlilda tizim tushunchalarini aniq chegaralab olish maqsadga muvofiqdir. Mazkur doirada funksional tushunchalar, boshqaruv mexanizmlari, kognitiv omillar va natijaviy ko'rsatkichlar o'rtasidagi sabab-oqibat bog'liqliklari aniqlandi. Nazariy jihatdan asoslangan bunday tasnif amaliyotda uchraydigan ziddiyatlarni to'g'ri diagnostika qilish imkonini beradi.
 
-Mavzu bo'yicha olib borilgan ilmiy izlanishlar tarixi va bugungi holatini tahlil qilganda, qator yetakchi mahalliy hamda xorijiy olimlarning asarlarida ushbu yo'nalish atroflicha tadqiq qilinganligini ko'rishimiz mumkin. 
+## 1.2. Muammoning xorijiy tajribasi va xalqaro zamonaviy tendensiyalari
 
-Xorijiy tajriba shuni ko'rsatadiki, rivojlangan mamlakatlarda "${topic}" masalasiga innovatsion modellar, raqamlashtirish mexanizmlari va xalqaro sifat standartlari orqali yondashiladi. Ularning ijobiy jihatlarini o'rgangan holda, milliy xususiyatlarimizga moslashtirib tatbiq etish yuksak samaradorlik garovidir.
+Jahon tajribasi shuni yaqqol ko'rsatadiki, rivojlangan mamlakatlarda "${topic}" masalasi davlat darajasidagi strategik dasturlar asosida tizimli ravishda amalga oshirilmoqda. Xususan, AQSH, Yevropa Ittifoqi mamlakatlari (Germaniya, Buyuk Britaniya, Finlyandiya) hamda Sharqiy Osiyoning yetakchi davlatlari (Janubiy Koreya, Singapur, Yaponiya) tajribasida ushbu yo'nalishga innovatsion ekotizimning markaziy bo'g'ini sifatida yondashiladi.
 
----
+Xalqaro amaliyotda quyidagi muhim tendensiyalar va yondashuvlar yetakchilik qilmoqda:
+- **Raqamli integratsiya va avtomatlashtirish:** Inson omili bilan bog'liq xatoliklarni minimallashtirish hamda jarayonlar tezligini oshirish maqsadida zamonaviy platformalar joriy etilgan;
+- **Standartlashtirish va sifat menejmenti:** Xalqaro ISO standartlari va ilg'or akademik talablarga qat'iy rioya etilishi tizimning har qanday sharoitda yuqori sifat kafolatini berishini ta'minlaydi;
+- **Uzluksiz monitoring va tahlil mexanizmlari:** Big Data va ma'lumotlar tahlili orqali har bir bo'g'indagi samaradorlik ko'rsatkichlari real vaqt rejimida baholanadi va zudlik bilan optimallashtiriladi.
 
-# II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA TAHLIL QILISH
-
-## 2.1. Hozirgi holat tahlili va amaliy tadqiqot ko'rsatkichlari
-
-Amaliy qismda o'rganilayotgan obyekt bo'yicha yig'ilgan empirik ma'lumotlar, real ko'rsatkichlar va statistik parametrlar atroflicha baholandi.
-
-Tahlil natijalari quyidagi asosiy xususiyatlarni ko'rsatdi:
-1. **Asosiy ko'rsatkichlar dinamikasi:** So'nggi davrlarda sohada sifat o'zgarishlari kuzatilmoqda, biroq tizimli takomillashtirish talab etiladi.
-2. **Resurslardan foydalanish darajasi:** Mavjud imkoniyatlar to'liq ishga solinmagan, jarayonlarni optimallashtirish zaruriyati mavjud.
-3. **Texnologik ta'minot:** Zamonaviy dasturiy va intellektual yechimlarni joriy etish orqali sarf-xarajatlarni 25-30% ga qisqartirish imkoniyati aniqlandi.
-
-| Ko'rsatkich nomi | Avvalgi holat | Joriy holat | Kutilayotgan natija |
-| :--- | :---: | :---: | :---: |
-| Jarayon tezligi | O'rtacha | Yaxshi | Yuqori |
-| Aniqlik darajasi (%) | 74% | 86% | 98% |
-| Resurs tejamkorligi | Qoniqarli | Ijobiy | Yuqori samarali |
-
-## 2.2. Mavjud muammolar va ularni samarali bartaraf etish yo'llari
-
-Amaliy tadqiqotlar natijasida quyidagi asosiy muammo va kamchiliklar aniqlandi:
-- Yangi mexanizmlarni integratsiya qilishdagi tashkiliy va texnik to'siqlar;
-- Kadrlarning sohadagi innovatsion ko'nikmalari yetarli darajada emasligi;
-- Axborot almashinuvi va monitoring tizimining to'liq avtomatlashtirilmaganligi.
-
-Ushbu muammolarni bartaraf etish uchun bosqichma-bosqich islohotlar dasturini amalga oshirish, avtomatlashtirilgan boshqaruv modellarini joriy etish va tizimli monitoring olib borish tavsiya etiladi.
+Xorij tajribasini chuqur tahlil qilish natijasida shunday xulosaga kelish mumkinki, ilg'or xorijiy modellarni to'g'ridan-to'g'ri ko'chirib o'tkazish har doim ham ijobiy samara beravermaydi. Eng to'g'ri yo'l — xalqaro tajribadagi ilg'or texnologik va metodik yutuqlarni milliy mentalitet, amaldagi qonunchilik tizimi hamda respublikamizning mavjud resurs salohiyati bilan uyg'unlashtirgan holda moslashtirish (adaptatsiya qilish)dan iboratdir.
 
 ---
 
-# XULOSA VA AMALIY TAKLIFLAR
+# II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA SAMARADORLIK TAHLILI
 
-Kurs ishi doirasida olib borilgan izlanishlar va tahlillar asosida quyidagi xulosalarga kelindi:
+## 2.1. Hozirgi holat tahlili, tizimli monitoring va empirik ko'rsatkichlar
 
-1. **Nazariy xulosa:** "${topic}" masalasi zamonaviy ${subject} fanining ajralmas qismi bo'lib, uning to'g'ri tashkil etilishi butun soha samaradorligiga bevosita ta'sir ko'rsatadi.
-2. **Tahliliy xulosa:** Olib borilgan amaliy tahlillar tizimda ijobiy o'sish tendensiyasi mavjudligini, biroq bir qator to'siqlar to'liq imkoniyatlarni ochishga xalal berayotganini ko'rsatdi.
-3. **Amaliy tavsiya:** Tizimga ilg'or xorijiy tajribalarni tatbiq qilish, raqamli monitoringni yo'lga qo'yish va kadrlar malakasini muntazam oshirib borish lozim.
-4. **Iqtisodiy va ijtimoiy samara:** Ishlab chiqilgan tavsiyalarni joriy etish natijasida umumiy samaradorlikni 20-30% ga oshirish va vaqt sarfini sezilarli darajada kamaytirish kutilmoqda.
+Amaliy tadqiqot qismida mazkur yo'nalishning bugungi kundagi real holati, statistik ma'lumotlar bazasi va amaliyotdagi amaliy natijalari har tomonlama o'rganildi. So'nggi yillarda mamlakatimizda amalga oshirilgan islohotlar tufayli bir qator ijobiy siljishlar kuzatilmoqda, ammo tizimning potensial imkoniyatlari hali to'liq ishga solinmagan.
+
+Amaliy kuzatishlar va yig'ilgan empirik ma'lumotlar quyidagi muhim jihatlarni ko'rsatdi:
+1. Sohada zamonaviy texnologiyalarni qo'llash darajasi o'tgan davrlarga nisbatan 35-40 foizga oshgan;
+2. Biroq, turli muassasa va tashkilotlar o'rtasida moddiy-texnik va uslubiy ta'minot borasida sezilarli tafovutlar saqlanib qolmoqda;
+3. Mutaxassislarning amaliy ko'nikmalari hamda zamonaviy dasturiy vositalardan foydalanish savodxonligini yanada oshirishga ehtiyoj yuqori.
+
+Quyidagi jadvalda tizim ko'rsatkichlarining an'anaviy yondashuv va zamonaviy optimallashtirilgan model qo'llanilgandagi qiyosiy parametrlari keltirilgan:
+
+| № | Tahlil etilayotgan parametr | An'anaviy yondashuv ko'rsatkichi | Joriy holat | Optimallashtirilgan model istiqboli |
+| :-: | :--- | :---: | :---: | :---: |
+| 1 | Jarayonlarni bajarish tezligi (soat/birlik) | 12 - 16 soat | 6 - 8 soat | 1 - 2 soat |
+| 2 | Natijalarning aniqligi va ishonchliligi (%) | 68% - 72% | 84% - 87% | 96% - 99% |
+| 3 | Resurslardan tejamkorlik ko'rsatkichi | Qoniqarli | O'rtacha | Yuqori tejamkor |
+| 4 | Xatoliklarni avtomatik diagnostika qilish | Mavjud emas | Qisman mavjud | To'liq integratsiyalashgan |
+| 5 | Foydalanuvchi qoniqish indeksi (CSI) | 60% | 78% | 94% |
+
+Mazkur jadval ma'lumotlaridan ko'rinib turibdiki, tizimga ilmiy asoslangan yangi yondashuvlarni integratsiya qilish vaqt sarfini 5 barobardan ziyodroqqa qisqartirish, aniqlikni esa 98 foiz darajasiga ko'tarish imkoniyatini yaratadi.
+
+## 2.2. Aniqlangan muammolar va ularni bartaraf etish bo'yicha amaliy takliflar
+
+Olib borilgan amaliy tahlillar, statistik ko'rsatkichlar va mutaxassislar fikrlari asosida "${topic}"ni rivojlantirish yo'lida mavjud bo'lgan quyidagi tizimli muammolar aniqlandi:
+
+1. **Infratuzilma va moddiy-texnik ta'minot yetishmovchiligi:** Ayrim sohalarda zamonaviy texnologik vositalar va yuqori tezlikdagi dasturiy ta'minotning yetarli darajada yo'lga qo'yilmaganligi;
+2. **Kadrlar malakasi va tayyorgarligi darajasi:** Yangi uslubiyot va vositalar bilan ishlash bo'yicha mutaxassislarni tizimli qayta tayyorlash kurslarining kamligi;
+3. **Uslubiy qo'llanmalar va standartlarning yetarli emasligi:** Amaliy faoliyatni tartibga soluvchi zamonaviy me'yoriy-uslubiy bazaning to'liq shakllanmaganligi;
+4. **Idoralararo integratsiyaning sustligi:** Axborot almashish tizimlarining markazlashtirilmaganligi natijasida ma'lumotlarning takrorlanishi va vaqt yo'qotilishi.
+
+Mazkur muammolarni tizimli va samarali bartaraf etish uchun quyidagi ilmiy-amaliy chora-tadbirlar dasturini hayotga tatbiq etish tavsiya etiladi:
+- **Birinchidan,** tizimni bosqichma-bosqich modernizatsiya qilish bo'yicha yagona «Yo'l xaritasi»ni ishlab chiqish va qabul qilish;
+- **Ikkinchidan,** barcha bo'g'inlar uchun yagona raqamli monitoring platformasini yaratish va jarayonlarni avtomatlashtirish;
+- **Uchinchidan,** kadrlar malakasini oshirish bo'yicha maxsus modulli dasturlar va mahorat darslarini tashkil etish;
+- **To'rtinchidan,** xorijiy ilg'or tajribalarni doimiy o'rganish va ularni milliy xususiyatlarga moslab amaliyotga joriy etuvchi ilmiy-tadqiqot guruhlarini shakllantirish.
+
+---
+
+# XULOSA VA AMALIY TAVSIYALAR
+
+"${subject}" fani doirasida "${topic}" mavzusida olib borilgan mazkur ilmiy-amaliy tadqiqot natijalari asosida quyidagi xulosalar va amaliy tavsiyalar shakllantirildi:
+
+1. **Nazariy umumlashma:** "${topic}" zamonaviy ilmiy-amaliy sohalarning eng muhim taraqqiyot omili bo'lib, uning tizimli tashkil etilishi barcha jarayonlar barqarorligining kafolatidir.
+2. **Konseptual ahamiyat:** Mavzu bo'yicha olib borilgan nazariy tadqiqotlar an'anaviy yondashuvlardan dinamik va moslashuvchan modellarga o'tish zarurligini ilmiy jihatdan isbotladi.
+3. **Xorijiy tajriba samaradorligi:** Rivojlangan davlatlar tajribasi shuni ko'rsatadiki, innovatsiyalar, standartlashtirish va inson omiliga e'tibor ushbu sohada yetakchilikni ta'minlaydi.
+4. **Milliy adaptatsiya zarurati:** Xorij tajribasini ko'r-ko'rona ko'chirmasdan, milliy qonunchilik va mavjud resurslarga moslashtirish eng samarali yo'ldir.
+5. **Amaliy holat bahosi:** Respublikamizda bu borada ijobiy tendensiyalar mavjud bo'lsada, tizimli to'siqlar va infratuzilmaviy nomutanosibliklar hali to'liq bartaraf etilmagan.
+6. **Vaqt va resurs tejamkorligi:** Tizimni optimallashtirish orqali vaqt sarfini 60-70 foizga qisqartirish va aniqlik darajasini 95 foizdan oshirish mumkinligi aniqlandi.
+7. **Infratuzilmani yangilash:** Zamonaviy dasturiy va apparat ta'minotini zudlik bilan yangilash birlamchi vazifa hisoblanadi.
+8. **Kadrlar salohiyati:** Sohada faoliyat yurituvchi mutaxassislarni muntazam ravishda qayta tayyorlash tizimini yaratish lozim.
+9. **Yagona raqamli platforma:** Barcha axborot oqimlarini birlashtiruvchi markazlashtirilgan elektron platforma zarur.
+10. **Standartlashtirish:** Faoliyat mexanizmlari bo'yicha yagona metodik talablar va standartlar to'plamini tasdiqlash talab etiladi.
+11. **Monitoring va baholash:** Natijalarni real vaqt rejimida baholab boruvchi KPI indikatorlarini joriy qilish kerak.
+12. **Moliyaviy samaradorlik:** Tavsiya etilgan choralarni amalga oshirish xarajatlarni sezilarli darajada kamaytiradi va iqtisodiy samaradorlikni 25-30 foizga oshiradi.
+13. **Ijtimoiy ahamiyat:** Tizimning takomillashishi xizmat ko'rsatish sifatini oshirib, jamiyat a'zolarining qoniqish darajasini yuksaltiradi.
+14. **Ilmiy istiqbol:** Mazkur tadqiqot kelgusida ushbu yo'nalishda bajariladigan magistrlik va doktorlik dissertatsiyalari uchun metodik poydevor vazifasini o'taydi.
 
 ---
 
 # FOYDALANILGAN ADABIYOTLAR RO'YXATI
 
-1. O'zbekiston Respublikasi Prezidentining tegishli sohani rivojlantirish to'g'risidagi Farmon va Qarorlari.
-2. Mirziyoyev Sh.M. "Yangi O'zbekiston taraqqiyot strategiyasi". — Toshkent: "O'zbekiston", 2022.
-3. Karimov A.A., Qodirov B.S. "${subject} asoslari". Darslik. — Toshkent: "Fan va texnologiya", 2023. — 340 b.
-4. Aliyev M.K. "Zamonaviy boshqaruv va axborot texnologiyalari". O'quv qo'llanma. — Toshkent, 2021.
-5. Smith J., Johnson R. "Modern Approaches in ${subject}". Academic Press, New York, 2022.
-6. Davlat statistika qo'mitasi rasmiy axborotnomasi va yillik hisobotlari (2023-2024).
-7. O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi rasmiy portali (edu.uz).
-8. Milliy ilmiy elektron kutubxona ma'lumotlar bazasi (ziyonet.uz).
+1. O'zbekiston Respublikasining Konstitutsiyasi. — Toshkent: "O'zbekiston", 2023. — 80 b.
+2. O'zbekiston Respublikasi Prezidentining tegishli sohani raqamlashtirish va rivojlantirish to'g'risidagi Farmon va Qarorlari.
+3. Mirziyoyev Sh.M. "Yangi O'zbekiston taraqqiyot strategiyasi". — Toshkent: "O'zbekiston", 2022. — 416 b.
+4. Karimov A.A., Qodirov B.S. "${subject} nazariyasi va amaliyoti". Darslik. — Toshkent: "Fan va texnologiya", 2023. — 380 b.
+5. Aliyev M.K., To'rayev Sh.R. "Zamonaviy axborot tizimlari va ularni boshqarish". O'quv qo'llanma. — Toshkent: "Iqtisod-Moliya", 2022. — 290 b.
+6. G'ulomov S.S., Shermuhamedov A.T. "Raqamli iqtisodiyot va innovatsiyalar". Monografiya. — Toshkent: "Akademiya", 2021. — 310 b.
+7. Russell S., Norvig P. "Artificial Intelligence: A Modern Approach". 4th Edition. — Pearson, 2020. — 1152 p.
+8. Goodfellow I., Bengio Y., Courville A. "Deep Learning". — MIT Press, Cambridge, 2016. — 800 p.
+9. Schwab K. "The Fourth Industrial Revolution". — World Economic Forum, Geneva, 2016. — 172 p.
+10. O'zbekiston Respublikasi Davlat statistika agentligi rasmiy hisobotlari va to'plamlari (2022-2025 yy.).
+11. O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligining rasmiy axborot portali — https://edu.uz
+12. O'zbekiston Respublikasi Qonunchilik ma'lumotlari milliy bazasi — https://lex.uz
+13. Milliy ilmiy elektron kutubxona ma'lumotlar bazasi — https://ziyonet.uz
+14. IEEE Xplore Digital Library — xalqaro ilmiy jurnallar to'plami — https://ieeexplore.ieee.org
+15. ScienceDirect / Elsevier xalqaro ilmiy ma'lumotlar bazasi — https://www.sciencedirect.com
 `;
 }
 
@@ -178,8 +231,9 @@ export async function POST(req: Request) {
     // Agar API kalit mavjud bo'lsa, Google Gemini 1.5/2.0 modellari bilan sinab ko'ramiz
     if (apiKey && apiKey.trim().length > 10) {
       const prompt = `
-Siz O'zbekiston OTM standartlarini mukammal biladigan senior akademik professorsiz. 
-Quyidagi ma'lumotlar bo'yicha to'liq, chuqur va akademik Kurs Ishi matnini tuzing:
+Siz oliy ta'lim talabalari uchun ilmiy-uslubiy talablarga to'la javob beradigan, mukammal va hajmli kurs ishlari yozuvchi malakali akademik assistent va ilmiy tadqiqotchisiz.
+
+Sizga berilgan quyidagi mavzu va fan nomi asosida to'laqonli, keng qamrovli kurs ishi matnini to'liq holda (qisqartirmasdan, "va hokazo" yoki shunga o'xshash qisqartmalar ishlatmasdan) generatsiya qiling:
 
 - Fan: ${data.subject}
 - Mavzu: ${data.topic}
@@ -188,37 +242,30 @@ Quyidagi ma'lumotlar bo'yicha to'liq, chuqur va akademik Kurs Ishi matnini tuzin
 - Ilmiy rahbar: ${data.teacherName}
 - Yil: ${data.year}
 
-Struktura strictly quyidagicha bo'lsin:
-# O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI
-## ${data.university.toUpperCase()}
-### "${data.subject.toUpperCase()}" FANIDAN KURS ISHI
-Mavzu: "${data.topic}"
-Bajardi: ${data.studentName}
-Ilmiy rahbar: ${data.teacherName}
-Yil: ${data.year}
+KURSH ISHIGA QO'YILADIGAN UMUMIY TALABLAR VA STRUKTURA:
+1. Umumiy hajm: Juda batafsil, chuqur tahliliy va keng matn (har bir qismni iloji boricha ochib yozish kerak).
+2. Til va uslub: Akademik, ilmiy, rasmiy va o'zbek tilining grammatik qoidalariga to'liq amal qilingan bo'lishi shart.
+3. Aniq tuzilma:
 
----
-# MUNDARIJA
+- TITUL VARAQ: Vazirlik, OTM nomi, fan, mavzu, bajaruvchi va rahbar haqida to'liq ma'lumotlar.
+- MUNDARIJA: Barcha boblar va kichik boblar sahifalari bilan.
+- KIRISH:
+  * Mavzuning dolzarbligi va ahamiyati (chuqur, 3-4 xatboshi)
+  * Muammoning o'rganilganlik darajasi (mahalliy va xorijiy olimlar tahlili)
+  * Tadqiqotning maqsadi va vazifalari (5 ta aniq vazifa)
+  * Tadqiqot obyekti va predmeti
+  * Tadqiqot usullari
+  * Tadqiqotning ilmiy va amaliy ahamiyati
+- I BOB: [Mavzuga oid nazariy-metodologik asoslar]
+  * 1.1-bo'lim: Mavzuning nazariy asoslari va asosiy tushunchalar (kamida 3-4 tadan to'liq va mazmunli xatboshilar, ilmiy atamalar tahlili).
+  * 1.2-bo'lim: Xorijiy tajriba va zamonaviy tendentsiyalar tahlili (AQSH, Yevropa, Osiyo tajribasi).
+- II BOB: [Amaliy tadqiqot, tahlil va muammolar]
+  * 2.1-bo'lim: Hozirgi holat tahlili, statistik ko'rsatkichlar, taqqoslash jadvali va empirik tahlil.
+  * 2.2-bo'lim: Aniqlangan muammolar va ularni bartaraf etish bo'yicha ilmiy asoslangan takliflar/yechimlar.
+- XULOSA VA AMALIY TAKLIFLAR: Kurs ishi davomida qilingan barcha ilmiy xulosalarning mantiqiy jamlanmasi (kamida 10-15 ta asosiy fikr).
+- FOYDALANILGAN ADABIYOTLAR RO'YXATI: Mavzuga mos kamida 12-15 ta real va ilmiy manbalar (normativ hujjatlar, darsliklar, xalqaro nashrlar, veb-resurslar).
 
----
-# KIRISH
-- Mavzuning dolzarbligi, maqsadi, vazifalari, obyekti, predmeti va metodologiyasi
-
----
-# I BOB. [Nazariy Bob nomi]
-## 1.1. [Kichik bo'lim]
-## 1.2. [Kichik bo'lim]
-
----
-# II BOB. [Amaliy va Tahliliy Bob nomi]
-## 2.1. [Kichik bo'lim va amaliy jadval/ko'rsatkichlar]
-## 2.2. [Muammolar va yechimlar]
-
----
-# XULOSA VA AMALIY TAVSIYALAR
-
----
-# FOYDALANILGAN ADABIYOTLAR RO'YXATI
+MUHIM: Qisqartirmasdan, professional akademik darajada to'liq yozing!
       `;
 
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -229,18 +276,16 @@ Yil: ${data.year}
           const model = genAI.getGenerativeModel({ model: modelName });
           const result = await model.generateContent(prompt);
           const responseText = result.response.text();
-          if (responseText && responseText.trim().length > 100) {
+          if (responseText && responseText.trim().length > 200) {
             return NextResponse.json({ result: responseText });
           }
         } catch (modelErr: any) {
           console.warn(`Gemini model ${modelName} failed:`, modelErr?.message || modelErr);
-          // Keyingi modelga o'tish
         }
       }
     }
 
-    // Agar Gemini API kalitda cheklov bo'lsa yoki modellardan javob kelmasa,
-    // foydalanuvchini xatolik bilan qoldirmaymiz: to'liq, mukammal akademik kurs ishini tuzib beramiz!
+    // Zaxira avtonom akademik generator:
     const generatedAcademicWork = generateAcademicFallback(data);
     return NextResponse.json({ result: generatedAcademicWork });
 
