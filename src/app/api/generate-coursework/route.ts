@@ -22,16 +22,13 @@ function generateAcademicFallback(data: CourseworkData): string {
 
 ## ${uName.toUpperCase()}
 
-<br />
-
 ### "${subject.toUpperCase()}" FANIDAN
 
 # KURS ISHI
 
-### Mavzu: "${topic}"
+### **Mavzu:** "${topic}"
 
-<br />
-<br />
+---
 
 **Bajardi:** ${sName}  
 **Ilmiy rahbar:** ${tName}  
@@ -39,8 +36,7 @@ function generateAcademicFallback(data: CourseworkData): string {
 **Guruh:** 301-guruh talabasi  
 **Ta'lim yo'nalishi:** Boshlang'ich va amaliy mutaxassislik  
 
-<br />
-<br />
+---
 
 **Toshkent — ${currentYear}**
 
@@ -265,7 +261,11 @@ KURSH ISHIGA QO'YILADIGAN UMUMIY TALABLAR VA STRUKTURA:
 - XULOSA VA AMALIY TAKLIFLAR: Kurs ishi davomida qilingan barcha ilmiy xulosalarning mantiqiy jamlanmasi (kamida 10-15 ta asosiy fikr).
 - FOYDALANILGAN ADABIYOTLAR RO'YXATI: Mavzuga mos kamida 12-15 ta real va ilmiy manbalar (normativ hujjatlar, darsliklar, xalqaro nashrlar, veb-resurslar).
 
-MUHIM: Qisqartirmasdan, professional akademik darajada to'liq yozing!
+QAT'IY TALABLAR:
+1. Hech qachon <br />, <br>, <hr> kabi HTML teglarini ochiq matn (string) shaklida chiqarmang. Qator tashlash uchun faqat toza Markdown bo'sh qatorlaridan foydalaning.
+2. Titul varag'ida barcha ma'lumotlar toza Markdown formatida berilsin.
+3. Mundarijadagi har bir element (Sarlavha, nuqtalar, sahifa raqami) bitta chiziqda joylashsin.
+4. Qisqartirmasdan, professional akademik darajada to'liq yozing!
       `;
 
       const genAI = new GoogleGenerativeAI(apiKey);

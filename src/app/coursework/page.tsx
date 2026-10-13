@@ -125,6 +125,13 @@ export default function CourseworkGenerator() {
     window.print();
   };
 
+  const cleanResult = React.useMemo(() => {
+    if (!result) return "";
+    return result
+      .replace(/<br\s*\/?>/gi, "\n\n")
+      .replace(/<hr\s*\/?>/gi, "\n\n---\n\n");
+  }, [result]);
+
   return (
     <div className="min-h-screen bg-background p-4 pt-6 text-foreground md:p-8">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 lg:grid-cols-12 w-full min-w-0 print:m-0 print:block print:max-w-none print:p-0">
@@ -275,9 +282,9 @@ export default function CourseworkGenerator() {
                 maxWidth: "100%",
               }}
             >
-              {result ? (
+              {cleanResult ? (
                 <div className="markdown-content">
-                  <ReactMarkdown components={markdownComponents}>{result}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{cleanResult}</ReactMarkdown>
                 </div>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center space-y-4 pt-40 text-slate-400 opacity-50">
