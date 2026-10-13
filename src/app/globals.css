@@ -170,6 +170,39 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* Table of Contents (Mundarija) Leader Dots */
+.toc-item {
+  display: flex !important;
+  align-items: baseline !important;
+  width: 100% !important;
+  margin-bottom: 6px !important;
+}
+
+.toc-title {
+  white-space: nowrap !important;
+  padding-right: 4px !important;
+  font-weight: 500 !important;
+  flex-shrink: 0 !important;
+  max-width: 85% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.toc-dots {
+  flex-grow: 1 !important;
+  border-bottom: 1px dotted #000 !important;
+  margin: 0 4px !important;
+  height: 1em !important;
+  min-width: 16px !important;
+}
+
+.toc-page {
+  white-space: nowrap !important;
+  padding-left: 4px !important;
+  font-weight: bold !important;
+  flex-shrink: 0 !important;
+}
+
 @media print {
   @page {
     size: A4;
@@ -191,4 +224,25 @@ body {
     color: black !important;
     background: transparent !important;
   }
+  .toc-item {
+    display: flex !important;
+    align-items: baseline !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+  .toc-title {
+    white-space: nowrap !important;
+    padding-right: 4px !important;
+  }
+  .toc-dots {
+    flex-grow: 1 !important;
+    border-bottom: 1px dotted #000 !important;
+    margin: 0 4px !important;
+  }
+  .toc-page {
+    white-space: nowrap !important;
+    padding-left: 4px !important;
+    font-weight: bold !important;
+  }
 }
+

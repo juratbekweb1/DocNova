@@ -3,6 +3,78 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+function extractText(c: any): string {
+  if (typeof c === "string") return c;
+  if (typeof c === "number") return c.toString();
+  if (Array.isArray(c)) return c.map(extractText).join("");
+  if (c && typeof c === "object" && c.props && c.props.children) {
+    return extractText(c.props.children);
+  }
+  return "";
+}
+
+function parseTocLine(text: string): { title: string; page: string; isSub: boolean } | null {
+  if (!text) return null;
+  const clean = text.trim();
+  const match = clean.match(/^([^\n]+?)\s*(?:[\.·…\-]\s*){2,}\s*(\d+)\s*$/);
+  if (match) {
+    const rawTitle = match[1]
+      .replace(/^\s*[-*•]\s*/, "")
+      .replace(/\*/g, "")
+      .trim();
+    const page = match[2].trim();
+    if (rawTitle.length > 0 && page.length > 0) {
+      const isSub = /^\d+\.\d+/.test(rawTitle);
+      return { title: rawTitle, page, isSub };
+    }
+  }
+  return null;
+}
+
+const markdownComponents = {
+  ul: ({ children }: any) => {
+    return <ul className="list-none p-0 my-2 space-y-1 w-full">{children}</ul>;
+  },
+  li: ({ children }: any) => {
+    const text = extractText(children);
+    const toc = parseTocLine(text);
+    if (toc) {
+      return (
+        <li className={`list-none w-full m-0 p-0 ${toc.isSub ? "pl-5" : ""}`}>
+          <div className="flex items-baseline w-full my-1 toc-item">
+            <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%]">
+              {toc.title}
+            </span>
+            <span className="flex-grow border-b border-dotted border-black mx-1 mb-1 toc-dots" />
+            <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0">
+              {toc.page}
+            </span>
+          </div>
+        </li>
+      );
+    }
+    return <li className="my-1">{children}</li>;
+  },
+  p: ({ children }: any) => {
+    const text = extractText(children);
+    const toc = parseTocLine(text);
+    if (toc) {
+      return (
+        <div className={`flex items-baseline w-full my-1 toc-item ${toc.isSub ? "pl-5" : ""}`}>
+          <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%]">
+            {toc.title}
+          </span>
+          <span className="flex-grow border-b border-dotted border-black mx-1 mb-1 toc-dots" />
+          <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0">
+            {toc.page}
+          </span>
+        </div>
+      );
+    }
+    return <p className="mb-4 leading-relaxed">{children}</p>;
+  },
+};
+
 export default function CourseworkGenerator() {
   const [formData, setFormData] = useState({
     university: "",
@@ -204,7 +276,7 @@ export default function CourseworkGenerator() {
             >
               {result ? (
                 <div className="markdown-content">
-                  <ReactMarkdown>{result}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{result}</ReactMarkdown>
                 </div>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center space-y-4 pt-40 text-slate-400 opacity-50">
