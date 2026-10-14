@@ -3,6 +3,13 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+interface CourseworkPage {
+  pageNumber: number;
+  type: string;
+  title: string;
+  content: string;
+}
+
 function extractText(c: any): string {
   if (typeof c === "string") return c;
   if (typeof c === "number") return c.toString();
@@ -32,8 +39,23 @@ function parseTocLine(text: string): { title: string; page: string; isSub: boole
 }
 
 const markdownComponents = {
+  h1: ({ children }: any) => (
+    <h1 className="text-lg sm:text-xl font-bold text-center uppercase tracking-wide my-3 text-black">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }: any) => (
+    <h2 className="text-base sm:text-lg font-bold uppercase tracking-normal mt-4 mb-2 text-black">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: any) => (
+    <h3 className="text-sm sm:text-base font-semibold mt-3 mb-1 text-black">
+      {children}
+    </h3>
+  ),
   ul: ({ children }: any) => {
-    return <ul className="list-none p-0 my-2 space-y-1 w-full">{children}</ul>;
+    return <ul className="list-none p-0 my-1 space-y-1 w-full text-black">{children}</ul>;
   },
   li: ({ children }: any) => {
     const text = extractText(children);
@@ -41,38 +63,56 @@ const markdownComponents = {
     if (toc) {
       return (
         <li className={`list-none w-full m-0 p-0 ${toc.isSub ? "pl-5" : ""}`}>
-          <div className="flex items-baseline w-full my-1 toc-item">
-            <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%]">
+          <div className="flex items-baseline w-full my-0.5 toc-item">
+            <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%] text-xs sm:text-sm text-black">
               {toc.title}
             </span>
             <span className="flex-grow border-b border-dotted border-black mx-1 mb-1 toc-dots" />
-            <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0">
+            <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0 text-xs sm:text-sm text-black">
               {toc.page}
             </span>
           </div>
         </li>
       );
     }
-    return <li className="my-1">{children}</li>;
+    return <li className="my-0.5 text-xs sm:text-sm text-black list-disc ml-5 leading-normal">{children}</li>;
   },
   p: ({ children }: any) => {
     const text = extractText(children);
     const toc = parseTocLine(text);
     if (toc) {
       return (
-        <div className={`flex items-baseline w-full my-1 toc-item ${toc.isSub ? "pl-5" : ""}`}>
-          <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%]">
+        <div className={`flex items-baseline w-full my-0.5 toc-item ${toc.isSub ? "pl-5" : ""}`}>
+          <span className="whitespace-nowrap pr-1 font-semibold toc-title truncate max-w-[85%] text-xs sm:text-sm text-black">
             {toc.title}
           </span>
           <span className="flex-grow border-b border-dotted border-black mx-1 mb-1 toc-dots" />
-          <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0">
+          <span className="whitespace-nowrap pl-1 font-bold toc-page shrink-0 text-xs sm:text-sm text-black">
             {toc.page}
           </span>
         </div>
       );
     }
-    return <p className="mb-4 leading-relaxed">{children}</p>;
+    return <p className="mb-2 text-justify text-xs sm:text-[13px] leading-relaxed text-black indent-6">{children}</p>;
   },
+  table: ({ children }: any) => (
+    <div className="my-3 overflow-x-auto w-full">
+      <table className="w-full border-collapse border border-black text-[11px] sm:text-xs text-black">
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }: any) => (
+    <th className="border border-black bg-slate-100 p-1.5 text-center font-bold text-black text-[11px] sm:text-xs">
+      {children}
+    </th>
+  ),
+  td: ({ children }: any) => (
+    <td className="border border-black p-1.5 text-black text-[11px] sm:text-xs">
+      {children}
+    </td>
+  ),
+  hr: () => <hr className="my-3 border-t border-slate-300" />,
 };
 
 export default function CourseworkGenerator() {
@@ -83,12 +123,13 @@ export default function CourseworkGenerator() {
     studentName: "",
     teacherName: "",
     year: new Date().getFullYear().toString(),
-    pageCount: "25",
+    pageCount: "19",
   });
 
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [pages, setPages] = useState<CourseworkPage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const documentRef = React.useRef<HTMLDivElement>(null);
 
@@ -101,6 +142,7 @@ export default function CourseworkGenerator() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setPages([]);
 
     try {
       const res = await fetch("/api/generate-coursework", {
@@ -116,6 +158,9 @@ export default function CourseworkGenerator() {
       }
 
       setResult(data.result);
+      if (data.pages && Array.isArray(data.pages) && data.pages.length > 0) {
+        setPages(data.pages);
+      }
     } catch (err: unknown) {
       const e = err as Error;
       setError(e.message);
@@ -136,13 +181,20 @@ export default function CourseworkGenerator() {
       // SSR muammolarini oldini olish uchun dinamik import
       const html2pdf = (await import("html2pdf.js")).default;
       const cleanStudentName = formData.studentName?.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "DocNova";
+      const totalPages = pages.length > 0 ? pages.length : parseInt(formData.pageCount || "19", 10);
+
       const opt = {
-        margin: [15, 15, 15, 15] as [number, number, number, number],
-        filename: `Kurs_ishi_${cleanStudentName}.pdf`,
+        margin: [0, 0, 0, 0] as [number, number, number, number],
+        filename: `Kurs_ishi_${cleanStudentName}_${totalPages}sahifa.pdf`,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+        pagebreak: { mode: ["css", "legacy"], after: ".html2pdf__page-break" },
       };
 
       await (html2pdf as any)().set(opt).from(documentRef.current).save();
@@ -203,35 +255,37 @@ export default function CourseworkGenerator() {
                 required
                 value={formData.topic}
                 onChange={handleChange}
-                placeholder="Sun'iy intellektning ta'limdagi o'rni..."
+                placeholder="Sun'iy intellektning nazariy va amaliy asoslari..."
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Talaba F.I.Sh</label>
-              <input
-                type="text"
-                name="studentName"
-                required
-                value={formData.studentName}
-                onChange={handleChange}
-                placeholder="Aliyev Vali..."
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-              />
-            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground-secondary">Talaba F.I.Sh</label>
+                <input
+                  type="text"
+                  name="studentName"
+                  required
+                  value={formData.studentName}
+                  onChange={handleChange}
+                  placeholder="Aliyev Vali"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground-secondary">Ilmiy rahbar</label>
-              <input
-                type="text"
-                name="teacherName"
-                required
-                value={formData.teacherName}
-                onChange={handleChange}
-                placeholder="Prof. Qodirov A..."
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-              />
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground-secondary">Ilmiy rahbar</label>
+                <input
+                  type="text"
+                  name="teacherName"
+                  required
+                  value={formData.teacherName}
+                  onChange={handleChange}
+                  placeholder="dots. Karimov A.A."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
             </div>
 
             <div>
@@ -252,7 +306,7 @@ export default function CourseworkGenerator() {
                   Sahifalar soni (Kutilayotgan hajm)
                 </label>
                 <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                  {formData.pageCount || "25"} sahifa
+                  {formData.pageCount || "19"} sahifa
                 </span>
               </div>
 
@@ -260,7 +314,7 @@ export default function CourseworkGenerator() {
               <div className="grid grid-cols-4 gap-2 mb-2">
                 {[
                   { val: "15", label: "15 bet" },
-                  { val: "20", label: "20 bet" },
+                  { val: "19", label: "19 bet" },
                   { val: "25", label: "25 bet" },
                   { val: "30", label: "30 bet" },
                 ].map((item) => (
@@ -288,7 +342,7 @@ export default function CourseworkGenerator() {
                   max={60}
                   value={formData.pageCount}
                   onChange={handleChange}
-                  placeholder="Boshqa hajm (masalan: 20 yoki 30)..."
+                  placeholder="Boshqa hajm (masalan: 19 yoki 30)..."
                   className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-foreground-muted pointer-events-none">
@@ -296,7 +350,7 @@ export default function CourseworkGenerator() {
                 </span>
               </div>
               <p className="mt-1 text-[11px] text-foreground-muted">
-                💡 OTM talabiga qarab 15, 20, 25, 30 yoki o&apos;zingizga kerakli sahifani tanlang.
+                💡 OTM talabiga qarab 15, 19, 25, 30 yoki o&apos;zingizga kerakli sahifani tanlang.
               </p>
             </div>
 
@@ -344,51 +398,144 @@ export default function CourseworkGenerator() {
 
         {/* Right Side: A4 Preview */}
         <div className="flex flex-col items-center lg:col-span-7 w-full min-w-0 print:block print:w-full">
-          {cleanResult && (
-            <div className="mb-4 flex flex-wrap items-center justify-end gap-3 w-full print:hidden">
-              <button
-                onClick={handleDownloadPDF}
-                disabled={downloading}
-                className="flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <span className="text-lg">{downloading ? "⏳" : "📥"}</span>
-                <span>{downloading ? "Yuklanmoqda..." : "PDF yuklab olish"}</span>
-              </button>
+          {(pages.length > 0 || cleanResult) && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 w-full print:hidden">
+              <div className="text-xs sm:text-sm font-semibold text-foreground-secondary">
+                📄 Jami hajm:{" "}
+                <span className="text-primary font-bold">
+                  {pages.length > 0 ? `${pages.length} sahifa` : `${formData.pageCount || "19"} sahifa`}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={downloading}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm"
+                >
+                  <span>{downloading ? "⏳" : "📥"}</span>
+                  <span>{downloading ? "Yuklanmoqda..." : "PDF yuklab olish"}</span>
+                </button>
 
-              <button
-                onClick={handlePrint}
-                className="flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <span className="text-lg">🖨️</span>
-                <span>Chop etish</span>
-              </button>
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] cursor-pointer text-sm"
+                >
+                  <span>🖨️</span>
+                  <span>Chop etish</span>
+                </button>
+              </div>
             </div>
           )}
 
           <div className="flex w-full justify-center overflow-x-auto max-w-full p-2 print:block print:w-full print:p-0">
-            <div
-              ref={documentRef}
-              className="a4-document prose prose-slate max-w-full shrink-0 bg-white p-6 sm:p-10 md:p-[25mm] text-black shadow-2xl"
-              style={{
-                width: "210mm",
-                minHeight: "297mm",
-                maxWidth: "100%",
-              }}
-            >
-              {cleanResult ? (
+            {pages.length > 0 ? (
+              <div
+                ref={documentRef}
+                id="coursework-document"
+                className="coursework-document flex flex-col items-center gap-6 w-[210mm] shrink-0 print:block print:w-full print:gap-0"
+              >
+                {pages.map((p, idx) => (
+                  <React.Fragment key={p.pageNumber}>
+                    <div
+                      className="coursework-page relative flex flex-col justify-between bg-white text-black shadow-xl border border-slate-200/80 rounded-sm print:rounded-none print:border-0 print:shadow-none print:m-0"
+                      style={{
+                        width: "210mm",
+                        minHeight: "297mm",
+                        maxHeight: "297mm",
+                        boxSizing: "border-box",
+                        padding: "20mm 20mm 20mm 25mm", // Standart akademik hoshiyalar: chap 25mm, yuqori/o'ng/past 20mm
+                        pageBreakAfter: idx < pages.length - 1 ? "always" : "auto",
+                        breakAfter: idx < pages.length - 1 ? "page" : "auto",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div className="coursework-page-content prose prose-slate max-w-none text-black flex-grow">
+                        <ReactMarkdown components={markdownComponents}>{p.content}</ReactMarkdown>
+                      </div>
+
+                      {/* Sahifa raqami (1-sahifa Titulda ko'rsatilmaydi) */}
+                      {p.pageNumber > 1 ? (
+                        <div className="coursework-page-footer mt-auto pt-3 text-center text-xs font-serif text-slate-700">
+                          {p.pageNumber}
+                        </div>
+                      ) : (
+                        <div className="h-4" />
+                      )}
+                    </div>
+
+                    {idx < pages.length - 1 && (
+                      <div
+                        className="html2pdf__page-break"
+                        style={{
+                          pageBreakAfter: "always",
+                          breakAfter: "page",
+                          height: 0,
+                          margin: 0,
+                          padding: 0,
+                        }}
+                      />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : cleanResult ? (
+              <div
+                ref={documentRef}
+                className="a4-document prose prose-slate max-w-full shrink-0 bg-white p-6 sm:p-10 md:p-[25mm] text-black shadow-2xl"
+                style={{
+                  width: "210mm",
+                  minHeight: "297mm",
+                  maxWidth: "100%",
+                }}
+              >
                 <div className="markdown-content">
                   <ReactMarkdown components={markdownComponents}>{cleanResult}</ReactMarkdown>
                 </div>
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center space-y-4 pt-40 text-slate-400 opacity-50">
-                  <div className="text-6xl">📄</div>
-                  <p>Hujjat shu yerda shakllanadi...</p>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center space-y-4 pt-40 text-slate-400 opacity-50">
+                <div className="text-6xl">📄</div>
+                <p>Hujjat shu yerda shakllanadi...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .coursework-page {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            box-sizing: border-box !important;
+            padding: 20mm 20mm 20mm 25mm !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          .html2pdf__page-break {
+            page-break-after: always !important;
+            break-after: page !important;
+            display: block !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
