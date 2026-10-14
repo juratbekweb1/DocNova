@@ -19,18 +19,18 @@ export default function AcademicHubPage() {
       estimatedTime: "~2 min"
     },
     {
-      title: "Iqtiboslar generatori",
-      description: "APA, MLA, Harvard va boshqa formatlarda iqtiboslarni avtomatik shakllantiring.",
+      title: "AI Ta'lim Assistenti",
+      description: "Konspektlar, ilmiy tushuntirishlar va mavzu bo'yicha savol-javoblar.",
       icon: BookOpen,
-      href: "/academic/citations",
+      href: "/tools/ai-study-assistant",
       estimatedTime: "~1 min"
     },
     {
-      title: "Kurs ishidan Slaydga",
-      description: "Kurs ishingiz asosida avtomatik PPTX taqdimotlar yarating.",
+      title: "AI Akademik Yozuvchi",
+      description: "Ilmiy maqola, tezis va xulosalarni avtomatik shakllantiring.",
       icon: Sparkles,
-      href: "/academic/coursework-to-slide",
-      estimatedTime: "~3 min"
+      href: "/tools/ai-writer",
+      estimatedTime: "~2 min"
     }
   ];
 

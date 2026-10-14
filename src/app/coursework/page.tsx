@@ -133,6 +133,8 @@ export default function CourseworkGenerator() {
   const [error, setError] = useState<string | null>(null);
   const documentRef = React.useRef<HTMLDivElement>(null);
 
+  const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -176,32 +178,69 @@ export default function CourseworkGenerator() {
   const handleDownloadPDF = async () => {
     if (!documentRef.current) return;
     setDownloading(true);
+    setError(null);
+    setDownloadProgress("Tayyorlanmoqda...");
 
     try {
-      // SSR muammolarini oldini olish uchun dinamik import
-      const html2pdf = (await import("html2pdf.js")).default;
-      const cleanStudentName = formData.studentName?.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "DocNova";
-      const totalPages = pages.length > 0 ? pages.length : parseInt(formData.pageCount || "19", 10);
+      const { jsPDF } = await import("jspdf");
+      const html2canvasModule = await import("html2canvas");
+      const html2canvas = html2canvasModule.default || html2canvasModule;
 
-      const opt = {
-        margin: [0, 0, 0, 0] as [number, number, number, number],
-        filename: `Kurs_ishi_${cleanStudentName}_${totalPages}sahifa.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
+      const pageElements = documentRef.current.querySelectorAll<HTMLElement>(".coursework-page");
+      const cleanStudentName = formData.studentName?.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "DocNova";
+
+      if (pageElements && pageElements.length > 0) {
+        const total = pageElements.length;
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+          compress: true,
+        });
+
+        for (let i = 0; i < total; i++) {
+          setDownloadProgress(`Sahifa (${i + 1}/${total})...`);
+          const el = pageElements[i];
+
+          const canvas = await html2canvas(el, {
+            scale: 1.5,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+          });
+
+          const imgData = canvas.toDataURL("image/jpeg", 0.92);
+          if (i > 0) {
+            pdf.addPage("a4", "portrait");
+          }
+          pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+        }
+
+        setDownloadProgress("Fayl saqlanmoqda...");
+        pdf.save(`Kurs_ishi_${cleanStudentName}_${total}sahifa.pdf`);
+      } else {
+        setDownloadProgress("Hujjat yuklanmoqda...");
+        const canvas = await html2canvas(documentRef.current, {
+          scale: 1.5,
           useCORS: true,
           logging: false,
-          scrollY: 0,
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"], after: ".html2pdf__page-break" },
-      };
-
-      await (html2pdf as any)().set(opt).from(documentRef.current).save();
-    } catch (err) {
+          backgroundColor: "#ffffff",
+        });
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        });
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+        pdf.save(`Kurs_ishi_${cleanStudentName}.pdf`);
+      }
+    } catch (err: any) {
       console.error("PDF yuklab olishda xatolik:", err);
+      setError("PDF yaratishda texnik xatolik yuz berdi. Iltimos, 'Chop etish' tugmasi orqali 'PDF sifatida saqlash'ni tanlang.");
     } finally {
       setDownloading(false);
+      setDownloadProgress(null);
     }
   };
 
@@ -413,7 +452,7 @@ export default function CourseworkGenerator() {
                   className="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm"
                 >
                   <span>{downloading ? "⏳" : "📥"}</span>
-                  <span>{downloading ? "Yuklanmoqda..." : "PDF yuklab olish"}</span>
+                  <span>{downloading ? (downloadProgress || "Yuklanmoqda...") : "PDF yuklab olish"}</span>
                 </button>
 
                 <button
@@ -432,20 +471,21 @@ export default function CourseworkGenerator() {
               <div
                 ref={documentRef}
                 id="coursework-document"
-                className="coursework-document flex flex-col items-center gap-6 w-[210mm] shrink-0 print:block print:w-full print:gap-0"
+                className="coursework-document flex flex-col items-center w-[210mm] shrink-0 print:block print:w-full"
               >
-                {pages.map((p, idx) => (
-                  <React.Fragment key={p.pageNumber}>
+                {pages.map((p) => (
+                  <div
+                    key={p.pageNumber}
+                    className="coursework-page-card bg-white shadow-xl border border-slate-200/80 rounded-sm overflow-hidden mb-6 print:m-0 print:border-0 print:shadow-none print:mb-0"
+                  >
                     <div
-                      className="coursework-page relative flex flex-col justify-between bg-white text-black shadow-xl border border-slate-200/80 rounded-sm print:rounded-none print:border-0 print:shadow-none print:m-0"
+                      className="coursework-page relative flex flex-col justify-between bg-white text-black"
                       style={{
                         width: "210mm",
                         minHeight: "297mm",
                         maxHeight: "297mm",
                         boxSizing: "border-box",
                         padding: "20mm 20mm 20mm 25mm", // Standart akademik hoshiyalar: chap 25mm, yuqori/o'ng/past 20mm
-                        pageBreakAfter: idx < pages.length - 1 ? "always" : "auto",
-                        breakAfter: idx < pages.length - 1 ? "page" : "auto",
                         overflow: "hidden",
                       }}
                     >
@@ -462,20 +502,7 @@ export default function CourseworkGenerator() {
                         <div className="h-4" />
                       )}
                     </div>
-
-                    {idx < pages.length - 1 && (
-                      <div
-                        className="html2pdf__page-break"
-                        style={{
-                          pageBreakAfter: "always",
-                          breakAfter: "page",
-                          height: 0,
-                          margin: 0,
-                          padding: 0,
-                        }}
-                      />
-                    )}
-                  </React.Fragment>
+                  </div>
                 ))}
               </div>
             ) : cleanResult ? (
@@ -517,6 +544,13 @@ export default function CourseworkGenerator() {
           .print\\:hidden {
             display: none !important;
           }
+          .coursework-page-card {
+            page-break-after: always !important;
+            break-after: page !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
           .coursework-page {
             width: 210mm !important;
             min-height: 297mm !important;
@@ -526,13 +560,6 @@ export default function CourseworkGenerator() {
             margin: 0 !important;
             box-shadow: none !important;
             border: none !important;
-            page-break-after: always !important;
-            break-after: page !important;
-          }
-          .html2pdf__page-break {
-            page-break-after: always !important;
-            break-after: page !important;
-            display: block !important;
           }
         }
       `}</style>
