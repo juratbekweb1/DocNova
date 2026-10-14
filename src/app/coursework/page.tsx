@@ -83,6 +83,7 @@ export default function CourseworkGenerator() {
     studentName: "",
     teacherName: "",
     year: new Date().getFullYear().toString(),
+    pageCount: "25",
   });
 
   const [loading, setLoading] = useState(false);
@@ -243,6 +244,60 @@ export default function CourseworkGenerator() {
                 onChange={handleChange}
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground-secondary">
+                  Sahifalar soni (Kutilayotgan hajm)
+                </label>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                  {formData.pageCount || "25"} sahifa
+                </span>
+              </div>
+
+              {/* Tezkor tanlov tugmalari */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {[
+                  { val: "15", label: "15 bet" },
+                  { val: "20", label: "20 bet" },
+                  { val: "25", label: "25 bet" },
+                  { val: "30", label: "30 bet" },
+                ].map((item) => (
+                  <button
+                    key={item.val}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, pageCount: item.val })}
+                    className={`rounded-xl py-2 px-1 text-xs sm:text-sm font-semibold transition-all border text-center cursor-pointer ${
+                      formData.pageCount === item.val
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-background border-border text-foreground hover:border-primary/50 hover:bg-surface-elevated"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Ixtiyoriy boshqa son kiritish maydoni */}
+              <div className="relative">
+                <input
+                  type="number"
+                  name="pageCount"
+                  min={10}
+                  max={60}
+                  value={formData.pageCount}
+                  onChange={handleChange}
+                  placeholder="Boshqa hajm (masalan: 20 yoki 30)..."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-foreground-muted pointer-events-none">
+                  sahifa
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-foreground-muted">
+                💡 OTM talabiga qarab 15, 20, 25, 30 yoki o&apos;zingizga kerakli sahifani tanlang.
+              </p>
             </div>
 
             {error && (

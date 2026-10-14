@@ -9,14 +9,25 @@ interface CourseworkData {
   studentName: string;
   teacherName: string;
   year: string;
+  pageCount?: string;
 }
 
 function generateAcademicFallback(data: CourseworkData): string {
-  const { subject, topic, university, studentName, teacherName, year } = data;
+  const { subject, topic, university, studentName, teacherName, year, pageCount } = data;
   const currentYear = year || new Date().getFullYear().toString();
   const uName = university || "O'ZBEKISTON MILLIY UNIVERSITETI";
   const sName = studentName || "Talaba";
   const tName = teacherName || "Ilmiy rahbar";
+  const targetPages = parseInt(pageCount || "25", 10) || 25;
+
+  // Calculate realistic TOC page distribution according to targetPages
+  const pIntro = 3;
+  const pCh1 = Math.max(5, Math.round(targetPages * 0.2));
+  const pCh1_2 = pCh1 + Math.max(3, Math.round(targetPages * 0.18));
+  const pCh2 = pCh1 + Math.max(6, Math.round(targetPages * 0.4));
+  const pCh2_2 = pCh2 + Math.max(3, Math.round(targetPages * 0.18));
+  const pConc = targetPages - Math.max(2, Math.round(targetPages * 0.08));
+  const pLit = targetPages;
 
   return `# O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI
 
@@ -44,15 +55,15 @@ function generateAcademicFallback(data: CourseworkData): string {
 
 # MUNDARIJA
 
-- **KIRISH** ......................................................................................................................................... 3
-- **I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI** ................................. 6
-  - 1.1. Mavzuning nazariy asoslari, mohiyati va asosiy tushunchalari tahlili ........................................ 6
-  - 1.2. Muammoning xorijiy tajribasi va xalqaro zamonaviy tendensiyalari ............................................. 12
-- **II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA SAMARADORLIK TAHLILI** ............ 18
-  - 2.1. Hozirgi holat tahlili, tizimli monitoring va empirik ko'rsatkichlar ................................................ 18
-  - 2.2. Aniqlangan muammolar va ularni bartaraf etish bo'yicha amaliy takliflar .................................... 24
-- **XULOSA VA AMALIY TAVSIYALAR** ............................................................................................... 29
-- **FOYDALANILGAN ADABIYOTLAR RO'YXATI** .................................................................................. 32
+- **KIRISH** ......................................................................................................................................... ${pIntro}
+- **I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI** ................................. ${pCh1}
+  - 1.1. Mavzuning nazariy asoslari, mohiyati va asosiy tushunchalari tahlili ........................................ ${pCh1}
+  - 1.2. Muammoning xorijiy tajribasi va xalqaro zamonaviy tendensiyalari ............................................. ${pCh1_2}
+- **II BOB. ${topic.toUpperCase()}NI AMALIY TADQIQ ETISH VA SAMARADORLIK TAHLILI** ............ ${pCh2}
+  - 2.1. Hozirgi holat tahlili, tizimli monitoring va empirik ko'rsatkichlar ................................................ ${pCh2}
+  - 2.2. Aniqlangan muammolar va ularni bartaraf etish bo'yicha amaliy takliflar .................................... ${pCh2_2}
+- **XULOSA VA AMALIY TAVSIYALAR** ............................................................................................... ${pConc}
+- **FOYDALANILGAN ADABIYOTLAR RO'YXATI** .................................................................................. ${pLit}
 
 ---
 
@@ -204,7 +215,7 @@ Mazkur muammolarni tizimli va samarali bartaraf etish uchun quyidagi ilmiy-amali
 
 export async function POST(req: Request) {
   try {
-    const { subject, topic, university, studentName, teacherName, year } = await req.json();
+    const { subject, topic, university, studentName, teacherName, year, pageCount } = await req.json();
 
     if (!topic || !subject) {
       return NextResponse.json(
@@ -220,6 +231,7 @@ export async function POST(req: Request) {
       studentName: studentName || "Talaba",
       teacherName: teacherName || "Ilmiy rahbar",
       year: year || new Date().getFullYear().toString(),
+      pageCount: pageCount || "25",
     };
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -237,14 +249,15 @@ Sizga berilgan quyidagi mavzu va fan nomi asosida to'laqonli, keng qamrovli kurs
 - Talaba F.I.Sh: ${data.studentName}
 - Ilmiy rahbar: ${data.teacherName}
 - Yil: ${data.year}
+- Kutilayotgan umumiy hajm: Aniq ${data.pageCount} sahifaga ekvivalent bo'lgan mukammal, to'laqonli ilmiy matn.
 
 KURSH ISHIGA QO'YILADIGAN UMUMIY TALABLAR VA STRUKTURA:
-1. Umumiy hajm: Juda batafsil, chuqur tahliliy va keng matn (har bir qismni iloji boricha ochib yozish kerak).
+1. Umumiy hajm: Aniq ${data.pageCount} sahifaga ekvivalent bo'lgan juda batafsil, chuqur tahliliy va keng matn (har bir qismni iloji boricha ochib yozish kerak).
 2. Til va uslub: Akademik, ilmiy, rasmiy va o'zbek tilining grammatik qoidalariga to'liq amal qilingan bo'lishi shart.
 3. Aniq tuzilma:
 
 - TITUL VARAQ: Vazirlik, OTM nomi, fan, mavzu, bajaruvchi va rahbar haqida to'liq ma'lumotlar.
-- MUNDARIJA: Barcha boblar va kichik boblar sahifalari bilan.
+- MUNDARIJA: Barcha boblar va kichik boblar sahifalari bilan (umumiy sahifalar soni taxminan ${data.pageCount} betga to'g'ri taqsimlansin).
 - KIRISH:
   * Mavzuning dolzarbligi va ahamiyati (chuqur, 3-4 xatboshi)
   * Muammoning o'rganilganlik darajasi (mahalliy va xorijiy olimlar tahlili)
