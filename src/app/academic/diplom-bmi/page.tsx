@@ -806,43 +806,49 @@ export default function DiplomBmiPage() {
                   <span className="text-xs font-bold text-amber-400">{slidesCount} ta slayd</span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-secondary text-[11px]">Slayd soni:</span>
-                  <button
-                    type="button"
-                    onClick={() => setSlidesCount((prev) => Math.max(1, prev - 1))}
-                    className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded border text-xs font-bold"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={slidesCount}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val)) setSlidesCount(Math.min(100, Math.max(1, val)));
-                    }}
-                    className="border-border bg-background text-foreground h-7 w-14 rounded border text-center text-xs font-bold"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSlidesCount((prev) => Math.min(100, prev + 1))}
-                    className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded border text-xs font-bold"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground-secondary text-[11px] font-medium">
+                      Slayd soni:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSlidesCount((prev) => Math.max(1, prev - 1))}
+                      className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border text-xs font-bold transition-colors"
+                      title="1 ta kamaytirish"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={slidesCount}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val)) setSlidesCount(Math.min(100, Math.max(1, val)));
+                      }}
+                      className="border-border bg-background text-foreground h-7 w-12 rounded-lg border text-center text-xs font-bold focus:border-amber-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSlidesCount((prev) => Math.min(100, prev + 1))}
+                      className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border text-xs font-bold transition-colors"
+                      title="1 ta qo'shish"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
 
-                  <div className="ml-auto flex items-center gap-1">
+                  <div className="flex max-w-full flex-wrap items-center gap-1 overflow-x-auto py-0.5">
                     {[10, 15, 20, 30, 50, 100].map((cnt) => (
                       <button
                         key={cnt}
                         type="button"
                         onClick={() => setSlidesCount(cnt)}
-                        className={`cursor-pointer rounded border px-2 py-0.5 text-[10px] ${
+                        className={`shrink-0 cursor-pointer rounded-lg border px-2 py-0.5 text-[11px] font-semibold transition-all ${
                           slidesCount === cnt
-                            ? "border-amber-600 bg-amber-600 font-bold text-white"
+                            ? "border-amber-600 bg-amber-600 font-bold text-white shadow-sm"
                             : "bg-background border-border text-foreground hover:bg-surface-elevated"
                         }`}
                       >

@@ -1,15 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Globe, ChevronDown } from "lucide-react";
+import { Globe, ChevronDown, Check } from "lucide-react";
 import { useLanguage, Lang } from "@/components/providers/language-provider";
 import { motion, AnimatePresence } from "motion/react";
 
-const languages: { code: Lang; label: string; flag: string }[] = [
-  { code: "uz", label: "O'zbek", flag: "🇺🇿" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "tr", label: "Türkçe", flag: "🇹🇷" },
+const languages: { code: Lang; label: string }[] = [
+  { code: "uz", label: "O'zbek" },
+  { code: "ru", label: "Русский" },
+  { code: "en", label: "English" },
+  { code: "tr", label: "Türkçe" },
 ];
 
 export function LanguageToggle() {
@@ -32,38 +32,49 @@ export function LanguageToggle() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 text-xs font-semibold text-foreground-secondary transition-all duration-200 hover:scale-105 hover:bg-border/50 hover:text-foreground shadow-sm"
+        className="border-border bg-surface text-foreground hover:bg-border/50 flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm transition-all duration-200"
         aria-label="Tilni o'zgartirish"
       >
-        <span className="text-base leading-none">{currentLang.flag}</span>
-        <span className="font-bold tracking-wider">{currentLang.code.toUpperCase()}</span>
-        <ChevronDown className="h-3 w-3 opacity-60" />
+        <Globe className="text-primary h-3.5 w-3.5 shrink-0" />
+        <span className="font-bold tracking-wider uppercase">{currentLang.code}</span>
+        <ChevronDown
+          className={`text-foreground-muted h-3 w-3 shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 mt-2 w-36 rounded-xl border border-border bg-surface-elevated shadow-lg overflow-hidden z-50 py-1"
+            exit={{ opacity: 0, y: -8 }}
+            className="border-border bg-surface-elevated absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-xl border py-1 shadow-xl"
           >
             {languages.map((l) => (
               <button
                 key={l.code}
+                type="button"
                 onClick={() => {
                   setLang(l.code);
                   setIsOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium transition-colors ${
+                className={`flex w-full items-center justify-between px-3.5 py-2 text-xs font-medium transition-colors ${
                   lang === l.code
                     ? "bg-primary/10 text-primary font-bold"
                     : "text-foreground-secondary hover:bg-border/50 hover:text-foreground"
                 }`}
               >
-                <span className="text-base leading-none">{l.flag}</span>
-                <span>{l.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-surface text-foreground-muted border-border rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase">
+                    {l.code}
+                  </span>
+                  <span>{l.label}</span>
+                </div>
+                {lang === l.code && <Check className="text-primary h-3.5 w-3.5" />}
               </button>
             ))}
           </motion.div>

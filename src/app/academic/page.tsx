@@ -19,6 +19,14 @@ import {
   Sliders,
   FileDown,
   Palette,
+  Files,
+  Minimize2,
+  FileCode2,
+  Calculator,
+  QrCode,
+  KeyRound,
+  Wrench,
+  ArrowUpRight,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -120,6 +128,63 @@ export default function AcademicHubPage() {
       accent: "from-cyan-600/20 to-blue-500/5 hover:border-cyan-500/40",
       gridSpan: "col-span-1 md:col-span-2 lg:col-span-2",
       iconBg: "text-cyan-400",
+    },
+  ];
+
+  const utilityTools = [
+    {
+      id: "merge-pdf",
+      title: "PDF Birlashtirish",
+      description: "Bir nechta PDF hujjatlarni bitta tartibli faylga tezkor birlashtirish.",
+      href: "/tools/merge-pdf",
+      icon: Files,
+      badge: "Fayllar",
+      iconColor: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    },
+    {
+      id: "compress-pdf",
+      title: "PDF Siqish",
+      description: "Sifatini saqlagan holda PDF hajmini kichraytirish va optimallashtirish.",
+      href: "/tools/compress-pdf",
+      icon: Minimize2,
+      badge: "Hajm",
+      iconColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+    },
+    {
+      id: "pdf-to-word",
+      title: "PDF dan Word ga",
+      description: "PDF formatidagi fayllarni tahrirlanadigan Word (.docx) formatiga o'tkazish.",
+      href: "/tools/pdf-to-word",
+      icon: FileCode2,
+      badge: "Konvertatsiya",
+      iconColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+    },
+    {
+      id: "word-counter",
+      title: "So'z Hisoblagich",
+      description: "Matndagi so'zlar, belgilar, o'qish vaqti va hajmni real vaqtda hisoblash.",
+      href: "/tools/word-counter",
+      icon: Calculator,
+      badge: "Matn tahlili",
+      iconColor: "border-purple-500/30 bg-purple-500/10 text-purple-400",
+    },
+    {
+      id: "qr-generator",
+      title: "QR Generator",
+      description: "Havolalar, Wi-Fi va matnlar uchun maxsus dizayndagi tezkor QR-kodlar yaratish.",
+      href: "/tools/qr-generator",
+      icon: QrCode,
+      badge: "Ulashish",
+      iconColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    },
+    {
+      id: "password-generator",
+      title: "Parol Generator",
+      description: "Talabalar akkauntlari va himoyalangan hujjatlar uchun mustahkam parollar.",
+      href: "/tools/password-generator",
+      icon: KeyRound,
+      badge: "Xavfsizlik",
+      iconColor: "border-rose-500/30 bg-rose-500/10 text-rose-400",
     },
   ];
 
@@ -354,6 +419,83 @@ export default function AcademicHubPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* Subtle Visual Divider */}
+        <div className="relative my-14">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="border-border/60 w-full border-t" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background text-foreground-muted border-border/80 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wider uppercase shadow-sm">
+              <Wrench className="text-primary h-3.5 w-3.5" />
+              <span>Yordamchi Mikro-xizmatlar</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Dedicated Quick Tools Section */}
+        <div className="mb-14 space-y-6">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+            <div>
+              <h2 className="text-foreground flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
+                <span>🛠 Talabalar uchun tezkor asboblar</span>
+              </h2>
+              <p className="text-foreground-secondary mt-1 text-xs sm:text-sm">
+                Kundalik o&apos;qish va hujjatlar bilan ishlash uchun qulay mikro-servislar
+              </p>
+            </div>
+            <Link
+              href="/tools"
+              className="text-primary hover:text-primary/80 inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+            >
+              <span>Barcha asboblar ({">"}20)</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {utilityTools.map((tool) => {
+              const ToolIcon = tool.icon;
+              return (
+                <Link
+                  key={tool.id}
+                  href={tool.href}
+                  className="group border-border/70 bg-surface/50 hover:border-primary/50 hover:bg-surface/80 relative flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-transform group-hover:scale-105 ${tool.iconColor}`}
+                      >
+                        <ToolIcon className="h-5 w-5" />
+                      </div>
+                      <span className="border-border bg-surface text-foreground-muted inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold">
+                        {tool.badge}
+                      </span>
+                    </div>
+
+                    <h3 className="text-foreground group-hover:text-primary text-base font-bold transition-colors">
+                      {tool.title}
+                    </h3>
+                    <p className="text-foreground-secondary mt-1.5 text-xs leading-relaxed">
+                      {tool.description}
+                    </p>
+                  </div>
+
+                  <div className="border-border/40 text-primary mt-4 flex items-center justify-between border-t pt-3 text-xs font-semibold">
+                    <span className="text-foreground-muted group-hover:text-foreground-secondary text-[11px] font-normal">
+                      Bepul foydalanish
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span>Ochish</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {/* Academic Standard Banner */}
