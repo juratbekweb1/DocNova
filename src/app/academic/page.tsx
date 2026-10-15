@@ -16,6 +16,9 @@ import {
   Layers,
   Clock,
   Presentation,
+  Sliders,
+  FileDown,
+  Palette,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -34,6 +37,8 @@ export default function AcademicHubPage() {
       stats: "15, 19, 25, 30 bet • A4 PDF & Word",
       cta: "Kurs ishini boshlash",
       accent: "from-blue-600/20 to-sky-500/5 hover:border-blue-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-blue-400",
     },
     {
       id: "diplom-bmi",
@@ -48,21 +53,8 @@ export default function AcademicHubPage() {
       stats: "40-80 bet • Ilmiy yangilik & Reja",
       cta: "BMI tuzishni boshlash",
       accent: "from-amber-600/20 to-orange-500/5 hover:border-amber-500/40",
-    },
-    {
-      id: "presentation",
-      title: "Prezentatsiya va Slaydlar",
-      subtitle: "PowerPoint (.pptx) va Ma'ruzachi nutqi (Speaker Notes)",
-      description:
-        "Kurs ishi yoki diplom ishi himoyasi uchun professional slaydlar, har bir slayd uchun asosiy tezislar va komissiya oldida so'zlash uchun nutq matni.",
-      href: "/academic/presentation",
-      icon: Presentation,
-      badge: "PPTX & AI",
-      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-      stats: "8-20 slayd • PowerPoint (.pptx) & Speaker Notes",
-      cta: "Slaydlar yaratish",
-      accent: "from-orange-600/20 to-amber-500/5 hover:border-orange-500/40",
-      featured: true,
+      gridSpan: "col-span-1",
+      iconBg: "text-amber-400",
     },
     {
       id: "referat",
@@ -77,6 +69,25 @@ export default function AcademicHubPage() {
       stats: "3-15 bet • Word (.doc) eksport",
       cta: "Referat tayyorlash",
       accent: "from-emerald-600/20 to-teal-500/5 hover:border-emerald-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-emerald-400",
+    },
+    {
+      id: "presentation",
+      title: "Prezentatsiya va Slaydlar",
+      subtitle: "PowerPoint (.pptx) va Ma'ruzachi nutqi (Speaker Notes)",
+      description:
+        "Kurs ishi, diplom (BMI) yoki referat himoyasi uchun professional taqdimot slaydlari. Har bir slayd uchun asosiy tezislar va komissiya oldida so'zlash uchun ma'ruzachi nutqi avtomatik shakllantiriladi.",
+      href: "/academic/presentation",
+      icon: Presentation,
+      badge: "PPTX & AI",
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      stats: "8-100 slayd • PowerPoint (.pptx) & Speaker Notes • 1-bosishda eksport",
+      cta: "Slaydlar yaratish",
+      accent: "from-orange-600/20 via-amber-500/10 to-transparent hover:border-orange-500/50",
+      gridSpan: "col-span-full",
+      isWide: true,
+      iconBg: "text-orange-400",
     },
     {
       id: "exam-prep",
@@ -91,6 +102,8 @@ export default function AcademicHubPage() {
       stats: "Biletlar • Testlar • Shpargalkalar",
       cta: "Imtihonga tayyorlanish",
       accent: "from-purple-600/20 to-pink-500/5 hover:border-purple-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-purple-400",
     },
     {
       id: "mock-test",
@@ -105,7 +118,8 @@ export default function AcademicHubPage() {
       stats: "Ingliz • Rus • Turk tillari",
       cta: "Tillarni tanlash",
       accent: "from-cyan-600/20 to-blue-500/5 hover:border-cyan-500/40",
-      featured: true,
+      gridSpan: "col-span-1 md:col-span-2 lg:col-span-2",
+      iconBg: "text-cyan-400",
     },
   ];
 
@@ -132,9 +146,9 @@ export default function AcademicHubPage() {
             </h1>
 
             <p className="text-foreground-secondary max-w-2xl text-base leading-relaxed sm:text-lg">
-              Kurs ishlari, diplom loyihalari (BMI), mustaqil ishlar, imtihon biletlari va chet
-              tillari bo&apos;yicha xalqaro mock testlar — barchasi bitta qulay va intuitiv
-              platformada.
+              Kurs ishlari, diplom loyihalari (BMI), mustaqil ishlar, taqdimot slaydlari, imtihon
+              biletlari va chet tillari bo&apos;yicha xalqaro mock testlar — barchasi bitta qulay va
+              intuitiv platformada.
             </p>
 
             {/* Quick Feature Badges */}
@@ -156,13 +170,13 @@ export default function AcademicHubPage() {
         </div>
       </div>
 
-      {/* Main 5 Modules Grid */}
+      {/* Main Modules Grid */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-foreground flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
               <Layers className="text-primary h-5 w-5" />
-              Talabalar uchun 5 ta asosiy bo&apos;lim
+              Talabalar uchun asosiy bo&apos;limlar
             </h2>
             <p className="text-foreground-secondary mt-1 text-xs sm:text-sm">
               O&apos;zingizga kerakli bo&apos;limni tanlang va bir necha soniyada natijaga erishing
@@ -170,20 +184,121 @@ export default function AcademicHubPage() {
           </div>
         </div>
 
+        {/* 3-Column Desktop Responsive Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {studentModules.map((module) => {
             const Icon = module.icon;
+
+            // WIDE CARD LAYOUT FOR PREZENTATSIYA VA SLAYDLAR (COL-SPAN-FULL)
+            if (module.isWide) {
+              return (
+                <div
+                  key={module.id}
+                  className={`group border-border relative col-span-full flex flex-col justify-between rounded-2xl border bg-gradient-to-r ${module.accent} border-orange-500/30 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/50 hover:shadow-xl sm:p-8`}
+                >
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
+                    {/* Left 7 cols: info */}
+                    <div className="space-y-3 lg:col-span-7">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="bg-surface border-border flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm transition-all group-hover:scale-105 group-hover:border-orange-500/50">
+                          <Icon className="h-6 w-6 text-orange-400" />
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${module.badgeColor}`}
+                        >
+                          {module.badge}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                          1 dan 100 tagacha slayd
+                        </span>
+                        <span className="hidden items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 sm:inline-flex">
+                          Kengaytirilgan format
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="text-foreground text-xl font-bold transition-colors group-hover:text-orange-400 sm:text-2xl">
+                          {module.title}
+                        </h3>
+                        <p className="mt-0.5 text-xs font-semibold text-orange-400/90 sm:text-sm">
+                          {module.subtitle}
+                        </p>
+                      </div>
+
+                      <p className="text-foreground-secondary max-w-2xl text-xs leading-relaxed sm:text-sm">
+                        {module.description}
+                      </p>
+                    </div>
+
+                    {/* Right 5 cols: visual feature highlights */}
+                    <div className="grid grid-cols-2 gap-2.5 lg:col-span-5">
+                      <div className="border-border/80 bg-surface/80 rounded-xl border p-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-orange-400">
+                          <Sliders className="h-3.5 w-3.5" />
+                          <span>Aqlli tuzilma</span>
+                        </div>
+                        <div className="text-foreground-muted mt-0.5 text-[11px]">
+                          Kirish, 3 ta bob, tahliliy jadvallar va xulosalar
+                        </div>
+                      </div>
+                      <div className="border-border/80 bg-surface/80 rounded-xl border p-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                          <span>🎙️</span>
+                          <span>Speaker Notes</span>
+                        </div>
+                        <div className="text-foreground-muted mt-0.5 text-[11px]">
+                          Har bir slayd uchun ma&apos;ruzachi nutqi matni
+                        </div>
+                      </div>
+                      <div className="border-border/80 bg-surface/80 rounded-xl border p-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
+                          <Palette className="h-3.5 w-3.5" />
+                          <span>3 xil dizayn</span>
+                        </div>
+                        <div className="text-foreground-muted mt-0.5 text-[11px]">
+                          Academic, Modern va Minimalist uslublar
+                        </div>
+                      </div>
+                      <div className="border-border/80 bg-surface/80 rounded-xl border p-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PPTX & PDF</span>
+                        </div>
+                        <div className="text-foreground-muted mt-0.5 text-[11px]">
+                          PowerPoint (.pptx) va PDF formatga tezkor eksport
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Wide card bottom bar */}
+                  <div className="border-border/50 mt-6 flex flex-col items-start justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
+                    <span className="text-foreground-muted flex items-center gap-2 text-[11px] font-medium">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
+                      <span>{module.stats}</span>
+                    </span>
+                    <Link
+                      href={module.href}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02] hover:bg-orange-500 sm:w-auto"
+                    >
+                      <span>{module.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
+            // STANDARD AND MOCK-TEST CARDS
             return (
               <div
                 key={module.id}
-                className={`group border-border relative flex flex-col justify-between rounded-2xl border bg-gradient-to-b ${module.accent} p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-                  module.featured ? "border-primary/40 shadow-primary/5 lg:col-span-2" : ""
-                }`}
+                className={`group border-border relative flex flex-col justify-between rounded-2xl border bg-gradient-to-b ${module.accent} p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${module.gridSpan}`}
               >
                 <div>
                   <div className="mb-4 flex items-center justify-between gap-2">
                     <div className="bg-surface border-border group-hover:border-primary/50 flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm transition-all group-hover:scale-105">
-                      <Icon className="text-primary h-6 w-6" />
+                      <Icon className={`h-6 w-6 ${module.iconBg || "text-primary"}`} />
                     </div>
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${module.badgeColor}`}
@@ -246,15 +361,15 @@ export default function AcademicHubPage() {
           <div className="max-w-2xl space-y-2">
             <div className="text-primary flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
               <BookOpen className="h-4 w-4" />
-              <span>Davlat ta&apos;lim standarti</span>
+              <span>Davlat ta&apos;lim standarti (MOVSO RUz)</span>
             </div>
             <h3 className="text-foreground text-lg font-bold sm:text-xl">
               Barcha ilmiy ishlar OTM va GOST talablariga mos tuziladi
             </h3>
             <p className="text-foreground-secondary text-xs sm:text-sm">
-              Har bir yaratilgan kurs ishi va referat standart akademik hoshiyalarga (chapdan 25mm,
-              yuqori/o&apos;ng/pastdan 20mm), mundarijaga va rasmiy manbalar bazasiga ega
-              bo&apos;ladi.
+              Har bir yaratilgan kurs ishi, diplom (BMI) va referat standart akademik hoshiyalarga
+              (chapdan 25mm, yuqori/o&apos;ng/pastdan 20mm), mundarijaga va 25–30 ta rasmiy manbalar
+              bazasiga ega bo&apos;ladi.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -262,13 +377,13 @@ export default function AcademicHubPage() {
               href="/academic/coursework"
               className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 rounded-xl px-5 py-2.5 text-xs font-semibold shadow-md transition-all sm:text-sm"
             >
-              Hozir yaratish
+              Kurs ishi yaratish
             </Link>
             <Link
-              href="/academic/mock-test"
-              className="bg-surface-elevated border-border text-foreground hover:bg-border/50 rounded-xl border px-5 py-2.5 text-xs font-semibold transition-all sm:text-sm"
+              href="/academic/diplom-bmi"
+              className="rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-amber-600/20 transition-all hover:bg-amber-500 sm:text-sm"
             >
-              Mock Testga o&apos;tish
+              Diplom (BMI) yaratish
             </Link>
           </div>
         </div>
