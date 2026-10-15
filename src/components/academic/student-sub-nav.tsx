@@ -11,16 +11,17 @@ import {
   Globe2,
   ChevronLeft,
   Sparkles,
+  Presentation,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StudentSubNavProps {
-  activeTab?: "coursework" | "diplom-bmi" | "referat" | "exam-prep" | "mock-test";
+  activeTab?: "coursework" | "diplom-bmi" | "referat" | "presentation" | "exam-prep" | "mock-test";
   className?: string;
 }
 
 export interface StudentSectionItem {
-  id: "coursework" | "diplom-bmi" | "referat" | "exam-prep" | "mock-test";
+  id: "coursework" | "diplom-bmi" | "referat" | "presentation" | "exam-prep" | "mock-test";
   title: string;
   shortTitle: string;
   href: string;
@@ -45,6 +46,14 @@ export const STUDENT_SECTIONS: StudentSectionItem[] = [
     href: "/academic/diplom-bmi",
     icon: Award,
     badge: "BMI & Magistr",
+  },
+  {
+    id: "presentation",
+    title: "Prezentatsiya va Slaydlar",
+    shortTitle: "Slaydlar (PPTX)",
+    href: "/academic/presentation",
+    icon: Presentation,
+    badge: "PPTX & AI",
   },
   {
     id: "referat",
@@ -78,17 +87,19 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
 
   const currentTab =
     activeTab ||
-    (pathname.includes("/academic/mock-test")
-      ? "mock-test"
-      : pathname.includes("/academic/diplom-bmi")
-        ? "diplom-bmi"
-        : pathname.includes("/academic/referat") || pathname.includes("/academic/essay-builder")
-          ? "referat"
-          : pathname.includes("/academic/exam-prep")
-            ? "exam-prep"
-            : pathname.includes("/academic/coursework") || pathname === "/coursework"
-              ? "coursework"
-              : undefined);
+    (pathname.includes("/academic/presentation")
+      ? "presentation"
+      : pathname.includes("/academic/mock-test")
+        ? "mock-test"
+        : pathname.includes("/academic/diplom-bmi")
+          ? "diplom-bmi"
+          : pathname.includes("/academic/referat") || pathname.includes("/academic/essay-builder")
+            ? "referat"
+            : pathname.includes("/academic/exam-prep")
+              ? "exam-prep"
+              : pathname.includes("/academic/coursework") || pathname === "/coursework"
+                ? "coursework"
+                : undefined);
 
   return (
     <div

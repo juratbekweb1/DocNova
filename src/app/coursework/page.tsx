@@ -1,8 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import { GraduationCap, Sparkles, FileDown, Printer, Copy, Check, Lightbulb } from "lucide-react";
+import {
+  GraduationCap,
+  Sparkles,
+  FileDown,
+  Printer,
+  Copy,
+  Check,
+  Lightbulb,
+  Presentation,
+} from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 
@@ -936,6 +946,36 @@ export default function CourseworkGenerator() {
                   </button>
                 </div>
               </div>
+            )}
+
+            {/* Presentation Cross-sell Banner */}
+            {(pages.length > 0 || cleanResult) && (
+              <Link
+                href={`/academic/presentation?topic=${encodeURIComponent(formData.topic)}`}
+                className="group mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent p-3.5 transition-all hover:border-orange-500/60 print:hidden"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0 rounded-lg bg-orange-500/20 p-2 text-orange-400">
+                    <Presentation className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
+                      <span>Himoya uchun taqdimot (PPTX) kerakmi?</span>
+                      <span className="rounded bg-orange-500/20 px-2 py-0.5 text-[10px] font-semibold text-orange-300">
+                        1-bosishda
+                      </span>
+                    </div>
+                    <div className="text-foreground-secondary text-[11px] sm:text-xs">
+                      Ushbu kurs ishingiz asosida slaydlar va ma&apos;ruzachi nutqini (Speaker
+                      Notes) tayyorlang
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-bold text-orange-400 transition-transform group-hover:translate-x-1">
+                  <span>Slaydlar yaratish</span>
+                  <span>→</span>
+                </div>
+              </Link>
             )}
 
             {/* A4 Paper Container */}

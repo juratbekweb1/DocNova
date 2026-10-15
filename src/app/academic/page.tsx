@@ -15,6 +15,7 @@ import {
   FileCheck2,
   Layers,
   Clock,
+  Presentation,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -47,6 +48,21 @@ export default function AcademicHubPage() {
       stats: "40-80 bet • Ilmiy yangilik & Reja",
       cta: "BMI tuzishni boshlash",
       accent: "from-amber-600/20 to-orange-500/5 hover:border-amber-500/40",
+    },
+    {
+      id: "presentation",
+      title: "Prezentatsiya va Slaydlar",
+      subtitle: "PowerPoint (.pptx) va Ma'ruzachi nutqi (Speaker Notes)",
+      description:
+        "Kurs ishi yoki diplom ishi himoyasi uchun professional slaydlar, har bir slayd uchun asosiy tezislar va komissiya oldida so'zlash uchun nutq matni.",
+      href: "/academic/presentation",
+      icon: Presentation,
+      badge: "PPTX & AI",
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      stats: "8-20 slayd • PowerPoint (.pptx) & Speaker Notes",
+      cta: "Slaydlar yaratish",
+      accent: "from-orange-600/20 to-amber-500/5 hover:border-orange-500/40",
+      featured: true,
     },
     {
       id: "referat",
