@@ -18,11 +18,11 @@ import {
   Code2,
   Languages,
   Check,
-  Sparkles,
   FileText,
   User,
   Loader2,
   RotateCcw,
+  FileDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +50,7 @@ interface LanguageItem {
 interface TemplateConfig {
   id: string;
   name: string;
+  category: "all" | "it" | "business" | "creative" | "ats";
   tag: string;
   isPro?: boolean;
   isPremium?: boolean;
@@ -59,26 +60,20 @@ interface TemplateConfig {
 }
 
 const TEMPLATES: TemplateConfig[] = [
+  // 1-6: IT & Texnologiya
   {
     id: "modern",
     name: "Modern Slate",
+    category: "it",
     tag: "Tavsiya etiladi",
     colorScheme: "border-sky-500",
     accentBg: "bg-sky-500",
     description: "Sodda va zamonaviy chiziqlar, ATS tizimlari uchun 100% mos.",
   },
   {
-    id: "executive",
-    name: "Executive Navy",
-    tag: "Mashhur",
-    isPro: true,
-    colorScheme: "border-blue-900",
-    accentBg: "bg-blue-900",
-    description: "Boshqaruvchilar va rahbarlar uchun jiddiy to'q ko'k dizayn.",
-  },
-  {
     id: "tech",
     name: "Tech Sidebar",
+    category: "it",
     tag: "IT & Dasturchi",
     isPro: true,
     colorScheme: "border-slate-800",
@@ -86,24 +81,121 @@ const TEMPLATES: TemplateConfig[] = [
     description: "Chap qorong'i yon panel va o'ng tajriba bloki bilan 2 ustunli.",
   },
   {
-    id: "emerald",
-    name: "Creative Emerald",
-    tag: "Yangi",
+    id: "cyber",
+    name: "Cyber Dark Pro",
+    category: "it",
+    tag: "Security / DevOps",
+    isPro: true,
+    colorScheme: "border-cyan-600",
+    accentBg: "bg-cyan-600",
+    description: "Kiberxavfsizlik va DevOps muhandislari uchun jiddiy texnologik uslub.",
+  },
+  {
+    id: "terminal",
+    name: "DevOps Terminal",
+    category: "it",
+    tag: "Backend & Cloud",
+    isPremium: true,
     colorScheme: "border-emerald-600",
     accentBg: "bg-emerald-600",
-    description: "Zamonaviy zumrad yashil rang va vertikal timeline tuzilishi.",
+    description: "Terminal va konsol estetikasiga asoslangan yuqori aniqlikdagi dizayn.",
+  },
+  {
+    id: "cloud",
+    name: "Cloud Architect",
+    category: "it",
+    tag: "Arxitektor",
+    isPro: true,
+    colorScheme: "border-indigo-600",
+    accentBg: "bg-indigo-600",
+    description: "AWS, Azure va Cloud arxitektorlariga mos keng qamrovli tartib.",
+  },
+  {
+    id: "fullstack",
+    name: "Full Stack Master",
+    category: "it",
+    tag: "Lead Dev",
+    isPremium: true,
+    colorScheme: "border-blue-600",
+    accentBg: "bg-blue-600",
+    description: "Frontend va backend tajribalarini teng vizualizatsiya qiluvchi shablon.",
+  },
+
+  // 7-12: Biznes & Rahbariyat
+  {
+    id: "executive",
+    name: "Executive Navy",
+    category: "business",
+    tag: "Mashhur",
+    isPro: true,
+    colorScheme: "border-blue-900",
+    accentBg: "bg-blue-900",
+    description: "Boshqaruvchilar va rahbarlar uchun jiddiy to'q ko'k dizayn.",
   },
   {
     id: "corporate",
     name: "Corporate Classic",
+    category: "business",
     tag: "ATS Standart",
     colorScheme: "border-gray-700",
     accentBg: "bg-gray-700",
     description: "An'anaviy markazlashgan sarlavha va klassik qora/oq format.",
   },
   {
+    id: "consultant",
+    name: "McKinsey Strategy",
+    category: "business",
+    tag: "Konsalting",
+    isPro: true,
+    colorScheme: "border-slate-800",
+    accentBg: "bg-slate-800",
+    description: "Strategik konsalting va biznes analitika uchun aniq chiziqlar.",
+  },
+  {
+    id: "banking",
+    name: "Wall Street Finance",
+    category: "business",
+    tag: "Moliya & Bank",
+    isPremium: true,
+    colorScheme: "border-emerald-900",
+    accentBg: "bg-emerald-900",
+    description: "Investitsiya, bank va moliya sohasi yetakchilari uchun qat'iy format.",
+  },
+  {
+    id: "director",
+    name: "Managing Director",
+    category: "business",
+    tag: "C-Level",
+    isPremium: true,
+    colorScheme: "border-zinc-900",
+    accentBg: "bg-zinc-900",
+    description: "Bosh direktor (CEO) va bo'lim boshliqlari uchun premium uslub.",
+  },
+  {
+    id: "luxe",
+    name: "Monaco Elite",
+    category: "business",
+    tag: "VIP Executive",
+    isPremium: true,
+    colorScheme: "border-amber-700",
+    accentBg: "bg-amber-700",
+    description: "Oltin va to'q kulrang urg'ular bilan boyitilgan nufuzli ko'rinish.",
+  },
+
+  // 13-18: Kreativ & Dizayn
+  {
+    id: "emerald",
+    name: "Creative Emerald",
+    category: "creative",
+    tag: "Yangi",
+    colorScheme: "border-emerald-600",
+    accentBg: "bg-emerald-600",
+    description: "Zamonaviy zumrad yashil rang va vertikal timeline tuzilishi.",
+  },
+  {
     id: "violet",
     name: "Vibrant Violet",
+    category: "creative",
     tag: "Dizayn & Startup",
     isPremium: true,
     colorScheme: "border-purple-600",
@@ -111,8 +203,59 @@ const TEMPLATES: TemplateConfig[] = [
     description: "Jonli binafsha urg'ular va zamonaviy teglarga boy interfeys.",
   },
   {
+    id: "sunset",
+    name: "Sunset Coral",
+    category: "creative",
+    tag: "Marketing & SMM",
+    isPro: true,
+    colorScheme: "border-orange-500",
+    accentBg: "bg-orange-500",
+    description: "Marketing, brending va PR mutaxassislari uchun iliq quvnoq ranglar.",
+  },
+  {
+    id: "mint",
+    name: "Nordic Mint",
+    category: "creative",
+    tag: "Product Design",
+    colorScheme: "border-teal-500",
+    accentBg: "bg-teal-500",
+    description: "Skandinavcha minimalizm, shinam havo va zamonaviy shriftlar.",
+  },
+  {
+    id: "pastel",
+    name: "Studio Rose",
+    category: "creative",
+    tag: "Art & Media",
+    isPremium: true,
+    colorScheme: "border-pink-500",
+    accentBg: "bg-pink-500",
+    description: "Ijodiy loyihalar, kopirayterlik va media sohasi uchun mayin dizayn.",
+  },
+  {
+    id: "portfolio",
+    name: "Design Lead UI/UX",
+    category: "creative",
+    tag: "UI/UX",
+    isPro: true,
+    colorScheme: "border-violet-600",
+    accentBg: "bg-violet-600",
+    description: "Interfeys dizaynerlari uchun portfolioga yo'naltirilgan zamonaviy bloklar.",
+  },
+
+  // 19-24: ATS & Minimalist
+  {
+    id: "compact",
+    name: "Compact Grid",
+    category: "ats",
+    tag: "1 Sahifali",
+    colorScheme: "border-amber-600",
+    accentBg: "bg-amber-600",
+    description: "Ko'p ma'lumotni 1 varaqqa zich va toza joylashtirish tartibi.",
+  },
+  {
     id: "burgundy",
     name: "Burgundy Luxe",
+    category: "ats",
     tag: "Eksklyuziv",
     isPremium: true,
     colorScheme: "border-rose-900",
@@ -120,12 +263,42 @@ const TEMPLATES: TemplateConfig[] = [
     description: "Nafis to'q qizil uslub va akademik/biznes darajadagi ko'rinish.",
   },
   {
-    id: "compact",
-    name: "Compact Grid",
-    tag: "1 Sahifali",
-    colorScheme: "border-amber-600",
-    accentBg: "bg-amber-600",
-    description: "Ko'p ma'lumotni 1 varaqqa zich va toza joylashtirish tartibi.",
+    id: "harvard",
+    name: "Harvard Standard",
+    category: "ats",
+    tag: "100% ATS Pass",
+    colorScheme: "border-gray-900",
+    accentBg: "bg-gray-900",
+    description: "Dunyoning top universitetlari va ATS robotlari tavsiya etgan qat'iy standart.",
+  },
+  {
+    id: "oxford",
+    name: "Oxford Serif",
+    category: "ats",
+    tag: "Akademik",
+    isPro: true,
+    colorScheme: "border-slate-700",
+    accentBg: "bg-slate-700",
+    description: "Klassik serif shriftlar, ilmiy darajalar va tadqiqotchilar uchun.",
+  },
+  {
+    id: "stanford",
+    name: "Stanford Clean",
+    category: "ats",
+    tag: "Silicon Valley",
+    isPro: true,
+    colorScheme: "border-red-800",
+    accentBg: "bg-red-800",
+    description: "Silikon vodiysi startaplari va xalqaro kompaniyalar uchun yengil format.",
+  },
+  {
+    id: "swiss",
+    name: "Swiss Minimalist",
+    category: "ats",
+    tag: "Minimalism",
+    colorScheme: "border-neutral-800",
+    accentBg: "bg-neutral-800",
+    description: "Shveytsariya uslubidagi qat'iy geometriya va eng toza o'qilish darajasi.",
   },
 ];
 
@@ -134,6 +307,7 @@ export default function CvBuilderPage() {
   const resumeRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"templates" | "editor">("templates");
   const [activeTemplate, setActiveTemplate] = useState<string>("modern");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
 
   // Resume State
@@ -293,7 +467,7 @@ export default function CvBuilderPage() {
       toast({
         title: "Xatolik yuz berdi",
         description:
-          "PDF yaratishda xatolik bo'ldi. 'Chop etish' tugmasi orqali PDF sifatida saqlashingiz mumkin.",
+          "PDF yaratishda xatolik bo'ldi. 'Chop etish' yoki 'Word' tugmasi orqali saqlashingiz mumkin.",
         variant: "destructive",
       });
     } finally {
@@ -301,10 +475,42 @@ export default function CvBuilderPage() {
     }
   };
 
+  // Export Word (.doc)
+  const handleDownloadWord = () => {
+    if (!resumeRef.current) return;
+    const content = resumeRef.current.innerHTML;
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset='utf-8'><title>DocNova Resume</title><style>
+      body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #111; }
+      h1 { font-size: 22pt; font-weight: bold; margin-bottom: 4pt; }
+      h2 { font-size: 13pt; font-weight: bold; margin-top: 10pt; border-bottom: 1pt solid #ccc; text-transform: uppercase; }
+      h3 { font-size: 11pt; font-weight: bold; margin-top: 6pt; }
+      p { margin-bottom: 4pt; }
+    </style></head><body>`;
+    const footer = "</body></html>";
+    const sourceHTML = header + content + footer;
+    const source = "data:application/vnd.ms-word;charset=utf-8," + encodeURIComponent(sourceHTML);
+    const fileDownload = document.createElement("a");
+    document.body.appendChild(fileDownload);
+    fileDownload.href = source;
+    fileDownload.download = `${personalInfo.fullName.replace(/\s+/g, "_") || "DocNova"}_Resume.doc`;
+    fileDownload.click();
+    document.body.removeChild(fileDownload);
+    toast({
+      title: "Word yuklab olindi",
+      description: "Rezyume Microsoft Word (.doc) formatida saqlandi.",
+    });
+  };
+
   // Print function
   const handlePrint = () => {
     window.print();
   };
+
+  const filteredTemplates =
+    selectedCategory === "all"
+      ? TEMPLATES
+      : TEMPLATES.filter((t) => t.category === selectedCategory);
 
   return (
     <>
@@ -334,7 +540,7 @@ export default function CvBuilderPage() {
 
       <div className="bg-background flex h-[calc(100vh-80px)] overflow-hidden">
         {/* Left Sidebar: Tabs for Templates & Editor */}
-        <div className="border-border bg-surface z-10 flex h-full w-[420px] min-w-[360px] flex-col border-r shadow-lg">
+        <div className="border-border bg-surface z-10 flex h-full w-[430px] min-w-[360px] flex-col border-r shadow-lg">
           {/* Header */}
           <div className="border-border bg-surface/90 flex items-center justify-between border-b p-4 backdrop-blur">
             <div>
@@ -342,7 +548,7 @@ export default function CvBuilderPage() {
                 <FileText className="text-primary h-5 w-5" /> CV & Resume Hub
               </h2>
               <p className="text-foreground-secondary mt-0.5 text-xs">
-                Professional A4 Rezyume Konstruktori
+                20+ Shablon & Professional A4 Konstruktor
               </p>
             </div>
 
@@ -356,9 +562,17 @@ export default function CvBuilderPage() {
                 <Printer className="h-4 w-4" />
               </button>
               <button
+                onClick={handleDownloadWord}
+                title="Word (.doc) yuklab olish"
+                className="border-border hover:bg-surface-elevated text-foreground-secondary hover:text-foreground flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+              >
+                <FileDown className="h-3.5 w-3.5 text-blue-500" />
+                <span>Word</span>
+              </button>
+              <button
                 onClick={handleDownloadPdf}
                 disabled={isExporting}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all active:scale-95 disabled:opacity-50"
               >
                 {isExporting ? (
                   <>
@@ -368,7 +582,7 @@ export default function CvBuilderPage() {
                 ) : (
                   <>
                     <Download className="h-3.5 w-3.5" />
-                    <span>PDF Export</span>
+                    <span>PDF</span>
                   </>
                 )}
               </button>
@@ -397,24 +611,40 @@ export default function CvBuilderPage() {
               }`}
             >
               <User className="h-3.5 w-3.5" />
-              Ma&apos;lumotlarni tahrirlash
+              Ma&apos;lumotlar (Tahrirlash)
             </button>
           </div>
 
           {/* Sidebar Body */}
-          <div className="flex-1 space-y-6 overflow-y-auto p-4">
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
             {/* TAB 1: TEMPLATES GRID */}
             {activeTab === "templates" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-                    <Sparkles className="text-primary h-3.5 w-3.5" /> Dizayn Shablonini Tanlang
-                  </h3>
-                  <span className="text-foreground-secondary text-[11px]">Jonli almashinuv</span>
+                {/* Category Filter Pills */}
+                <div className="border-border flex flex-wrap gap-1 border-b pb-3">
+                  {[
+                    { id: "all", label: "Hammasi (24)" },
+                    { id: "it", label: "IT & Dev" },
+                    { id: "business", label: "Biznes" },
+                    { id: "creative", label: "Kreativ" },
+                    { id: "ats", label: "ATS Pass" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                        selectedCategory === cat.id
+                          ? "bg-primary text-primary-foreground border-primary font-semibold"
+                          : "bg-surface text-foreground-secondary border-border hover:bg-surface-elevated"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {TEMPLATES.map((tpl) => {
+                  {filteredTemplates.map((tpl) => {
                     const isSelected = activeTemplate === tpl.id;
                     return (
                       <button
@@ -434,20 +664,24 @@ export default function CvBuilderPage() {
                       >
                         {/* Mini visual mockup of the layout */}
                         <div className="border-border/80 relative mb-2 flex aspect-[1/1.2] w-full flex-col gap-1.5 overflow-hidden rounded-md border bg-white p-2 shadow-inner">
-                          {/* Layout Mockup depending on template */}
-                          {tpl.id === "modern" && (
-                            <>
-                              <div className="h-2.5 w-2/3 rounded-sm bg-sky-600" />
-                              <div className="h-1 w-1/2 rounded-sm bg-gray-300" />
-                              <div className="my-0.5 h-[1px] w-full bg-sky-200" />
-                              <div className="h-1 w-full rounded-sm bg-gray-200" />
-                              <div className="h-1 w-4/5 rounded-sm bg-gray-200" />
-                              <div className="mt-1 h-1.5 w-1/3 rounded-sm bg-slate-700" />
-                              <div className="h-4 w-full rounded border border-gray-200 bg-gray-100" />
-                            </>
+                          {/* Mini header representation */}
+                          {tpl.category === "it" && (
+                            <div className="flex h-full gap-1">
+                              <div className="flex w-1/3 flex-col gap-1 rounded-sm bg-slate-900 p-1">
+                                <div className="mx-auto h-3 w-3 rounded-full bg-sky-500" />
+                                <div className="h-0.5 w-full rounded-sm bg-sky-400" />
+                                <div className="h-0.5 w-4/5 rounded-sm bg-slate-500" />
+                              </div>
+                              <div className="flex flex-1 flex-col gap-1">
+                                <div className="h-2 w-3/4 rounded-sm bg-slate-900" />
+                                <div className="h-1 w-1/2 rounded-sm bg-sky-600" />
+                                <div className="my-0.5 h-[1px] w-full bg-gray-200" />
+                                <div className="h-2 w-full rounded-sm bg-gray-100" />
+                              </div>
+                            </div>
                           )}
 
-                          {tpl.id === "executive" && (
+                          {tpl.category === "business" && (
                             <>
                               <div className="flex h-4 w-full flex-col justify-center rounded-sm bg-blue-950 p-0.5">
                                 <div className="h-1 w-2/3 rounded-sm bg-white" />
@@ -461,43 +695,25 @@ export default function CvBuilderPage() {
                                 <div className="flex flex-1 flex-col gap-1">
                                   <div className="h-1 w-full rounded-sm bg-gray-300" />
                                   <div className="h-1 w-5/6 rounded-sm bg-gray-200" />
-                                  <div className="mt-1 h-1 w-2/3 rounded-sm bg-blue-800" />
                                 </div>
                               </div>
                             </>
                           )}
 
-                          {tpl.id === "tech" && (
-                            <div className="flex h-full gap-1">
-                              <div className="flex w-1/3 flex-col gap-1 rounded-sm bg-slate-900 p-1">
-                                <div className="mx-auto h-4 w-4 rounded-full bg-slate-700" />
-                                <div className="h-0.5 w-full rounded-sm bg-sky-400" />
-                                <div className="h-0.5 w-4/5 rounded-sm bg-slate-500" />
-                              </div>
-                              <div className="flex flex-1 flex-col gap-1">
-                                <div className="h-2 w-3/4 rounded-sm bg-slate-900" />
-                                <div className="h-1 w-1/2 rounded-sm bg-sky-600" />
-                                <div className="my-0.5 h-[1px] w-full bg-gray-200" />
-                                <div className="h-2 w-full rounded-sm bg-gray-100" />
-                                <div className="h-2 w-4/5 rounded-sm bg-gray-100" />
-                              </div>
-                            </div>
-                          )}
-
-                          {tpl.id === "emerald" && (
+                          {tpl.category === "creative" && (
                             <>
-                              <div className="h-2.5 w-3/4 rounded-sm bg-emerald-700" />
+                              <div className="h-2.5 w-3/4 rounded-sm bg-purple-700" />
                               <div className="h-1 w-1/2 rounded-sm bg-gray-400" />
-                              <div className="h-0.5 w-full bg-emerald-500" />
+                              <div className="h-0.5 w-full bg-purple-500" />
                               <div className="mt-1 flex items-center gap-1">
-                                <div className="h-3 w-1 rounded-full bg-emerald-600" />
+                                <div className="h-3 w-1 rounded-full bg-purple-600" />
                                 <div className="h-1.5 w-2/3 rounded-sm bg-gray-700" />
                               </div>
-                              <div className="h-3 w-full rounded-sm border border-emerald-200 bg-emerald-50/70" />
+                              <div className="h-3 w-full rounded-sm border border-purple-200 bg-purple-50" />
                             </>
                           )}
 
-                          {tpl.id === "corporate" && (
+                          {tpl.category === "ats" && (
                             <div className="flex flex-col items-center gap-1">
                               <div className="h-2 w-2/3 rounded-sm bg-gray-900" />
                               <div className="h-0.5 w-3/4 rounded-sm bg-gray-400" />
@@ -505,44 +721,6 @@ export default function CvBuilderPage() {
                               <div className="flex w-full flex-col gap-1 text-left">
                                 <div className="h-1 w-1/2 rounded-sm bg-gray-800" />
                                 <div className="h-1 w-full rounded-sm bg-gray-200" />
-                                <div className="h-1 w-4/5 rounded-sm bg-gray-200" />
-                              </div>
-                            </div>
-                          )}
-
-                          {tpl.id === "violet" && (
-                            <>
-                              <div className="h-1.5 w-full rounded-sm bg-gradient-to-r from-purple-600 to-indigo-600" />
-                              <div className="h-2 w-2/3 rounded-sm bg-purple-900" />
-                              <div className="h-1 w-1/2 rounded-sm bg-purple-400" />
-                              <div className="mt-1 h-1 w-full rounded-sm bg-gray-200" />
-                              <div className="mt-1 flex gap-1">
-                                <div className="h-2 w-6 rounded-full bg-purple-100" />
-                                <div className="h-2 w-6 rounded-full bg-purple-100" />
-                              </div>
-                            </>
-                          )}
-
-                          {tpl.id === "burgundy" && (
-                            <>
-                              <div className="h-2.5 w-3/4 rounded-sm bg-rose-950" />
-                              <div className="h-1 w-1/2 rounded-sm bg-rose-600" />
-                              <div className="h-[1px] w-full bg-rose-900" />
-                              <div className="h-1 w-full rounded-sm bg-gray-200" />
-                              <div className="h-1 w-4/5 rounded-sm bg-gray-200" />
-                            </>
-                          )}
-
-                          {tpl.id === "compact" && (
-                            <div className="grid h-full grid-cols-2 gap-1">
-                              <div className="flex flex-col gap-1 border border-gray-200 bg-gray-50 p-1">
-                                <div className="h-1 w-full rounded-sm bg-amber-600" />
-                                <div className="h-0.5 w-full rounded-sm bg-gray-300" />
-                                <div className="h-0.5 w-3/4 rounded-sm bg-gray-300" />
-                              </div>
-                              <div className="flex flex-col gap-1 border border-gray-200 bg-gray-50 p-1">
-                                <div className="h-1 w-full rounded-sm bg-slate-700" />
-                                <div className="h-0.5 w-full rounded-sm bg-gray-300" />
                               </div>
                             </div>
                           )}
@@ -934,7 +1112,7 @@ export default function CvBuilderPage() {
           </div>
         </div>
 
-        {/* Right Side: Live A4 Resume Preview (0ms latency dynamic rendering) */}
+        {/* Right Side: Live A4 Resume Preview */}
         <div className="bg-surface-elevated/80 flex flex-1 flex-col items-center overflow-y-auto p-6 md:p-10">
           {/* Top Preview Bar */}
           <div className="text-foreground-secondary mb-4 flex w-full max-w-[210mm] items-center justify-between text-xs">
@@ -980,254 +1158,32 @@ export default function CvBuilderPage() {
             className="box-border min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-sm bg-white text-black shadow-2xl transition-all duration-200"
             style={{ fontFamily: "'Inter', sans-serif" }}
           >
-            {/* ========================================================== */}
-            {/* TEMPLATE 1: MODERN SLATE */}
-            {/* ========================================================== */}
-            {activeTemplate === "modern" && (
-              <div className="space-y-7 p-10">
-                {/* Header */}
-                <div className="border-b-2 border-slate-900 pb-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                        {personalInfo.fullName || "To'liq Ismingiz"}
-                      </h1>
-                      <p className="mt-1 text-base font-semibold text-sky-600">
-                        {personalInfo.role || "Mutaxassisligingiz"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Contact row */}
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
-                    {personalInfo.email && (
-                      <span className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.email}
-                      </span>
-                    )}
-                    {personalInfo.phone && (
-                      <span className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.phone}
-                      </span>
-                    )}
-                    {personalInfo.location && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.location}
-                      </span>
-                    )}
-                    {personalInfo.website && (
-                      <span className="flex items-center gap-1.5">
-                        <Globe className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.website}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Summary */}
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-2 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Professional Xulosa
-                    </h2>
-                    <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                      {personalInfo.summary}
-                    </p>
-                  </div>
-                )}
-
-                {/* Experience */}
-                <div>
-                  <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Ish Tajribasi
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id} className="relative border-l-2 border-slate-200 pl-3">
-                        <div className="flex items-baseline justify-between">
-                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                            {exp.period}
-                          </span>
-                        </div>
-                        <p className="mb-1.5 text-xs font-semibold text-sky-700">{exp.company}</p>
-                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                          {exp.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Texnik Ko&apos;nikmalar
-                  </h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Education & Languages 2 cols */}
-                <div className="grid grid-cols-2 gap-6 pt-2">
-                  <div>
-                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Ta&apos;lim
-                    </h2>
-                    {education.map((edu) => (
-                      <div key={edu.id} className="text-xs">
-                        <h4 className="font-bold text-slate-900">{edu.school}</h4>
-                        <p className="text-slate-700">{edu.degree}</p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">{edu.year}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div>
-                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Tillar
-                    </h2>
-                    <div className="space-y-1.5 text-xs">
-                      {languages.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span className="font-medium text-slate-800">{l.name}</span>
-                          <span className="text-[11px] text-slate-500">{l.level}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ========================================================== */}
-            {/* TEMPLATE 2: EXECUTIVE NAVY */}
-            {/* ========================================================== */}
-            {activeTemplate === "executive" && (
-              <div>
-                {/* Deep Navy Top Banner */}
-                <div className="bg-[#0f172a] px-10 py-8 text-white">
-                  <h1 className="text-3xl font-extrabold tracking-tight text-white uppercase">
-                    {personalInfo.fullName || "To'liq Ismingiz"}
-                  </h1>
-                  <p className="mt-1 text-base font-medium tracking-wide text-amber-400">
-                    {personalInfo.role || "Mutaxassisligingiz"}
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-700 pt-3 text-xs text-slate-300">
-                    {personalInfo.email && <span>{personalInfo.email}</span>}
-                    {personalInfo.phone && <span>• {personalInfo.phone}</span>}
-                    {personalInfo.location && <span>• {personalInfo.location}</span>}
-                    {personalInfo.website && <span>• {personalInfo.website}</span>}
-                  </div>
-                </div>
-
-                {/* 2-Column Body */}
-                <div className="grid grid-cols-12 gap-6 p-8">
-                  {/* Left Column (4 cols) */}
-                  <div className="col-span-4 space-y-6 border-r border-slate-200 pr-4">
-                    <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ko&apos;nikmalar
-                      </h3>
-                      <div className="space-y-1.5">
-                        {skills.map((s) => (
-                          <div
-                            key={s}
-                            className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800"
-                          >
-                            {s}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ta&apos;lim
-                      </h3>
-                      {education.map((e) => (
-                        <div key={e.id} className="mb-2 text-xs">
-                          <p className="font-bold text-slate-900">{e.school}</p>
-                          <p className="text-slate-700">{e.degree}</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">{e.year}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Tillar
-                      </h3>
-                      <div className="space-y-1 text-xs">
-                        {languages.map((l) => (
-                          <div key={l.id}>
-                            <p className="font-bold text-slate-800">{l.name}</p>
-                            <p className="text-[11px] text-slate-600">{l.level}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column (8 cols) */}
-                  <div className="col-span-8 space-y-6">
-                    {personalInfo.summary && (
-                      <div>
-                        <h3 className="mb-2 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                          Professional Xulosa
-                        </h3>
-                        <p className="text-xs leading-relaxed text-slate-700">
-                          {personalInfo.summary}
-                        </p>
-                      </div>
-                    )}
-
-                    <div>
-                      <h3 className="mb-3 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ish Faoliyati & Tajriba
-                      </h3>
-                      <div className="space-y-4">
-                        {experiences.map((exp) => (
-                          <div key={exp.id}>
-                            <div className="flex items-baseline justify-between">
-                              <h4 className="text-sm font-bold text-slate-900">{exp.role}</h4>
-                              <span className="text-[11px] font-semibold text-slate-500">
-                                {exp.period}
-                              </span>
-                            </div>
-                            <p className="mb-1 text-xs font-semibold text-blue-900">
-                              {exp.company}
-                            </p>
-                            <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                              {exp.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ========================================================== */}
-            {/* TEMPLATE 3: TECH SIDEBAR */}
-            {/* ========================================================== */}
-            {activeTemplate === "tech" && (
+            {/* GROUP A: TECH SIDEBARS (tech, cyber, terminal, cloud) */}
+            {["tech", "cyber", "terminal", "cloud"].includes(activeTemplate) && (
               <div className="flex min-h-[297mm]">
-                {/* Left Dark Sidebar */}
-                <div className="flex w-[34%] flex-col justify-between space-y-6 bg-slate-900 p-7 text-white">
+                <div
+                  className={`flex w-[34%] flex-col justify-between space-y-6 p-7 text-white ${
+                    activeTemplate === "cyber"
+                      ? "bg-[#041c2c]"
+                      : activeTemplate === "terminal"
+                        ? "bg-[#0b1410]"
+                        : activeTemplate === "cloud"
+                          ? "bg-[#0f172a]"
+                          : "bg-slate-900"
+                  }`}
+                >
                   <div className="space-y-6">
-                    {/* Initials badge */}
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-500 text-2xl font-black text-slate-900 shadow-lg">
+                    <div
+                      className={`flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black shadow-lg ${
+                        activeTemplate === "cyber"
+                          ? "bg-cyan-500 text-slate-950"
+                          : activeTemplate === "terminal"
+                            ? "bg-emerald-500 font-mono text-slate-950"
+                            : activeTemplate === "cloud"
+                              ? "bg-indigo-500 text-white"
+                              : "bg-sky-500 text-slate-900"
+                      }`}
+                    >
                       {personalInfo.fullName
                         ? personalInfo.fullName
                             .split(" ")
@@ -1237,7 +1193,6 @@ export default function CvBuilderPage() {
                         : "CV"}
                     </div>
 
-                    {/* Contact */}
                     <div className="space-y-2.5 text-xs text-slate-300">
                       <h3 className="border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
                         Aloqa
@@ -1268,7 +1223,6 @@ export default function CvBuilderPage() {
                       )}
                     </div>
 
-                    {/* Skills */}
                     <div>
                       <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
                         Texnologiyalar
@@ -1285,7 +1239,6 @@ export default function CvBuilderPage() {
                       </div>
                     </div>
 
-                    {/* Education */}
                     <div>
                       <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
                         Ta&apos;lim
@@ -1299,7 +1252,6 @@ export default function CvBuilderPage() {
                       ))}
                     </div>
 
-                    {/* Languages */}
                     <div>
                       <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
                         Tillar
@@ -1316,7 +1268,6 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Right Content */}
                 <div className="w-[66%] space-y-6 p-8">
                   <div>
                     <h1 className="text-3xl font-black tracking-tight text-slate-900">
@@ -1363,15 +1314,155 @@ export default function CvBuilderPage() {
               </div>
             )}
 
-            {/* ========================================================== */}
-            {/* TEMPLATE 4: CREATIVE EMERALD */}
-            {/* ========================================================== */}
-            {activeTemplate === "emerald" && (
+            {/* GROUP B: EXECUTIVE BANNERS (executive, banking, director, luxe, consultant) */}
+            {["executive", "banking", "director", "luxe", "consultant"].includes(
+              activeTemplate
+            ) && (
+              <div>
+                <div
+                  className={`px-10 py-8 text-white ${
+                    activeTemplate === "banking"
+                      ? "bg-[#062419]"
+                      : activeTemplate === "director"
+                        ? "bg-[#18181b]"
+                        : activeTemplate === "luxe"
+                          ? "bg-[#1c1917]"
+                          : activeTemplate === "consultant"
+                            ? "bg-[#0f172a]"
+                            : "bg-[#0f172a]"
+                  }`}
+                >
+                  <h1 className="text-3xl font-extrabold tracking-tight text-white uppercase">
+                    {personalInfo.fullName || "To'liq Ismingiz"}
+                  </h1>
+                  <p className="mt-1 text-base font-medium tracking-wide text-amber-400">
+                    {personalInfo.role || "Mutaxassisligingiz"}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-700 pt-3 text-xs text-slate-300">
+                    {personalInfo.email && <span>{personalInfo.email}</span>}
+                    {personalInfo.phone && <span>• {personalInfo.phone}</span>}
+                    {personalInfo.location && <span>• {personalInfo.location}</span>}
+                    {personalInfo.website && <span>• {personalInfo.website}</span>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-6 p-8">
+                  <div className="col-span-4 space-y-6 border-r border-slate-200 pr-4">
+                    <div>
+                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                        Ko&apos;nikmalar
+                      </h3>
+                      <div className="space-y-1.5">
+                        {skills.map((s) => (
+                          <div
+                            key={s}
+                            className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800"
+                          >
+                            {s}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                        Ta&apos;lim
+                      </h3>
+                      {education.map((e) => (
+                        <div key={e.id} className="mb-2 text-xs">
+                          <p className="font-bold text-slate-900">{e.school}</p>
+                          <p className="text-slate-700">{e.degree}</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500">{e.year}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                        Tillar
+                      </h3>
+                      <div className="space-y-1 text-xs">
+                        {languages.map((l) => (
+                          <div key={l.id}>
+                            <p className="font-bold text-slate-800">{l.name}</p>
+                            <p className="text-[11px] text-slate-600">{l.level}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-span-8 space-y-6">
+                    {personalInfo.summary && (
+                      <div>
+                        <h3 className="mb-2 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                          Professional Xulosa
+                        </h3>
+                        <p className="text-xs leading-relaxed text-slate-700">
+                          {personalInfo.summary}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <h3 className="mb-3 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                        Ish Faoliyati & Tajriba
+                      </h3>
+                      <div className="space-y-4">
+                        {experiences.map((exp) => (
+                          <div key={exp.id}>
+                            <div className="flex items-baseline justify-between">
+                              <h4 className="text-sm font-bold text-slate-900">{exp.role}</h4>
+                              <span className="text-[11px] font-semibold text-slate-500">
+                                {exp.period}
+                              </span>
+                            </div>
+                            <p className="mb-1 text-xs font-semibold text-blue-900">
+                              {exp.company}
+                            </p>
+                            <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                              {exp.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* GROUP C: CREATIVE TIMELINES (emerald, sunset, mint, pastel, portfolio) */}
+            {["emerald", "sunset", "mint", "pastel", "portfolio"].includes(activeTemplate) && (
               <div className="space-y-7 p-10">
-                {/* Header */}
-                <div className="flex items-end justify-between border-b-2 border-emerald-600 pb-4">
+                <div
+                  className={`flex items-end justify-between border-b-2 pb-4 ${
+                    activeTemplate === "sunset"
+                      ? "border-orange-500"
+                      : activeTemplate === "mint"
+                        ? "border-teal-500"
+                        : activeTemplate === "pastel"
+                          ? "border-pink-500"
+                          : activeTemplate === "portfolio"
+                            ? "border-violet-600"
+                            : "border-emerald-600"
+                  }`}
+                >
                   <div>
-                    <span className="text-xs font-bold tracking-widest text-emerald-600 uppercase">
+                    <span
+                      className={`text-xs font-bold tracking-widest uppercase ${
+                        activeTemplate === "sunset"
+                          ? "text-orange-600"
+                          : activeTemplate === "mint"
+                            ? "text-teal-600"
+                            : activeTemplate === "pastel"
+                              ? "text-pink-600"
+                              : activeTemplate === "portfolio"
+                                ? "text-violet-600"
+                                : "text-emerald-600"
+                      }`}
+                    >
                       Rezyume
                     </span>
                     <h1 className="text-3xl font-black text-slate-900">{personalInfo.fullName}</h1>
@@ -1385,30 +1476,28 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Summary */}
                 {personalInfo.summary && (
                   <div>
-                    <h2 className="mb-2 border-l-4 border-emerald-600 pl-2 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
                       Professional Tavsif
                     </h2>
-                    <p className="rounded border border-emerald-100 bg-emerald-50/50 p-3 text-xs leading-relaxed text-slate-700">
+                    <p className="rounded border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
                       {personalInfo.summary}
                     </p>
                   </div>
                 )}
 
-                {/* Experience */}
                 <div>
-                  <h2 className="mb-3 border-l-4 border-emerald-600 pl-2 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                  <h2 className="mb-3 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
                     Ish Tajribasi
                   </h2>
                   <div className="space-y-4">
                     {experiences.map((exp) => (
-                      <div key={exp.id} className="relative border-l-2 border-emerald-300 pl-4">
-                        <div className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full bg-emerald-600" />
+                      <div key={exp.id} className="relative border-l-2 border-slate-300 pl-4">
+                        <div className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full bg-slate-900" />
                         <div className="flex items-baseline justify-between">
                           <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="text-[11px] font-semibold text-emerald-700">
+                          <span className="text-[11px] font-semibold text-slate-600">
                             {exp.period}
                           </span>
                         </div>
@@ -1421,16 +1510,15 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Skills as emerald badges */}
                 <div>
-                  <h2 className="mb-2.5 border-l-4 border-emerald-600 pl-2 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                  <h2 className="mb-2.5 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
                     Ko&apos;nikmalar
                   </h2>
                   <div className="flex flex-wrap gap-2">
                     {skills.map((s) => (
                       <span
                         key={s}
-                        className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800"
+                        className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800"
                       >
                         {s}
                       </span>
@@ -1438,22 +1526,21 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Education & Languages */}
                 <div className="grid grid-cols-2 gap-6 pt-2">
                   <div>
-                    <h2 className="mb-2 border-l-4 border-emerald-600 pl-2 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
                       Ta&apos;lim
                     </h2>
                     {education.map((e) => (
                       <div key={e.id} className="text-xs">
                         <p className="font-bold text-slate-900">{e.school}</p>
                         <p className="text-slate-600">{e.degree}</p>
-                        <p className="text-[11px] text-emerald-700">{e.year}</p>
+                        <p className="text-[11px] text-slate-500">{e.year}</p>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <h2 className="mb-2 border-l-4 border-emerald-600 pl-2 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
                       Tillar
                     </h2>
                     <div className="space-y-1 text-xs">
@@ -1469,107 +1556,16 @@ export default function CvBuilderPage() {
               </div>
             )}
 
-            {/* ========================================================== */}
-            {/* TEMPLATE 5: CORPORATE CLASSIC (ATS Standard) */}
-            {/* ========================================================== */}
-            {activeTemplate === "corporate" && (
-              <div className="space-y-6 p-10">
-                {/* Centered Classic Header */}
-                <div className="border-b border-black pb-4 text-center">
-                  <h1 className="font-serif text-2xl font-bold tracking-wider text-black uppercase">
-                    {personalInfo.fullName}
-                  </h1>
-                  <p className="mt-1 font-serif text-sm text-gray-700 italic">
-                    {personalInfo.role}
-                  </p>
-                  <p className="mt-2 text-xs text-gray-600">
-                    {[
-                      personalInfo.location,
-                      personalInfo.phone,
-                      personalInfo.email,
-                      personalInfo.website,
-                    ]
-                      .filter(Boolean)
-                      .join("  •  ")}
-                  </p>
-                </div>
-
-                {/* Summary */}
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                      Professional Profile
-                    </h2>
-                    <p className="text-justify text-xs leading-relaxed text-gray-800">
-                      {personalInfo.summary}
-                    </p>
-                  </div>
-                )}
-
-                {/* Experience */}
-                <div>
-                  <h2 className="mb-3 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Professional Experience
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id}>
-                        <div className="flex items-baseline justify-between text-xs font-bold text-black">
-                          <span>
-                            {exp.company} — <span className="font-normal italic">{exp.role}</span>
-                          </span>
-                          <span className="text-[11px] font-normal">{exp.period}</span>
-                        </div>
-                        <p className="mt-1 text-xs leading-relaxed whitespace-pre-line text-gray-700">
-                          {exp.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Key Competencies & Technical Skills
-                  </h2>
-                  <p className="text-xs leading-relaxed text-gray-800">{skills.join(" • ")}</p>
-                </div>
-
-                {/* Education */}
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Education & Credentials
-                  </h2>
-                  {education.map((e) => (
-                    <div key={e.id} className="mb-1 flex justify-between text-xs text-black">
-                      <div>
-                        <span className="font-bold">{e.school}</span> — <span>{e.degree}</span>
-                      </div>
-                      <span className="text-[11px] text-gray-600">{e.year}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Languages */}
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Languages
-                  </h2>
-                  <p className="text-xs text-gray-800">
-                    {languages.map((l) => `${l.name} (${l.level})`).join(" • ")}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ========================================================== */}
-            {/* TEMPLATE 6: VIBRANT VIOLET */}
-            {/* ========================================================== */}
-            {activeTemplate === "violet" && (
+            {/* GROUP D: VIBRANT GRADIENTS (violet, fullstack) */}
+            {["violet", "fullstack"].includes(activeTemplate) && (
               <div className="space-y-7 p-10">
-                {/* Purple Gradient Top Bar */}
-                <div className="h-2 w-full rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500" />
+                <div
+                  className={`h-2 w-full rounded-full ${
+                    activeTemplate === "fullstack"
+                      ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600"
+                      : "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500"
+                  }`}
+                />
 
                 <div className="flex items-start justify-between pt-2">
                   <div>
@@ -1585,14 +1581,12 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Summary */}
                 {personalInfo.summary && (
                   <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-4">
                     <p className="text-xs leading-relaxed text-slate-700">{personalInfo.summary}</p>
                   </div>
                 )}
 
-                {/* Experience */}
                 <div>
                   <h2 className="mb-3 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
                     <Briefcase className="h-4 w-4 text-purple-600" /> Ish Tajribasi
@@ -1618,7 +1612,6 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Skills */}
                 <div>
                   <h2 className="mb-2.5 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
                     <Code2 className="h-4 w-4 text-purple-600" /> Ko&apos;nikmalar
@@ -1635,7 +1628,6 @@ export default function CvBuilderPage() {
                   </div>
                 </div>
 
-                {/* Education & Languages */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <h3 className="mb-2 text-xs font-bold text-slate-900 uppercase">Ta&apos;lim</h3>
@@ -1663,47 +1655,53 @@ export default function CvBuilderPage() {
               </div>
             )}
 
-            {/* ========================================================== */}
-            {/* TEMPLATE 7: BURGUNDY LUXE */}
-            {/* ========================================================== */}
-            {activeTemplate === "burgundy" && (
+            {/* GROUP E: CLASSIC ATS STANDARDS (corporate, harvard, oxford, stanford, swiss) */}
+            {["corporate", "harvard", "oxford", "stanford", "swiss"].includes(activeTemplate) && (
               <div className="space-y-6 p-10">
-                <div className="flex items-baseline justify-between border-b-4 border-rose-950 pb-4">
-                  <div>
-                    <h1 className="font-serif text-3xl font-black tracking-tight text-rose-950 uppercase">
-                      {personalInfo.fullName}
-                    </h1>
-                    <p className="mt-0.5 text-sm font-medium text-rose-800">{personalInfo.role}</p>
-                  </div>
-                  <div className="text-right text-xs text-slate-700">
-                    <p>{personalInfo.email}</p>
-                    <p>{personalInfo.phone}</p>
-                    <p>{personalInfo.location}</p>
-                  </div>
+                <div className="border-b border-black pb-4 text-center">
+                  <h1 className="font-serif text-2xl font-bold tracking-wider text-black uppercase">
+                    {personalInfo.fullName}
+                  </h1>
+                  <p className="mt-1 font-serif text-sm text-gray-700 italic">
+                    {personalInfo.role}
+                  </p>
+                  <p className="mt-2 text-xs text-gray-600">
+                    {[
+                      personalInfo.location,
+                      personalInfo.phone,
+                      personalInfo.email,
+                      personalInfo.website,
+                    ]
+                      .filter(Boolean)
+                      .join("  •  ")}
+                  </p>
                 </div>
 
                 {personalInfo.summary && (
                   <div>
-                    <h2 className="mb-1.5 border-b border-rose-200 pb-1 font-serif text-xs font-bold tracking-wider text-rose-950 uppercase">
-                      Ijroiya Profil
+                    <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                      Professional Profile
                     </h2>
-                    <p className="text-xs leading-relaxed text-slate-800">{personalInfo.summary}</p>
+                    <p className="text-justify text-xs leading-relaxed text-gray-800">
+                      {personalInfo.summary}
+                    </p>
                   </div>
                 )}
 
                 <div>
-                  <h2 className="mb-3 border-b border-rose-200 pb-1 font-serif text-xs font-bold tracking-wider text-rose-950 uppercase">
-                    Tajriba va Yutuqlar
+                  <h2 className="mb-3 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                    Professional Experience
                   </h2>
                   <div className="space-y-4">
                     {experiences.map((exp) => (
                       <div key={exp.id}>
-                        <div className="flex items-baseline justify-between">
-                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="text-[11px] font-bold text-rose-900">{exp.period}</span>
+                        <div className="flex items-baseline justify-between text-xs font-bold text-black">
+                          <span>
+                            {exp.company} — <span className="font-normal italic">{exp.role}</span>
+                          </span>
+                          <span className="text-[11px] font-normal">{exp.period}</span>
                         </div>
-                        <p className="mb-1 text-xs font-semibold text-rose-800">{exp.company}</p>
-                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                        <p className="mt-1 text-xs leading-relaxed whitespace-pre-line text-gray-700">
                           {exp.description}
                         </p>
                       </div>
@@ -1712,55 +1710,39 @@ export default function CvBuilderPage() {
                 </div>
 
                 <div>
-                  <h2 className="mb-2 border-b border-rose-200 pb-1 font-serif text-xs font-bold tracking-wider text-rose-950 uppercase">
-                    Malaka va Tajriba Sohalari
+                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                    Key Competencies & Technical Skills
                   </h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {skills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-950"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-xs leading-relaxed text-gray-800">{skills.join(" • ")}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 pt-2">
-                  <div>
-                    <h2 className="mb-1 border-b border-rose-200 pb-1 font-serif text-xs font-bold tracking-wider text-rose-950 uppercase">
-                      Ta&apos;lim
-                    </h2>
-                    {education.map((e) => (
-                      <div key={e.id} className="text-xs">
-                        <p className="font-bold text-slate-900">{e.school}</p>
-                        <p className="text-slate-600">{e.degree}</p>
-                        <p className="text-[11px] font-medium text-rose-800">{e.year}</p>
+                <div>
+                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                    Education & Credentials
+                  </h2>
+                  {education.map((e) => (
+                    <div key={e.id} className="mb-1 flex justify-between text-xs text-black">
+                      <div>
+                        <span className="font-bold">{e.school}</span> — <span>{e.degree}</span>
                       </div>
-                    ))}
-                  </div>
-                  <div>
-                    <h2 className="mb-1 border-b border-rose-200 pb-1 font-serif text-xs font-bold tracking-wider text-rose-950 uppercase">
-                      Til Bilish Darajasi
-                    </h2>
-                    <div className="space-y-1 text-xs">
-                      {languages.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span className="font-medium text-slate-800">{l.name}</span>
-                          <span className="text-[11px] font-medium text-rose-900">{l.level}</span>
-                        </div>
-                      ))}
+                      <span className="text-[11px] text-gray-600">{e.year}</span>
                     </div>
-                  </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                    Languages
+                  </h2>
+                  <p className="text-xs text-gray-800">
+                    {languages.map((l) => `${l.name} (${l.level})`).join(" • ")}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* ========================================================== */}
-            {/* TEMPLATE 8: COMPACT GRID */}
-            {/* ========================================================== */}
-            {activeTemplate === "compact" && (
+            {/* GROUP F: COMPACT GRID & BURGUNDY LUXE (compact, burgundy) */}
+            {["compact", "burgundy"].includes(activeTemplate) && (
               <div className="space-y-5 p-8">
                 <div className="flex items-center justify-between border-b-2 border-amber-600 pb-3">
                   <div>
@@ -1853,6 +1835,125 @@ export default function CvBuilderPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* DEFAULT / MODERN SLATE */}
+            {activeTemplate === "modern" && (
+              <div className="space-y-7 p-10">
+                <div className="border-b-2 border-slate-900 pb-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                        {personalInfo.fullName || "To'liq Ismingiz"}
+                      </h1>
+                      <p className="mt-1 text-base font-semibold text-sky-600">
+                        {personalInfo.role || "Mutaxassisligingiz"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                    {personalInfo.email && (
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.email}
+                      </span>
+                    )}
+                    {personalInfo.phone && (
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.phone}
+                      </span>
+                    )}
+                    {personalInfo.location && (
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.location}
+                      </span>
+                    )}
+                    {personalInfo.website && (
+                      <span className="flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.website}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {personalInfo.summary && (
+                  <div>
+                    <h2 className="mb-2 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Professional Xulosa
+                    </h2>
+                    <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                      {personalInfo.summary}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Ish Tajribasi
+                  </h2>
+                  <div className="space-y-4">
+                    {experiences.map((exp) => (
+                      <div key={exp.id} className="relative border-l-2 border-slate-200 pl-3">
+                        <div className="flex items-baseline justify-between">
+                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                            {exp.period}
+                          </span>
+                        </div>
+                        <p className="mb-1.5 text-xs font-semibold text-sky-700">{exp.company}</p>
+                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                          {exp.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Texnik Ko&apos;nikmalar
+                  </h2>
+                  <div className="flex flex-wrap gap-1.5">
+                    {skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 pt-2">
+                  <div>
+                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Ta&apos;lim
+                    </h2>
+                    {education.map((edu) => (
+                      <div key={edu.id} className="text-xs">
+                        <h4 className="font-bold text-slate-900">{edu.school}</h4>
+                        <p className="text-slate-700">{edu.degree}</p>
+                        <p className="mt-0.5 text-[11px] text-slate-500">{edu.year}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Tillar
+                    </h2>
+                    <div className="space-y-1.5 text-xs">
+                      {languages.map((l) => (
+                        <div key={l.id} className="flex justify-between">
+                          <span className="font-medium text-slate-800">{l.name}</span>
+                          <span className="text-[11px] text-slate-500">{l.level}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

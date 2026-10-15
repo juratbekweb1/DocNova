@@ -26,16 +26,24 @@ if (bot) {
             },
           });
 
-          await ctx.reply(`✅ Account linked successfully! Welcome to DocNova, ${user.name || "User"}. You will now receive documents and notifications here.`);
+          await ctx.reply(
+            `✅ *Hisob muvaffaqiyatli bog'landi! / Account linked!*\n\nXush kelibsiz, *${user.name || "Foydalanuvchi"}*! Endi siz DocNova platformasidan tayyorlangan rezyume, kurs ishlari va xabarnomalarni bevosita shu yerda olasiz. 🚀\n\n_Buyruqlar: /status - profilingiz, /help - yordam_`,
+            { parse_mode: "Markdown" }
+          );
         } else {
-          await ctx.reply("❌ Invalid or expired linking token. Please generate a new one from your dashboard.");
+          await ctx.reply(
+            "❌ Bog'lanish tokeni eskirgan yoki yaroqsiz. Iltimos, DocNova boshqaruv panelidan yangi token oling.\n\n_Invalid or expired token. Please generate a new one from your dashboard._"
+          );
         }
       } catch (error) {
         console.error("[TELEGRAM_LINK_ERROR]", error);
-        await ctx.reply("❌ An error occurred while linking your account.");
+        await ctx.reply("❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.");
       }
     } else {
-      await ctx.reply("Welcome to DocNova Bot! 🚀\n\nTo link your account, please generate a token from your DocNova Dashboard Settings.");
+      await ctx.reply(
+        "👋 *DocNova rasmiy botiga xush kelibsiz!*\n\nHisobingizni bog'lash uchun, saytimizdagi Sozlamalar bo'limidan 'Telegramni ulash' tugmasini bosing yoki profilingizdagi havolani oching.\n\n🌐 Sayt: https://www.docnova.uz\n\n_Commands: /status - tekshirish, /help - yordam_",
+        { parse_mode: "Markdown" }
+      );
     }
   });
 
@@ -48,22 +56,31 @@ if (bot) {
       });
 
       if (user) {
-        await ctx.reply(`📊 *Your Status*\n\n📧 Email: ${user.email}\n💳 Plan: ${user.planId || "Free"}\n🤖 AI Credits Used: ${user.aiUsageCount}`, { parse_mode: "Markdown" });
+        const activePlan = (user as unknown as { plan?: string }).plan || user.planId || "FREE";
+        await ctx.reply(
+          `📊 *Sizning DocNova Holatingiz / Status*\n\n👤 Ism: *${user.name || "Noma'lum"}*\n📧 Email: \`${user.email}\`\n💳 Tarif: *${activePlan}*\n🤖 Ishlatilgan AI so'rovlar: *${user.aiUsageCount || 0}*\n\n_Platformadan foydalanish uchun: https://www.docnova.uz_`,
+          { parse_mode: "Markdown" }
+        );
       } else {
-        await ctx.reply("Your Telegram account is not linked to any DocNova account.");
+        await ctx.reply(
+          "⚠️ Telegram hisobingiz DocNova platformasiga hali bog'lanmagan.\n\nBog'lash uchun saytdagi Sozlamalar bo'limidan maxsus havolani oling:\n👉 https://www.docnova.uz/dashboard/settings/account"
+        );
       }
     } catch (error) {
       console.error("[TELEGRAM_STATUS_ERROR]", error);
-      await ctx.reply("❌ Could not fetch status at this time.");
+      await ctx.reply("❌ Ma'lumotlarni yuklashda xatolik yuz berdi.");
     }
   });
 
   // Command: /help
   bot.command("help", async (ctx) => {
-    await ctx.reply("🤖 *DocNova Bot Help*\n\n/start - Welcome message & account linking\n/status - Check your subscription and credits\n/help - Show this message", { parse_mode: "Markdown" });
+    await ctx.reply(
+      "🤖 *DocNova Bot Yordam*\n\n/start - Botni ishga tushirish va hisobni bog'lash\n/status - Tarif va AI limitlarini tekshirish\n/help - Yordam xabarini ko'rsatish\n\nSavollar yoki takliflar uchun: @docnova_support",
+      { parse_mode: "Markdown" }
+    );
   });
 }
 
-export const POST = bot 
-  ? webhookCallback(bot, "std/http", { secretToken: process.env.TELEGRAM_WEBHOOK_SECRET }) 
+export const POST = bot
+  ? webhookCallback(bot, "std/http", { secretToken: process.env.TELEGRAM_WEBHOOK_SECRET })
   : async () => new Response("Bot not configured", { status: 500 });

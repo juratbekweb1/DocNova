@@ -2,29 +2,47 @@
 
 import React, { useState } from "react";
 import { useRecentTool } from "@/hooks/useRecentTool";
-import { PencilRuler, Sparkles, Loader2, Copy, Eraser } from "lucide-react";
+import { GraduationCap, Sparkles, Loader2, Copy, Eraser, FileDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import { useToast } from "@/hooks/use-toast";
 
-export default function AiWriterPage() {
-  useRecentTool("ai-writer", "AI Writer", "Tools Hub", "/tools/ai-writer");
+export default function AcademicEssayBuilderPage() {
+  useRecentTool("essay-builder", "Essay Builder", "Academic Hub", "/academic/essay-builder");
+  const { toast } = useToast();
 
-  const [prompt, setPrompt] = useState("");
-  const [action, setAction] = useState("write");
+  const [topic, setTopic] = useState("");
+  const [field, setField] = useState("Ijtimoiy-gumanitar");
+  const [essayType, setEssayType] = useState("Argumentativ (Isbotlovchi)");
+  const [length, setLength] = useState("O'rtacha (3-5 bet)");
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState("");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!topic.trim()) return;
 
     setIsGenerating(true);
     try {
+      const prompt = `Mavzu: ${topic}
+Soha: ${field}
+Insho turi: ${essayType}
+Hajm: ${length}
+
+Iltimos, ushbu mavzu bo'yicha to'liq akademik insho (essay) yozib ber. 
+Quyidagi tuzilmani qat'iy saqla:
+1. Kirish va asosiy tezis (Thesis Statement)
+2. Mavzuning dolzarbligi va nazariy asosi
+3. Asosiy dalillar va tahlil (3 ta mustahkam argument)
+4. Qarshi tomon dalillari va ularning tahlili (Counter-arguments)
+5. Xulosa va yakuniy xulosalar
+6. Tavsiya etilgan ilmiy adabiyotlar ro'yxati (APA/Harvard formati)`;
+
       const res = await fetch("/api/ai/writer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, action }),
+        body: JSON.stringify({ prompt, action: "write" }),
       });
 
       const data = await res.json();
@@ -38,13 +56,18 @@ export default function AiWriterPage() {
 
       if (!res.ok) throw new Error("Failed to generate");
 
-      if (data.warningMessage) {
-        alert(data.warningMessage);
-      }
       setResult(data.result);
+      toast({
+        title: "Insho tayyor!",
+        description: "Akademik insho muvaffaqiyatli shakllantirildi.",
+      });
     } catch (error) {
       console.error(error);
-      alert("Something went wrong during generation.");
+      toast({
+        title: "Xatolik",
+        description: "Insho yaratishda xatolik yuz berdi.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -52,7 +75,29 @@ export default function AiWriterPage() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(result);
-    alert("Copied to clipboard!");
+    toast({ title: "Nusxalandi!", description: "Insho xotiraga nusxalandi." });
+  };
+
+  const downloadWordDoc = () => {
+    if (!result) return;
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset='utf-8'><title>DocNova Academic Essay</title><style>
+      body { font-family: 'Times New Roman', Times, serif; font-size: 14pt; line-height: 1.5; color: #000; margin: 25mm 20mm 20mm 30mm; }
+      h1 { font-size: 16pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 12pt; }
+      h2 { font-size: 14pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt; }
+      p { text-indent: 1.25cm; margin-bottom: 6pt; text-align: justify; }
+    </style></head><body>`;
+    const footer = "</body></html>";
+    const formattedHtml = result.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>");
+    const sourceHTML = header + `<p>${formattedHtml}</p>` + footer;
+    const source = "data:application/vnd.ms-word;charset=utf-8," + encodeURIComponent(sourceHTML);
+    const fileDownload = document.createElement("a");
+    document.body.appendChild(fileDownload);
+    fileDownload.href = source;
+    fileDownload.download = `Insho_${topic.replace(/\s+/g, "_").slice(0, 30) || "DocNova"}.doc`;
+    fileDownload.click();
+    document.body.removeChild(fileDownload);
+    toast({ title: "Yuklab olindi", description: "Insho Word (.doc) formatida saqlandi." });
   };
 
   return (
@@ -65,73 +110,104 @@ export default function AiWriterPage() {
 
       <div className="mx-auto mt-12 flex max-w-4xl flex-col items-center justify-center">
         <div className="bg-primary/10 border-primary/20 mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl border">
-          <PencilRuler className="text-primary h-10 w-10" />
+          <GraduationCap className="text-primary h-10 w-10" />
         </div>
-        <h1 className="text-foreground mb-4 text-center text-4xl font-extrabold">AI Writer Pro</h1>
+        <h1 className="text-foreground mb-4 text-center text-4xl font-extrabold">
+          Akademik Insho (Essay) Generator
+        </h1>
         <p className="text-foreground-secondary mb-12 max-w-2xl text-center text-lg">
-          Draft, improve, or summarize text instantly. Choose your action and let the AI do the
-          heavy lifting.
+          Universitet, xalqaro dasturlar (IELTS, TOEFL, SAT) va ilmiy maqolalar uchun professional
+          akademik insho yarating.
         </p>
 
-        <div className="bg-surface border-border mb-12 w-full rounded-3xl border p-8 shadow-lg">
-          <div className="mb-6 flex gap-4">
-            <button
-              onClick={() => setAction("write")}
-              className={`flex-1 rounded-xl py-3 text-sm font-bold transition-colors ${action === "write" ? "bg-primary text-primary-foreground" : "bg-background border-border text-foreground-secondary hover:text-foreground border"}`}
-            >
-              Write from scratch
-            </button>
-            <button
-              onClick={() => setAction("improve")}
-              className={`flex-1 rounded-xl py-3 text-sm font-bold transition-colors ${action === "improve" ? "bg-primary text-primary-foreground" : "bg-background border-border text-foreground-secondary hover:text-foreground border"}`}
-            >
-              Improve Text
-            </button>
-            <button
-              onClick={() => setAction("summarize")}
-              className={`flex-1 rounded-xl py-3 text-sm font-bold transition-colors ${action === "summarize" ? "bg-primary text-primary-foreground" : "bg-background border-border text-foreground-secondary hover:text-foreground border"}`}
-            >
-              Summarize
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={
-                action === "write"
-                  ? "E.g. Write an email to my boss asking for a 1-week vacation..."
-                  : "Paste your text here..."
-              }
-              className="bg-background border-border text-foreground focus:border-primary/50 focus:ring-primary/50 h-40 w-full resize-none rounded-xl border p-4 text-sm outline-none focus:ring-1"
+        <div className="bg-surface border-border mb-12 w-full space-y-6 rounded-3xl border p-8 shadow-lg">
+          <div>
+            <label className="text-foreground mb-2 block text-sm font-semibold">
+              Insho mavzusi
+            </label>
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Masalan: Sun'iy intellektning ta'lim tizimidagi roli va axloqiy muammolari"
+              className="bg-background border-border text-foreground focus:border-primary/50 focus:ring-primary/50 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-1"
             />
-
-            <Button
-              onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground flex w-full items-center justify-center gap-2 rounded-xl py-6 text-base font-bold shadow-[0_0_20px_-5px_rgba(56,189,248,0.4)] disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Processing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5" /> Generate
-                </>
-              )}
-            </Button>
           </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="text-foreground-secondary mb-1.5 block text-xs font-medium">
+                Fan sohasi
+              </label>
+              <select
+                value={field}
+                onChange={(e) => setField(e.target.value)}
+                className="bg-background border-border text-foreground w-full rounded-lg border px-3 py-2 text-xs outline-none"
+              >
+                <option>Ijtimoiy-gumanitar</option>
+                <option>Axborot texnologiyalari & IT</option>
+                <option>Iqtisodiyot va Moliya</option>
+                <option>Tibbiyot va Salomatlik</option>
+                <option>Tilshunoslik va Adabiyot</option>
+                <option>Tabiiy fanlar</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-foreground-secondary mb-1.5 block text-xs font-medium">
+                Insho turi
+              </label>
+              <select
+                value={essayType}
+                onChange={(e) => setEssayType(e.target.value)}
+                className="bg-background border-border text-foreground w-full rounded-lg border px-3 py-2 text-xs outline-none"
+              >
+                <option>Argumentativ (Isbotlovchi)</option>
+                <option>Analitik (Tahliliy)</option>
+                <option>Muammo va Yechim</option>
+                <option>Taqqoslash va Qarama-qarshilik</option>
+                <option>Tavsifiy (Narrative)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-foreground-secondary mb-1.5 block text-xs font-medium">
+                Rejalashtirilgan hajm
+              </label>
+              <select
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                className="bg-background border-border text-foreground w-full rounded-lg border px-3 py-2 text-xs outline-none"
+              >
+                <option>Qisqa (1-2 bet, ~500 so&apos;z)</option>
+                <option>O&apos;rtacha (3-5 bet, ~1500 so&apos;z)</option>
+                <option>Kengaytirilgan (6-8 bet, ~2500 so&apos;z)</option>
+              </select>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleGenerate}
+            disabled={!topic.trim() || isGenerating}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/25 flex w-full items-center justify-center gap-2 rounded-xl py-6 text-base font-bold shadow-lg disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" /> Insho shakllantirilmoqda...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5" /> Akademik Insho Yaratish
+              </>
+            )}
+          </Button>
         </div>
 
         {result && (
           <div className="animate-in fade-in slide-in-from-bottom-8 bg-surface-elevated border-primary/20 relative w-full overflow-hidden rounded-3xl border p-8 shadow-2xl duration-700">
-            <div className="bg-primary/10 absolute top-0 right-0 h-32 w-32 rounded-full blur-3xl" />
-
-            <div className="border-border mb-6 flex items-center justify-between border-b pb-4">
+            <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
               <h3 className="text-foreground flex items-center gap-2 text-xl font-bold">
-                <Sparkles className="text-primary h-5 w-5" /> Generated Output
+                <BookOpen className="text-primary h-5 w-5" /> Akademik Insho Natijasi
               </h3>
               <div className="flex gap-2">
                 <Button
@@ -139,11 +215,19 @@ export default function AiWriterPage() {
                   size="sm"
                   onClick={() => {
                     setResult("");
-                    setPrompt("");
+                    setTopic("");
                   }}
                   className="border-border h-8 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
                 >
-                  <Eraser className="mr-1.5 h-4 w-4" /> Clear
+                  <Eraser className="mr-1.5 h-4 w-4" /> Tozalash
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadWordDoc}
+                  className="border-border h-8"
+                >
+                  <FileDown className="mr-1.5 h-4 w-4" /> Word (.doc)
                 </Button>
                 <Button
                   variant="outline"
@@ -151,12 +235,12 @@ export default function AiWriterPage() {
                   onClick={copyToClipboard}
                   className="border-border h-8"
                 >
-                  <Copy className="mr-1.5 h-4 w-4" /> Copy
+                  <Copy className="mr-1.5 h-4 w-4" /> Nusxalash
                 </Button>
               </div>
             </div>
 
-            <div className="text-foreground-secondary text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="text-foreground font-serif text-sm leading-relaxed whitespace-pre-wrap">
               {result}
             </div>
           </div>
