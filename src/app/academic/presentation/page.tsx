@@ -625,7 +625,7 @@ function PresentationContent() {
                         Slaydlar soni
                       </label>
                       <span className="text-foreground-muted text-[11px]">
-                        Istalgancha slayd belgilashingiz mumkin (1 dan 60 tagacha)
+                        Istalgancha slayd belgilashingiz mumkin (1 dan 100 tagacha)
                       </span>
                     </div>
                     <span className="text-primary bg-primary/10 border-primary/30 rounded-lg border px-3 py-1 text-sm font-extrabold">
@@ -648,12 +648,12 @@ function PresentationContent() {
                       <input
                         type="number"
                         min={1}
-                        max={60}
+                        max={100}
                         value={slidesCount}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           if (!isNaN(val)) {
-                            setSlidesCount(Math.min(60, Math.max(1, val)));
+                            setSlidesCount(Math.min(100, Math.max(1, val)));
                           }
                         }}
                         className="border-border bg-background text-foreground focus:border-primary h-9 w-full rounded-lg border px-3 text-center text-sm font-bold focus:outline-none"
@@ -662,7 +662,7 @@ function PresentationContent() {
 
                     <button
                       type="button"
-                      onClick={() => setSlidesCount((prev) => Math.min(60, prev + 1))}
+                      onClick={() => setSlidesCount((prev) => Math.min(100, prev + 1))}
                       className="border-border bg-background hover:bg-surface-elevated text-foreground flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-sm font-bold transition-all"
                       title="1 ta qo'shish"
                     >
@@ -676,7 +676,7 @@ function PresentationContent() {
                       Tezkor parametrlar:
                     </span>
                     <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
-                      {[5, 8, 10, 12, 15, 20, 25, 30].map((cnt) => (
+                      {[5, 10, 15, 20, 25, 30, 50, 100].map((cnt) => (
                         <button
                           key={cnt}
                           type="button"

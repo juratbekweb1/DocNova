@@ -303,24 +303,24 @@ export default function DiplomBmiPage() {
                   <input
                     type="number"
                     min={1}
-                    max={60}
+                    max={100}
                     value={slidesCount}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val)) setSlidesCount(Math.min(60, Math.max(1, val)));
+                      if (!isNaN(val)) setSlidesCount(Math.min(100, Math.max(1, val)));
                     }}
                     className="border-border bg-background text-foreground h-7 w-14 rounded border text-center text-xs font-bold"
                   />
                   <button
                     type="button"
-                    onClick={() => setSlidesCount((prev) => Math.min(60, prev + 1))}
+                    onClick={() => setSlidesCount((prev) => Math.min(100, prev + 1))}
                     className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded border text-xs font-bold"
                   >
                     <Plus className="h-3 w-3" />
                   </button>
 
                   <div className="ml-auto flex items-center gap-1">
-                    {[10, 15, 20].map((cnt) => (
+                    {[10, 15, 20, 30, 50, 100].map((cnt) => (
                       <button
                         key={cnt}
                         type="button"

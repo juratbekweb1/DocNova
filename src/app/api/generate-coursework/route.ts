@@ -35,7 +35,7 @@ export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
   } = data;
 
   const currentYear = year || new Date().getFullYear().toString();
-  const targetPages = Math.max(10, Math.min(60, parseInt(pageCount || "25", 10) || 25));
+  const targetPages = Math.max(10, Math.min(100, parseInt(pageCount || "25", 10) || 25));
 
   const isRu = language === "ru";
   const isCyrl = language === "uz-cyrl";

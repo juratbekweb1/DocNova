@@ -581,13 +581,13 @@ export default function CourseworkGenerator() {
             </h1>
             <p className="text-foreground-secondary mt-1 max-w-2xl text-xs sm:text-sm">
               Titul varag&apos;i, reja (mundarija), kirish, 3 ta bob, xulosa va 20 ta adabiyotlar
-              ro&apos;yxati bilan 15–30 sahifalik tayyor kurs ishlari.
+              ro&apos;yxati bilan 15–100 sahifalik tayyor kurs ishlari.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-foreground-muted text-xs font-medium">Hajm:</span>
-            {["15", "19", "25", "30"].map((cnt) => (
+            {["15", "19", "25", "30", "50", "100"].map((cnt) => (
               <button
                 key={cnt}
                 type="button"
@@ -605,12 +605,12 @@ export default function CourseworkGenerator() {
               <input
                 type="number"
                 min={5}
-                max={60}
+                max={100}
                 value={formData.pageCount}
                 onChange={(e) => setFormData({ ...formData, pageCount: e.target.value })}
                 placeholder="Boshqa"
                 className="border-border bg-background text-foreground h-7 w-16 rounded border text-center text-xs font-bold"
-                title="O'zingiz xohlagan sahifalar sonini kiriting"
+                title="O'zingiz xohlagan sahifalar sonini kiriting (100 tagacha)"
               />
               <span className="text-foreground-muted text-[11px]">bet</span>
             </div>
