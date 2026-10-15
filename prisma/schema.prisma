@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  
 }
 
 // -----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ model Organization {
   folders       Folder[]
   documents     Document[]
   subscriptions Subscription[]
+  aiusages      AIUsage[]
 
   @@index([slug])
 }
@@ -85,26 +87,27 @@ model User {
   transactions    Transaction[]
   atsAnalyses     AtsAnalysis[]
 
-  plan            SubscriptionTier @default(FREE)
+  plan                SubscriptionTier  @default(FREE)
   subscriptionEndDate DateTime?
-  paymentStatus       String?          @default("NONE") // e.g. PAID, PENDING, NONE
-  dailyAiCount    Int              @default(0)
-  lastRequestDate DateTime         @default(now())
-  mockTestCount   Int              @default(0)
-  resumeCount     Int              @default(0)
-  chatMessages    ChatMessage[]
-  mockTests       MockTestSession[]
+  paymentStatus       String?           @default("NONE") // e.g. PAID, PENDING, NONE
+  dailyAiCount        Int               @default(0)
+  lastRequestDate     DateTime          @default(now())
+  mockTestCount       Int               @default(0)
+  resumeCount         Int               @default(0)
+  chatMessages        ChatMessage[]
+  mockTests           MockTestSession[]
+  aiusages            AIUsage[]
 
   @@index([email])
   @@index([role])
 }
-
 
 enum SubscriptionTier {
   FREE
   PRO
   PREMIUM
 }
+
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -650,22 +653,77 @@ model SecurityLog {
 model ChatMessage {
   id        String   @id @default(cuid())
   userId    String
-  role      String   // "user" | "assistant"
+  role      String // "user" | "assistant"
   content   String   @db.Text
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
 model MockTestSession {
   id           String   @id @default(cuid())
   userId       String
-  language     String   // "EN" | "RU"
+  language     String // "EN" | "RU"
   score        Int?
   feedbackJson Json?
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// AI USAGE & TRACKING
+// -----------------------------------------------------------------------------
+
+model AIUsage {
+  id                String   @id @default(cuid())
+  userId            String?
+  organizationId    String?
+  subscriptionId    String?
+  plan              String
+  feature           String
+  provider          String
+  model             String
+  status            String
+  inputTokens       Int?
+  outputTokens      Int?
+  totalTokens       Int?
+  estimatedCostUsd  Float?
+  requestDurationMs Int?
+  errorCode         String?
+  createdAt         DateTime @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([createdAt])
+  @@index([plan])
+  @@index([feature])
+  @@index([status])
+}
+
+model AIDailyReport {
+  id                 String    @id @default(uuid())
+  reportDate         String    @unique
+  totalRequests      Int       @default(0)
+  successfulRequests Int       @default(0)
+  failedRequests     Int       @default(0)
+  inputTokens        Int       @default(0)
+  outputTokens       Int       @default(0)
+  totalTokens        Int       @default(0)
+  estimatedCostUsd   Float     @default(0)
+  estimatedCostUzs   Float     @default(0)
+  freeRequests       Int       @default(0)
+  proRequests        Int       @default(0)
+  premiumRequests    Int       @default(0)
+  telegramStatus     String    @default("PENDING")
+  telegramSentAt     DateTime?
+  errorCode          String?
+  createdAt          DateTime  @default(now())
 }
