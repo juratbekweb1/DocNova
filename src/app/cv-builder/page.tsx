@@ -260,7 +260,6 @@ export default function CvBuilderPage() {
     });
 
     try {
-      // @ts-expect-error html2pdf.js does not provide native TS types
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default as () => {
         set: (options: Record<string, unknown>) => {
