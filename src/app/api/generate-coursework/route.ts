@@ -2,6 +2,23 @@ export const maxDuration = 60;
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
+export interface CourseworkOutlineChapter {
+  number: number;
+  title: string;
+  subsections: string[];
+}
+
+export interface CourseworkOutline {
+  topic: string;
+  subject: string;
+  faculty?: string;
+  introTitle: string;
+  introPoints: string[];
+  chapters: CourseworkOutlineChapter[];
+  conclusionTitle: string;
+  referencesTitle: string;
+}
+
 export interface CourseworkData {
   subject: string;
   topic: string;
@@ -12,6 +29,7 @@ export interface CourseworkData {
   year: string;
   pageCount?: string;
   language?: "uz" | "uz-cyrl" | "ru";
+  outline?: CourseworkOutline;
 }
 
 export interface CourseworkPage {
@@ -19,6 +37,160 @@ export interface CourseworkPage {
   type: string;
   title: string;
   content: string;
+}
+
+export function buildDefaultOutline(
+  topic: string,
+  subject: string,
+  faculty?: string,
+  language: "uz" | "uz-cyrl" | "ru" = "uz"
+): CourseworkOutline {
+  const isRu = language === "ru";
+  const isCyrl = language === "uz-cyrl";
+
+  if (isRu) {
+    return {
+      topic,
+      subject,
+      faculty,
+      introTitle: "ВВЕДЕНИЕ",
+      introPoints: [
+        "Актуальность темы исследования",
+        "Степень научной разработанности проблемы",
+        "Цели и задачи курсовой работы",
+        "Объект и предмет исследования",
+        "Методы и методологическая база исследования",
+        "Научная новизна и практическая значимость работы",
+      ],
+      chapters: [
+        {
+          number: 1,
+          title: "ГЛАВА I. ТЕОРЕТИКО-МЕТОДОЛОГИЧЕСКИЕ ОСНОВЫ ИССЛЕДОВАНИЯ",
+          subsections: [
+            "1.1. Сущность, понятийный аппарат и теоретические аспекты темы",
+            "1.2. Концептуальные модели и классификация ключевых подходов",
+            "1.3. Международный опыт и современные тенденции развития",
+          ],
+        },
+        {
+          number: 2,
+          title: "ГЛАВА II. ПРАКТИЧЕСКИЙ АНАЛИЗ И СТАТИСТИЧЕСКАЯ ОЦЕНКА",
+          subsections: [
+            "2.1. Анализ текущего состояния и эмпирические показатели в Узбекистане",
+            "2.2. Системные проблемы, барьеры и сдерживающие факторы",
+            "2.3. Пути повышения эффективности и оптимизация процессов",
+          ],
+        },
+        {
+          number: 3,
+          title: "ГЛАВА III. СТРАТЕГИЧЕСКИЕ ПЕРСПЕКТИВЫ И ДОРОЖНАЯ КАРТА",
+          subsections: [
+            "3.1. Комплекс инновационных предложений и внедрение решений",
+            "3.2. Оценка социально-экономической эффективности результатов",
+            "3.3. Практические рекомендации по масштабированию результатов",
+          ],
+        },
+      ],
+      conclusionTitle: "ЗАКЛЮЧЕНИЕ И ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ",
+      referencesTitle: "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ (ГОСТ)",
+    };
+  }
+
+  if (isCyrl) {
+    return {
+      topic,
+      subject,
+      faculty,
+      introTitle: "КИРИШ",
+      introPoints: [
+        "Мавзунинг долзарблиги ва аҳамияти",
+        "Муаммонинг илмий ўрганилганлик даражаси",
+        "Тадқиқот мақсади ва вазифалари",
+        "Тадқиқот объекти ва предмети",
+        "Тадқиқот усуллари ва услубий асоси",
+        "Тадқиқотнинг илмий янгилиги ва амалий аҳамияти",
+      ],
+      chapters: [
+        {
+          number: 1,
+          title: "I БОБ. МАВЗУНИНГ НАЗАРИЙ-МЕТОДОЛОГИК АСОСЛАРИ",
+          subsections: [
+            "1.1. Мавзунинг назарий-концептуал асослари ва асосий тушунчалари",
+            "1.2. Илмий қарашлар, методологик принциплар ва назарий моделлар",
+            "1.3. Хорижий тажриба ва замонавий халқаро тенденциялар таҳлили",
+          ],
+        },
+        {
+          number: 2,
+          title: "II БОБ. АМАЛИЙ ТАДҚИҚОТ ВА САМАРАДОРЛИК ТАҲЛИЛИ",
+          subsections: [
+            "2.1. Ҳозирги ҳолатнинг тизимли мониторинги ва статистик кўрсаткичлар",
+            "2.2. Соҳада мавжуд тизимли муаммолар ва тўсиқлар таҳлили",
+            "2.3. Самарадорликни ошириш ва жараёнларни оптималлаштириш",
+          ],
+        },
+        {
+          number: 3,
+          title: "III БОБ. СОҲАНИ РИВОЖЛАНТИРИШНИНГ СТРАТЕГИК ИСТИҚБОЛЛАРИ",
+          subsections: [
+            "3.1. Замонавий механизмларни интеграция қилишнинг «Йўл харитаси»",
+            "3.2. Кутилаётган ижтимоий-иқтисодий самарадорлик ва истиқболлар",
+            "3.3. Илмий-амалий тавсияларни амалиётга жорий этиш механизмлари",
+          ],
+        },
+      ],
+      conclusionTitle: "ХУЛОСА ВА АМАЛИЙ ТАВСИЯЛАР",
+      referencesTitle: "ФОЙДАЛАНИЛГАН АДАБИЁТЛАР РЎЙХАТИ (ГОСТ)",
+    };
+  }
+
+  // Default: Uzbek Latin
+  const cleanTopicUpper = topic.toUpperCase();
+  return {
+    topic,
+    subject,
+    faculty,
+    introTitle: "KIRISH",
+    introPoints: [
+      "Mavzuning dolzarbligi va ahamiyati",
+      "Muammoning ilmiy o'rganilganlik darajasi",
+      "Tadqiqot maqsadi va vazifalari",
+      "Tadqiqot obyekti va predmeti",
+      "Tadqiqot usullari va metodologik asosi",
+      "Tadqiqotning ilmiy yangiligi va amaliy ahamiyati",
+    ],
+    chapters: [
+      {
+        number: 1,
+        title: `I BOB. ${cleanTopicUpper}NING NAZARIY-METODOLOGIK ASOSLARI`,
+        subsections: [
+          "1.1. Mavzuning nazariy-konseptual asoslari va fundamental tushunchalari",
+          "1.2. Ilmiy qarashlar, metodologik tamoyillar va tasniflash modellari",
+          "1.3. Xorijiy tajriba va zamonaviy xalqaro tendensiyalar qiyosiy tahlili",
+        ],
+      },
+      {
+        number: 2,
+        title: "II BOB. AMALIY TADQIQOT VA EMPIRIK TAHLIL",
+        subsections: [
+          "2.1. O'zbekistonda sohaning joriy holati va dinamik statistik ko'rsatkichlar",
+          "2.2. Sohada mavjud tizimli muammolar, to'siqlar va disproporsiyalar tahlili",
+          "2.3. Jarayonlarni optimallashtirish va amaliy samaradorlik ko'rsatkichlari",
+        ],
+      },
+      {
+        number: 3,
+        title: "III BOB. MUAMMOLAR VA ILMIY-AMALIY YECHIMLAR/TAKLIFLAR",
+        subsections: [
+          "3.1. Sohani rivojlantirishning istiqbolli yo'nalishlari va mexanizmlari",
+          "3.2. Innovatsion yechimlarni amaliyotga tatbiq etishning «Yo'l xaritasi»",
+          "3.3. Kutilayotgan ijtimoiy-iqtisodiy samaradorlik va amaliy xulosaviy baholash",
+        ],
+      },
+    ],
+    conclusionTitle: "XULOSA VA AMALIY TAVSIYALAR",
+    referencesTitle: "FOYDALANILGAN ADABIYOTLAR RO'YXATI (GOST)",
+  };
 }
 
 export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
@@ -32,10 +204,11 @@ export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
     year,
     pageCount,
     language = "uz",
+    outline: customOutline,
   } = data;
 
   const currentYear = year || new Date().getFullYear().toString();
-  const targetPages = Math.max(10, Math.min(100, parseInt(pageCount || "25", 10) || 25));
+  const targetPages = Math.max(10, Math.min(100, parseInt(pageCount || "19", 10) || 19));
 
   const isRu = language === "ru";
   const isCyrl = language === "uz-cyrl";
@@ -65,29 +238,50 @@ export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
         ? "Рақамli технологиялар ва иқтисодиёт факультети"
         : "Raqamli texnologiyalar va iqtisodiyot fakulteti");
 
-  // Page allocation
-  const pLitPages = targetPages >= 24 ? 2 : 1;
-  const pConcPages = targetPages <= 14 ? 1 : targetPages <= 22 ? 2 : 3;
-  const pIntroPages = targetPages <= 14 ? 1 : targetPages <= 22 ? 2 : 3;
-  const rem = targetPages - 2; // Subtract Titul (1) and TOC (1)
-  const bodyPages = rem - pLitPages - pConcPages - pIntroPages;
+  const outline = customOutline || buildDefaultOutline(topic, subject, faculty, language);
 
-  const hasCh3 = targetPages >= 25;
-  let ch1Pages = 0;
-  let ch2Pages = 0;
-  let ch3Pages = 0;
+  const ch1Info = outline.chapters[0] || {
+    number: 1,
+    title: isRu ? "ГЛАВА I. ТЕОРЕТИЧЕСКИЕ ОСНОВЫ" : "I BOB. NAZARIY ASOSLAR",
+    subsections: [
+      "1.1. Nazariy asoslar va tushunchalar",
+      "1.2. Konseptual modellar tahlili",
+      "1.3. Xorijiy tajriba va tendensiyalar",
+    ],
+  };
 
-  if (hasCh3) {
-    ch3Pages = Math.max(2, Math.floor(bodyPages * 0.25));
-    const remCh = bodyPages - ch3Pages;
-    ch1Pages = Math.floor(remCh / 2);
-    ch2Pages = remCh - ch1Pages;
-  } else {
-    ch1Pages = Math.floor(bodyPages / 2);
-    ch2Pages = bodyPages - ch1Pages;
-  }
+  const ch2Info = outline.chapters[1] || {
+    number: 2,
+    title: isRu ? "ГЛАВА II. ПРАКТИЧЕСКИЙ АНАЛИЗ" : "II BOB. AMALIY TAHLIL",
+    subsections: [
+      "2.1. Amaliy holat tahlili va ko'rsatkichlar",
+      "2.2. Mavjud muammolar va to'siqlar",
+      "2.3. Jarayonlarni optimallashtirish",
+    ],
+  };
 
-  // Calculate starting page numbers for TOC
+  const ch3Info = outline.chapters[2] || {
+    number: 3,
+    title: isRu ? "ГЛАВА III. СТРАТЕГИЧЕСКИЕ ПЕРСПЕКТИВЫ" : "III BOB. STRATEGIK ISTIQBOLLAR",
+    subsections: [
+      "3.1. Rivojlantirish yo'nalishlari",
+      "3.2. «Yo'l xaritasi» va yechimlar",
+      "3.3. Kutilayotgan samaradorlik",
+    ],
+  };
+
+  // Dynamic Page Allocation ensuring exactly targetPages
+  const pLitPages = targetPages <= 15 ? 1 : 2;
+  const pConcPages = targetPages <= 15 ? 1 : targetPages <= 24 ? 1 : 2;
+  const pIntroPages = targetPages <= 15 ? 1 : targetPages <= 25 ? 2 : 3;
+
+  const remPages = targetPages - 2 - pLitPages - pConcPages - pIntroPages; // Remaining for 3 chapters
+
+  const ch1Pages = Math.max(2, Math.floor(remPages * 0.32));
+  const ch3Pages = Math.max(2, Math.floor(remPages * 0.32));
+  const ch2Pages = Math.max(2, remPages - ch1Pages - ch3Pages);
+
+  // Exact page numbers for Table of Contents
   const pIntro = 3;
   const pCh1 = pIntro + pIntroPages;
   const pCh1_1 = pCh1;
@@ -99,17 +293,18 @@ export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
   const pCh2_2 = pCh2_1 + Math.max(1, Math.floor(ch2Pages / 3));
   const pCh2_3 = pCh2_2 + Math.max(1, Math.floor(ch2Pages / 3));
 
-  const pCh3 = hasCh3 ? pCh2 + ch2Pages : 0;
+  const pCh3 = pCh2 + ch2Pages;
   const pCh3_1 = pCh3;
-  const pCh3_2 = hasCh3 ? pCh3_1 + Math.max(1, Math.floor(ch3Pages / 2)) : 0;
+  const pCh3_2 = pCh3_1 + Math.max(1, Math.floor(ch3Pages / 3));
+  const pCh3_3 = pCh3_2 + Math.max(1, Math.floor(ch3Pages / 3));
 
-  const pConc = pCh2 + ch2Pages + ch3Pages;
+  const pConc = pCh3 + ch3Pages;
   const pLit = pConc + pConcPages;
 
   const pages: CourseworkPage[] = [];
 
   // ==========================================
-  // PAGE 1: TITUL
+  // PAGE 1: TITUL VARAQ (MOVSO RUz Standard)
   // ==========================================
   if (isRu) {
     pages.push({
@@ -195,58 +390,48 @@ export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
   }
 
   // ==========================================
-  // PAGE 2: MUNDARIJA (TOC)
+  // PAGE 2: MUNDARIJA (TABLE OF CONTENTS)
   // ==========================================
   const tocLines: string[] = [];
   if (isRu) {
     tocLines.push(
-      `# СОДЕРЖАНИЕ`,
+      `# ${outline.introTitle || "СОДЕРЖАНИЕ"}`,
       ``,
       `- **ВВЕДЕНИЕ** ......................................................................................................................................... ${pIntro}`,
-      `- **ГЛАВА I. ТЕОРЕТИКО-МЕТОДОЛОГИЧЕСКИЕ ОСНОВЫ ИССЛЕДОВАНИЯ** .................... ${pCh1}`,
-      `  - 1.1. Сущность, понятийный аппарат и теоретические аспекты темы ..................................... ${pCh1_1}`,
-      `  - 1.2. Концептуальные модели и классификация ключевых подходов ....................................... ${pCh1_2}`,
-      `  - 1.3. Международный опыт и современные тенденции развития ................................................ ${pCh1_3}`,
-      `- **ГЛАВА II. ПРАКТИЧЕСКИЙ АНАЛИЗ И СТАТИСТИЧЕСКАЯ ОЦЕНКА** ................................... ${pCh2}`,
-      `  - 2.1. Анализ текущего состояния и эмпирические показатели в Узбекистане ........................... ${pCh2_1}`,
-      `  - 2.2. Системные проблемы, барьеры и сдерживающие факторы ............................................. ${pCh2_2}`,
-      `  - 2.3. Пути повышения эффективности и оптимизация процессов .............................................. ${pCh2_3}`
-    );
-    if (hasCh3) {
-      tocLines.push(
-        `- **ГЛАВА III. СТРАТЕГИЧЕСКИЕ ПЕРСПЕКТИВЫ И ДОРОЖНАЯ КАРТА** .................................. ${pCh3}`,
-        `  - 3.1. Комплекс инновационных предложений и внедрение решений ......................................... ${pCh3_1}`,
-        `  - 3.2. Оценка социально-экономической эффективности результатов ........................................ ${pCh3_2}`
-      );
-    }
-    tocLines.push(
-      `- **ЗАКЛЮЧЕНИЕ** ................................................................................................................................. ${pConc}`,
-      `- **СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ** .......................................................................... ${pLit}`
+      `- **${ch1Info.title.toUpperCase()}** ................................................................................................. ${pCh1}`,
+      `  - ${ch1Info.subsections[0] || "1.1. Сущность и теоретические аспекты темы"} ..................................... ${pCh1_1}`,
+      `  - ${ch1Info.subsections[1] || "1.2. Концептуальные модели и классификация подходов"} ....................................... ${pCh1_2}`,
+      `  - ${ch1Info.subsections[2] || "1.3. Международный опыт и современные тенденции"} ................................................ ${pCh1_3}`,
+      `- **${ch2Info.title.toUpperCase()}** ................................................................................................. ${pCh2}`,
+      `  - ${ch2Info.subsections[0] || "2.1. Анализ текущего состояния и показателей"} ........................... ${pCh2_1}`,
+      `  - ${ch2Info.subsections[1] || "2.2. Системные проблемы и барьеры"} ............................................. ${pCh2_2}`,
+      `  - ${ch2Info.subsections[2] || "2.3. Пути повышения эффективности и оптимизация"} .............................................. ${pCh2_3}`,
+      `- **${ch3Info.title.toUpperCase()}** ................................................................................................. ${pCh3}`,
+      `  - ${ch3Info.subsections[0] || "3.1. Комплекс инновационных предложений"} ......................................... ${pCh3_1}`,
+      `  - ${ch3Info.subsections[1] || "3.2. Оценка социально-экономической эффективности"} ........................................ ${pCh3_2}`,
+      `  - ${ch3Info.subsections[2] || "3.3. Практические рекомендации и масштабирование"} ........................................ ${pCh3_3}`,
+      `- **${outline.conclusionTitle || "ЗАКЛЮЧЕНИЕ"}** ................................................................................................. ${pConc}`,
+      `- **${outline.referencesTitle || "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ"}** .......................................................................... ${pLit}`
     );
   } else {
     tocLines.push(
       `# MUNDARIJA`,
       ``,
       `- **KIRISH** ......................................................................................................................................... ${pIntro}`,
-      `- **I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI** ................................. ${pCh1}`,
-      `  - 1.1. Mavzuning nazariy-konseptual asoslari va asosiy tushunchalari ........................................ ${pCh1_1}`,
-      `  - 1.2. Ilmiy qarashlar, metodologik prinsiplar va nazariy modellar ........................................... ${pCh1_2}`,
-      `  - 1.3. Xorijiy tajriba va zamonaviy xalqaro tendensiyalar tahlili .............................................. ${pCh1_3}`,
-      `- **II BOB. AMALIY TADQIQOT VA SAMARADORLIK TAHLILI** ..................................................... ${pCh2}`,
-      `  - 2.1. Hozirgi holatning tizimli monitoringi va statistik ko'rsatkichlar ................................................ ${pCh2_1}`,
-      `  - 2.2. Sohada mavjud tizimli muammolar va to'siqlar tahlili .................................................... ${pCh2_2}`,
-      `  - 2.3. Samaradorlikni oshirish va innovatsion takliflar tizimi .................................................... ${pCh2_3}`
-    );
-    if (hasCh3) {
-      tocLines.push(
-        `- **III BOB. SOHANI RIVOJLANTIRISHNING STRATEGIK ISTIQBOLLARI** ............................ ${pCh3}`,
-        `  - 3.1. Zamonaviy mexanizmlarni integratsiya qilishning «Yo'l xaritasi» ......................................... ${pCh3_1}`,
-        `  - 3.2. Kutilayotgan ijtimoiy-iqtisodiy samaradorlik va amaliy istiqbollar ..................................... ${pCh3_2}`
-      );
-    }
-    tocLines.push(
-      `- **XULOSA VA AMALIY TAVSIYALAR** ............................................................................................... ${pConc}`,
-      `- **FOYDALANILGAN ADABIYOTLAR RO'YXATI** .................................................................................. ${pLit}`
+      `- **${ch1Info.title.toUpperCase()}** ................................................................................................. ${pCh1}`,
+      `  - ${ch1Info.subsections[0] || "1.1. Mavzuning nazariy-konseptual asoslari va asosiy tushunchalari"} ........................................ ${pCh1_1}`,
+      `  - ${ch1Info.subsections[1] || "1.2. Ilmiy qarashlar, metodologik prinsiplar va modellar"} ........................................... ${pCh1_2}`,
+      `  - ${ch1Info.subsections[2] || "1.3. Xorijiy tajriba va zamonaviy xalqaro tendensiyalar"} .............................................. ${pCh1_3}`,
+      `- **${ch2Info.title.toUpperCase()}** ................................................................................................. ${pCh2}`,
+      `  - ${ch2Info.subsections[0] || "2.1. Hozirgi holatning tizimli monitoringi va statistik ko'rsatkichlar"} ................................................ ${pCh2_1}`,
+      `  - ${ch2Info.subsections[1] || "2.2. Sohada mavjud tizimli muammolar va to'siqlar tahlili"} .................................................... ${pCh2_2}`,
+      `  - ${ch2Info.subsections[2] || "2.3. Samaradorlikni oshirish va optimallashtirish tizimi"} .................................................... ${pCh2_3}`,
+      `- **${ch3Info.title.toUpperCase()}** ................................................................................................. ${pCh3}`,
+      `  - ${ch3Info.subsections[0] || "3.1. Zamonaviy mexanizmlarni integratsiya qilishning «Yo'l xaritasi»"} ......................................... ${pCh3_1}`,
+      `  - ${ch3Info.subsections[1] || "3.2. Kutilayotgan ijtimoiy-iqtisodiy samaradorlik va istiqbollar"} ..................................... ${pCh3_2}`,
+      `  - ${ch3Info.subsections[2] || "3.3. Ilmiy-amaliy takliflarni amaliyotga joriy etish tavsiyalari"} ..................................... ${pCh3_3}`,
+      `- **${outline.conclusionTitle || "XULOSA VA AMALIY TAVSIYALAR"}** ............................................................................................... ${pConc}`,
+      `- **${outline.referencesTitle || "FOYDALANILGAN ADABIYOTLAR RO'YXATI"}** .................................................................................. ${pLit}`
     );
   }
 
@@ -312,7 +497,7 @@ Bugungi kunda jahon miqyosida va O'zbekiston Respublikasida kechayotgan keng ko'
 
 Aynan "${topic}" mavzusining chuqur o'rganilishi bugungi kunda axborot oqimlarining jadal sur'atlar bilan ortib borishi, texnologik va boshqaruv tizimlarining murakkablashuvi hamda amaliy faoliyatda aniqlik, xavfsizlik va tezkorlikka bo'lgan ehtiyoj bilan bevosita bog'liqdir. Mazkur sohadagi an'anaviy yondashuvlarning zamonaviy talablarga har doim ham to'laqonli javob bera olmasligi yangi ilmiy qarashlar va metodologik vositalarni ishlab chiqishni dolzarb ilmiy muammoga aylantirdi.
 
-### Muammoning o'rganilganlik darajasi
+### Muammoning ilmiy o'rganilganlik darajasi
 Ushbu yo'nalish bo'yicha mahalliy va xorijiy olimlar tomonidan ko'plab fundamental va amaliy tadqiqotlar olib borilgan. Ilg'or xorijiy tadqiqot markazlari ushbu muammoning nazariy-konseptual asoslarini, algoritmlarini va xalqaro standartlarini chuqur yoritib bergan. Mahalliy tadqiqotchilar esa mazkur modellarni milliy iqtisodiyot va mintaqaviy infratuzilmaga moslashtirish, qonunchilik bazasini takomillashtirish borasida izlanishlar olib borganlar. Shunga qaramay, mazkur tizimni zamonaviy talablar asosida integratsiyalashgan holda tahlil qilish masalasi hali to'liq yechimini topmagan.`;
       } else if (isLast) {
         content = `# KIRISH (Davomi)
@@ -350,20 +535,21 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
   }
 
   // ==========================================
-  // CHAPTER 1 PAGES
+  // CHAPTER 1: NAZARIY-METODOLOGIK ASOSLAR
   // ==========================================
   const ch1_1_pages = Math.max(1, Math.floor(ch1Pages / 3));
   const ch1_2_pages = Math.max(1, Math.floor(ch1Pages / 3));
-  const ch1_3_pages = ch1Pages - ch1_1_pages - ch1_2_pages;
+  const ch1_3_pages = Math.max(1, ch1Pages - ch1_1_pages - ch1_2_pages);
 
   for (let i = 0; i < ch1_1_pages; i++) {
     const isFirst = i === 0;
+    const subTitle = ch1Info.subsections[0] || "1.1. Nazariy asoslar va tushunchalar";
     pages.push({
       pageNumber: curPage++,
       type: "chapter1",
-      title: isRu ? "1.1. Сущность темы" : "1.1-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `${isFirst ? `# ГЛАВА I. ТЕОРЕТИКО-МЕТОДОЛОГИЧЕСКИЕ ОСНОВЫ ИССЛЕДОВАНИЯ\n\n## 1.1. Сущность, понятийный аппарат и теоретические аспекты темы\n\n` : `## 1.1. Концептуальные модели темы (Продолжение)\n\n`}Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
+        ? `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
 
 Фундаментальные принципы функционирования исследуемого направления базируются на следующих критериях:
 1. **Принцип системности:** гармоничное взаимодействие всех составных элементов для достижения синергетического эффекта;
@@ -371,7 +557,7 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
 3. **Принцип результативности:** максимизация практической отдачи при оптимизации используемых ресурсов.
 
 Изучение сущности позволяет сформировать понятийный каркас, необходимый для детального анализа практических аспектов.`
-        : `${isFirst ? `# I BOB. ${topic.toUpperCase()}NING NAZARIY-METODOLOGIK ASOSLARI\n\n## 1.1. Mavzuning nazariy-konseptual asoslari va asosiy tushunchalari\n\n` : `## 1.1. Konseptual modellar va tizimli tasnif (Davomi)\n\n`}"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
+        : `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
 
 Fundamental nazariyaga binoan, mazkur jarayon alohida texnik yoki boshqaruv funksiyasi bo'lmay, balki barcha tarkibiy bo'g'inlarni yagona maqsad atrofida birlashtiruvchi integrallashgan mexanizmdir.
 
@@ -383,12 +569,13 @@ Nazariy tahlillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi funda
   }
 
   for (let i = 0; i < ch1_2_pages; i++) {
+    const subTitle = ch1Info.subsections[1] || "1.2. Ilmiy qarashlar va modellar";
     pages.push({
       pageNumber: curPage++,
       type: "chapter1",
-      title: isRu ? "1.2. Концептуальные модели" : "1.2-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `## 1.2. Концептуальные модели и классификация ключевых подходов
+        ? `## ${subTitle}
 
 В рамках исследования темы **"${topic}"** можно выделить три преобладающих научных направления:
 - **Классический нормативный подход:** акцентирует внимание на соблюдении регламентов, алгоритмов и стандартов;
@@ -396,7 +583,7 @@ Nazariy tahlillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi funda
 - **Инновационно-ориентированный подход:** базируется на непрерывном внедрении интеллектуальных цифровых решений.
 
 Интеграция этих подходов позволяет нивелировать недостатки отдельных изолированных методов и выстроить устойчивую модель исследования.`
-        : `## 1.2. Ilmiy qarashlar, metodologik prinsiplar va nazariy modellar
+        : `## ${subTitle}
 
 "${topic}" mavzusini tadqiq etishda jahon ilmiy hamjamiyatida bir necha yetakchi ilmiy maktablar va konseptual yo'nalishlar shakllangan:
 1. **Klassik deterministik maktab:** Jarayonlarni qat'iy standartlar va qoidalar asosida tashkil etishni ilgari suradi;
@@ -408,12 +595,13 @@ Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo
   }
 
   for (let i = 0; i < ch1_3_pages; i++) {
+    const subTitle = ch1Info.subsections[2] || "1.3. Xorijiy tajriba tahlili";
     pages.push({
       pageNumber: curPage++,
       type: "chapter1",
-      title: isRu ? "1.3. Международный опыт" : "1.3-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `## 1.3. Международный опыт и современные тенденции развития
+        ? `## ${subTitle}
 
 Анализ международного опыта показывает, что ведущие страны мира (США, Германия, Япония, Сингапур) уделяют приоритетное внимание институциональной поддержке исследуемой темы.
 
@@ -423,7 +611,7 @@ Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo
 - Государственно-частное партнерство при масштабировании лучших технологических решений.
 
 Адаптация данных решений с учетом специфики экономики Узбекистана позволяет существенно сократить время внедрения реформ.`
-        : `## 1.3. Xorijiy tajriba va zamonaviy xalqaro tendensiyalar tahlili
+        : `## ${subTitle}
 
 Rivojlangan xorijiy davlatlar tajribasi shuni ko'rsatadiki, "${topic}" masalasi innovatsion ekotizimning eng muhim ustuni sifatida davlat strategiyalari darajasida qo'llab-quvvatlanmoqda.
 
@@ -435,20 +623,21 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
   }
 
   // ==========================================
-  // CHAPTER 2 PAGES (AMALIY VA STATISTIKA)
+  // CHAPTER 2: AMALIY TADQIQOT VA STATISTIKA
   // ==========================================
   const ch2_1_pages = Math.max(1, Math.floor(ch2Pages / 3));
   const ch2_2_pages = Math.max(1, Math.floor(ch2Pages / 3));
-  const ch2_3_pages = ch2Pages - ch2_1_pages - ch2_2_pages;
+  const ch2_3_pages = Math.max(1, ch2Pages - ch2_1_pages - ch2_2_pages);
 
   for (let i = 0; i < ch2_1_pages; i++) {
     const isFirst = i === 0;
+    const subTitle = ch2Info.subsections[0] || "2.1. Hozirgi holat va statistik tahlil";
     pages.push({
       pageNumber: curPage++,
       type: "chapter2",
-      title: isRu ? "2.1. Анализ состояния" : "2.1-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `${isFirst ? `# ГЛАВА II. ПРАКТИЧЕСКИЙ АНАЛИЗ И СТАТИСТИЧЕСКАЯ ОЦЕНКА\n\n## 2.1. Анализ текущего состояния и эмпирические показатели в Узбекистане\n\n` : `## 2.1. Сравнительная динамика показателей (Продолжение)\n\n`}Практическое исследование сферы "${topic}" в Республике Узбекистан демонстрирует устойчивую положительную динамику за последние 3 года. Регуляторные инициативы и модернизация инфраструктуры позволили достичь качественных сдвигов.
+        ? `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Практическое исследование сферы "${topic}" в Республике Узбекистан демонстрирует устойчивую положительную динамику за последние 3 года. Регуляторные инициативы и модернизация инфраструктуры позволили достичь качественных сдвигов.
 
 Сравнительные показатели эффективности функционирования системы сведены в следующую аналитическую таблицу:
 
@@ -461,7 +650,7 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
 | 5 | Индекс удовлетворенности (CSI) | 64% | 81% | 96% |
 
 Данные таблицы подтверждают, что оптимизация процессов позволяет сократить временные затраты в 4-6 раз при существенном росте точности.`
-        : `${isFirst ? `# II BOB. AMALIY TADQIQOT VA SAMARADORLIK TAHLILI\n\n## 2.1. Hozirgi holatning tizimli monitoringi va statistik ko'rsatkichlar\n\n` : `## 2.1. Qiyosiy ko'rsatkichlar va dinamika jadvali (Davomi)\n\n`}Kurs ishining ushbu bo'limida O'zbekiston Respublikasida "${topic}" yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari empirik ma'lumotlar asosida atroflicha o'rganildi.
+        : `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}Kurs ishining ushbu bo'limida O'zbekiston Respublikasida "${topic}" yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari empirik ma'lumotlar asosida atroflicha o'rganildi.
 
 Tizimning joriy holati va optimallashtirishdan keyingi kutilayotgan ko'rsatkichlari qiyosiy parametrlar asosida quyidagi jadvalda umumlashtirildi:
 
@@ -478,12 +667,13 @@ Jadval tahlilidan ko'rinib turibdiki, yangi ilmiy modellarni joriy etish orqali 
   }
 
   for (let i = 0; i < ch2_2_pages; i++) {
+    const subTitle = ch2Info.subsections[1] || "2.2. Mavjud tizimli muammolar";
     pages.push({
       pageNumber: curPage++,
       type: "chapter2",
-      title: isRu ? "2.2. Проблемы и барьеры" : "2.2-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `## 2.2. Системные проблемы, барьеры и сдерживающие факторы
+        ? `## ${subTitle}
 
 Несмотря на позитивные тенденции, эмпирический анализ выявил ряд узких мест:
 1. **Инфраструктурная неравномерность:** техническое оснащение ряда организаций требует модернизации и обновления ПО;
@@ -491,7 +681,7 @@ Jadval tahlilidan ko'rinib turibdiki, yangi ilmiy modellarni joriy etish orqali 
 3. **Недостаточная интеграция данных:** изолированность отдельных баз данных приводит к дублированию и задержкам обмена информацией.
 
 Устранение указанных факторов является первоочередным условием дальнейшего роста эффективности.`
-        : `## 2.2. Sohada mavjud tizimli muammolar va to'siqlar tahlili
+        : `## ${subTitle}
 
 O'tkazilgan amaliy tahlillar asosida "${topic}" sohasini jadal rivojlantirish yo'lidagi asosiy muammolar aniqlandi:
 1. **Infratuzilma va texnik ta'minotdagi nomutanosiblik:** ayrim bo'g'inlarda zamonaviy dasturiy vositalarning yetarli emasligi;
@@ -503,12 +693,13 @@ Ushbu muammolarni tizimli yondashuv orqali bartaraf etish talab etiladi.`,
   }
 
   for (let i = 0; i < ch2_3_pages; i++) {
+    const subTitle = ch2Info.subsections[2] || "2.3. Samaradorlikni oshirish";
     pages.push({
       pageNumber: curPage++,
       type: "chapter2",
-      title: isRu ? "2.3. Пути повышения" : "2.3-bo'lim",
+      title: subTitle,
       content: isRu
-        ? `## 2.3. Пути повышения эффективности и оптимизация процессов
+        ? `## ${subTitle}
 
 Для нейтрализации выявленных проблем сформирован комплекс практических предложений:
 1. Создание единой защищенной экосистемы обмена данными на базе открытых стандартов;
@@ -516,7 +707,7 @@ Ushbu muammolarni tizimli yondashuv orqali bartaraf etish talab etiladi.`,
 3. Автоматизация контрольных процедур и внедрение предиктивной аналитики на основе ИИ.
 
 Реализация этих мер позволит повысить пропускную способность системы и снизить вероятность сбоев до статистически незначимого минимума.`
-        : `## 2.3. Samaradorlikni oshirish va innovatsion takliflar tizimi
+        : `## ${subTitle}
 
 Aniqlangan tizimli muammolarni bartaraf etish uchun quyidagi amaliy takliflar ishlab chiqildi:
 1. **Yagona raqamli platformani joriy etish:** Barcha jarayonlarni integratsiyalovchi markaziy tizim yaratish;
@@ -526,33 +717,70 @@ Aniqlangan tizimli muammolarni bartaraf etish uchun quyidagi amaliy takliflar is
   }
 
   // ==========================================
-  // CHAPTER 3 PAGES (STRATEGIK ISTIQBOLLAR)
+  // CHAPTER 3: STRATEGIK ISTIQBOLLAR VA TAKLIFLAR
   // ==========================================
-  if (hasCh3) {
-    const ch3_1_pages = Math.max(1, Math.floor(ch3Pages / 2));
-    const ch3_2_pages = ch3Pages - ch3_1_pages;
+  const ch3_1_pages = Math.max(1, Math.floor(ch3Pages / 3));
+  const ch3_2_pages = Math.max(1, Math.floor(ch3Pages / 3));
+  const ch3_3_pages = Math.max(1, ch3Pages - ch3_1_pages - ch3_2_pages);
 
-    for (let i = 0; i < ch3_1_pages; i++) {
-      pages.push({
-        pageNumber: curPage++,
-        type: "chapter3",
-        title: isRu ? "3.1. Дорожная карта" : "3.1-bo'lim",
-        content: isRu
-          ? `# ГЛАВА III. СТРАТЕГИЧЕСКИЕ ПЕРСПЕКТИВЫ И ДОРОЖНАЯ КАРТА\n\n## 3.1. Комплекс инновационных предложений и внедрение решений\n\nПоэтапное внедрение сформированных рекомендаций предлагается осуществлять на базе трехэтапной «Дорожной карты»:\n\n- **Этап 1 (Подготовительный, 1–6 мес.):** Аудит нормативной базы и развертывание пилотных площадок;\n- **Этап 2 (Основной, 6–18 мес.):** Масштабирование архитектуры и интеграция ключевых участников;\n- **Этап 3 (Финальный, 18–24 мес.):** Выход на проектную мощность и непрерывный интеллектуальный мониторинг.`
-          : `# III BOB. SOHANI RIVOJLANTIRISHNING STRATEGIK ISTIQBOLLARI\n\n## 3.1. Zamonaviy mexanizmlarni integratsiya qilishning «Yo'l xaritasi»\n\n"${topic}" yo'nalishini uzoq muddatli istiqbolda rivojlantirish milliy innovatsion salohiyatni yuksaltirishning ustuvor yo'nalishidir.\n\nTaklif etilayotgan «Yo'l xaritasi»:\n- **1-bosqich:** Texnik shartlarni ishlab chiqish va tajriba-sinov loyihasini yo'lga qo'yish;\n- **2-bosqich:** Yagona tizimni to'liq joriy etish va kadrlar malakasini oshirish;\n- **3-bosqich:** Barqaror monitoring va xalqaro standartlarga to'liq integratsiya.`,
-      });
-    }
+  for (let i = 0; i < ch3_1_pages; i++) {
+    const isFirst = i === 0;
+    const subTitle = ch3Info.subsections[0] || "3.1. Rivojlantirishning «Yo'l xaritasi»";
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter3",
+      title: subTitle,
+      content: isRu
+        ? `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Поэтапное внедрение сформированных рекомендаций по теме "${topic}" предлагается осуществлять на базе трехэтапной «Дорожной карты»:
 
-    for (let i = 0; i < ch3_2_pages; i++) {
-      pages.push({
-        pageNumber: curPage++,
-        type: "chapter3",
-        title: isRu ? "3.2. Эффективность" : "3.2-bo'lim",
-        content: isRu
-          ? `## 3.2. Оценка социально-экономической эффективности результатов\n\nРасчет ожидаемой эффективности демонстрирует, что совокупная экономия операционных затрат составит до 28–32% в год. Качественный эффект выражается в росте прозрачности, исключении бюрократических барьеров и обеспечении надежности данных.`
-          : `## 3.2. Kutilayotgan ijtimoiy-iqtisodiy samaradorlik va amaliy istiqbollar\n\nTaklif etilgan chora-tadbirlarning amaliyotga joriy etilishi natijasida operatsion xarajatlarni 30 foizga tejash, xatoliklarni keskin kamaytirish va xalqaro miqyosdagi raqobatbardoshlikni mustahkamlash ta'minlanadi.`,
-      });
-    }
+- **Этап 1 (Подготовительный, 1–6 мес.):** Аудит нормативной базы и развертывание пилотных площадок;
+- **Этап 2 (Основной, 6–18 мес.):** Масштабирование архитектуры и интеграция ключевых участников;
+- **Этап 3 (Финальный, 18–24 мес.):** Выход на проектную мощность и непрерывный интеллектуальный мониторинг.`
+        : `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" yo'nalishini uzoq muddatli istiqbolda rivojlantirish milliy innovatsion salohiyatni yuksaltirishning ustuvor yo'nalishidir.
+
+Taklif etilayotgan «Yo'l xaritasi»:
+- **1-bosqich (Tayyorgarlik):** Texnik shartlarni ishlab chiqish va tajriba-sinov loyihasini yo'lga qo'yish;
+- **2-bosqich (Asosiy ijro):** Yagona tizimni to'liq joriy etish va kadrlar malakasini oshirish;
+- **3-bosqich (Xulosaviy):** Barqaror monitoring va xalqaro standartlarga to'liq integratsiya.`,
+    });
+  }
+
+  for (let i = 0; i < ch3_2_pages; i++) {
+    const subTitle = ch3Info.subsections[1] || "3.2. Ijtimoiy-iqtisodiy samaradorlik";
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter3",
+      title: subTitle,
+      content: isRu
+        ? `## ${subTitle}
+
+Расчет ожидаемой эффективности демонстрирует, что совокупная экономия операционных затрат составит до 28–32% в год. Качественный эффект выражается в росте прозрачности, исключении бюрократических барьеров и обеспечении надежности данных.`
+        : `## ${subTitle}
+
+Taklif etilgan chora-tadbirlarning amaliyotga joriy etilishi natijasida operatsion xarajatlarni 30 foizga tejash, xatoliklarni keskin kamaytirish va xalqaro miqyosdagi raqobatbardoshlikni mustahkamlash ta'minlanadi.`,
+    });
+  }
+
+  for (let i = 0; i < ch3_3_pages; i++) {
+    const subTitle = ch3Info.subsections[2] || "3.3. Amaliyotga joriy etish tavsiyalari";
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter3",
+      title: subTitle,
+      content: isRu
+        ? `## ${subTitle}
+
+Практические рекомендации по масштабированию результатов исследования включают:
+1. Утверждение ведомственного плана стандартизации аналитических регламентов;
+2. Разработку типовых методических рекомендаций для филиалов и структурных подразделений;
+3. Формирование постоянно действующей рабочей группы по контролю качества внедрения.`
+        : `## ${subTitle}
+
+Tadqiqot natijalarini amaliyotga keng miqyosda tatbiq etish bo'yicha tavsiyalar quyidagilarni o'z ichiga oladi:
+1. Sohaviy me'yoriy-huquqiy hujjatlarga taklif etilgan o'zgartirishlarni kiritish;
+2. Mutaxassislar uchun amaliy qo'llanma va yo'riqnomalarni chop etish;
+3. Doimiy ilmiy-amaliy monitoring guruhi faoliyatini tashkil etish.`,
+    });
   }
 
   // ==========================================
@@ -560,14 +788,13 @@ Aniqlangan tizimli muammolarni bartaraf etish uchun quyidagi amaliy takliflar is
   // ==========================================
   for (let i = 0; i < pConcPages; i++) {
     const isFirst = i === 0;
-    const _isLast = i === pConcPages - 1;
     pages.push({
       pageNumber: curPage++,
       type: "conclusion",
       title: isRu ? "ЗАКЛЮЧЕНИЕ" : "XULOSA",
       content: isRu
         ? isFirst
-          ? `# ЗАКЛЮЧЕНИЕ
+          ? `# ЗАКЛЮЧЕНИЕ И ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ
 
 На основе проведенного в рамках курсовой работы исследования по теме **"${topic}"** сформулированы следующие выводы:
 1. **Теоретическая база:** Тема представляет собой ключевое звено современного научного знания в области "${subject}".
@@ -583,11 +810,11 @@ Aniqlangan tizimli muammolarni bartaraf etish uchun quyidagi amaliy takliflar is
         : isFirst
           ? `# XULOSA VA AMALIY TAVSIYALAR
 
-"${subject}" fani doirasida "${topic}" mavzusida olib borilgan mazkur keng qamrovli tadqiqot natijalari asosida quyidagi xulosalar shakllantirildi:
-1. **Nazariy umumlashma:** "${topic}" zamonaviy ilmiy-texnik taraqqiyotning ajralmas bo'g'ini bo'lib, uning tizimli tashkil etilishi barqarorlik garovidir.
-2. **Amaliy holat bahosi:** O'zbekistonda amalga oshirilayotgan islohotlar tufayli ijobiy o'sish dinamikasi mavjud.
-3. **Samaradorlik hisobi:** Tizimni optimallashtirish jarayonlar tezligini 5 barobarga oshirish va aniqlikni 98% ga yetkazish imkonini beradi.
-4. **Tavsiyalar:** Ishlab chiqilgan «Yo'l xaritasi» sohani bosqichma-bosqich modernizatsiya qilishning mustahkam asosidir.`
+"${subject}" fani doirasida "${topic}" mavzusida olib borilgan mazkur keng qamrovli tadqiqot natijalari asosida quyidagi ilmiy va amaliy xulosalar shakllantirildi:
+1. **Nazariy umumlashma:** "${topic}" zamonaviy ilmiy-texnik taraqqiyotning ajralmas bo'g'ini bo'lib, uning tizimli tashkil etilishi barcha tarmoqlarda barqarorlik garovidir.
+2. **Amaliy holat bahosi:** O'zbekistonda amalga oshirilayotgan islohotlar tufayli sohada ijobiy o'sish dinamikasi mavjud bo'lsada, qator tizimli to'siqlar saqlanib qolmoqda.
+3. **Samaradorlik hisobi:** Taklif etilgan yangi modelni joriy etish orqali jarayonlar tezligini 5 barobarga oshirish va aniqlikni 98% ga yetkazish mumkin.
+4. **Tavsiyalar:** Ishlab chiqilgan «Yo'l xaritasi» sohani bosqichma-bosqich modernizatsiya qilishning mustahkam amaliy poydevoridir.`
           : `# AMALIY TAVSIYALAR (Davomi)
 
 Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim etiladi:
@@ -598,7 +825,7 @@ Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim 
   }
 
   // ==========================================
-  // ADABIYOTLAR / СПИСОК ЛИТЕРАТУРЫ (20 ta manba)
+  // ADABIYOTLAR / СПИСОК ЛИТЕРАТУРЫ (20 ta GOST manba)
   // ==========================================
   for (let i = 0; i < pLitPages; i++) {
     const isFirst = i === 0;
@@ -608,7 +835,7 @@ Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim 
       title: isRu ? "СПИСОК ЛИТЕРАТУРЫ" : "ADABIYOTLAR RO'YXATI",
       content: isRu
         ? isFirst
-          ? `# СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ
+          ? `# СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ (ГОСТ)
 
 1. Конституция Республики Узбекистан. — Ташкент: "Узбекистан", 2023. — 80 с.
 2. Указы и Постановления Президента Республики Узбекистан по реформированию и цифровизации сферы.
@@ -633,7 +860,7 @@ Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim 
 19. ACM Digital Library — Association for Computing Machinery — https://dl.acm.org
 20. SpringerLink международная коллекция научных статей — https://link.springer.com`
         : isFirst
-          ? `# FOYDALANILGAN ADABIYOTLAR RO'YXATI
+          ? `# FOYDALANILGAN ADABIYOTLAR RO'YXATI (GOST)
 
 1. O'zbekiston Respublikasining Konstitutsiyasi. — Toshkent: "O'zbekiston", 2023. — 80 b.
 2. O'zbekiston Respublikasi Prezidentining tegishli sohani raqamlashtirish va rivojlantirish to'g'risidagi Farmon va Qarorlari.
@@ -680,6 +907,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
+      action,
       subject,
       topic,
       faculty,
@@ -689,12 +917,78 @@ export async function POST(req: Request) {
       year,
       pageCount,
       language = "uz",
+      outline: clientOutline,
     } = body;
 
     if (!topic || !subject) {
       return NextResponse.json({ error: "Fan nomi va Mavzu kiritilishi shart." }, { status: 400 });
     }
 
+    const lang = (language === "ru" || language === "uz-cyrl" ? language : "uz") as
+      "uz" | "uz-cyrl" | "ru";
+
+    // ----------------------------------------------------
+    // ACTION: OUTLINE ONLY (Step 2 Preview & Editing)
+    // ----------------------------------------------------
+    if (action === "outline") {
+      const baseOutline = buildDefaultOutline(topic.trim(), subject.trim(), faculty?.trim(), lang);
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("AQ")) {
+        try {
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const prompt = `
+Quyidagi mavzu bo'yicha O'zbekiston OTM (MOVSO) standartlariga mos kurs ishi rejasini JSON formatida tuzib ber:
+Fan: "${subject}"
+Mavzu: "${topic}"
+Til: "${lang}"
+
+Javobing FAQAT va FAQAT yaroqli JSON bo'lsin (hech qanday markdown \`\`\`json tegisiz):
+{
+  "chapters": [
+    {
+      "number": 1,
+      "title": "I BOB. ...",
+      "subsections": ["1.1. ...", "1.2. ...", "1.3. ..."]
+    },
+    {
+      "number": 2,
+      "title": "II BOB. ...",
+      "subsections": ["2.1. ...", "2.2. ...", "2.3. ..."]
+    },
+    {
+      "number": 3,
+      "title": "III BOB. ...",
+      "subsections": ["3.1. ...", "3.2. ...", "3.3. ..."]
+    }
+  ]
+}
+`;
+          const aiRes = await model.generateContent(prompt);
+          const rawText = aiRes.response.text().trim();
+          const jsonText = rawText
+            .replace(/```json/gi, "")
+            .replace(/```/g, "")
+            .trim();
+          const parsed = JSON.parse(jsonText);
+          if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length >= 3) {
+            baseOutline.chapters = parsed.chapters.slice(0, 3);
+          }
+        } catch {
+          // Fallback to baseOutline
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        outline: baseOutline,
+      });
+    }
+
+    // ----------------------------------------------------
+    // ACTION: FULL COURSEWORK GENERATION (Step 3 & 4)
+    // ----------------------------------------------------
     const data: CourseworkData = {
       subject: subject.trim(),
       topic: topic.trim(),
@@ -704,62 +998,20 @@ export async function POST(req: Request) {
       teacherName: teacherName?.trim() || "",
       year: year || new Date().getFullYear().toString(),
       pageCount: pageCount || "19",
-      language,
+      language: lang,
+      outline:
+        clientOutline || buildDefaultOutline(topic.trim(), subject.trim(), faculty?.trim(), lang),
     };
 
     const academicPages = generateAcademicPages(data);
     const fullAcademicMarkdown = academicPages.map((p) => p.content).join("\n\n---\n\n");
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("AQ")) {
-      const prompt = `
-Siz O'zbekiston Oliy Ta'lim, Fan va Innovatsiyalar Vazirligi talablariga to'la javob beradigan professional akademik professiz.
-Quyidagi ma'lumotlar asosida mukammal kurs ishi tayyorlab bering:
-- Fan: ${data.subject}
-- Mavzu: ${data.topic}
-- Fakultet: ${data.faculty || "Fakultet"}
-- OTM: ${data.university || "Universitet"}
-- Talaba: ${data.studentName}
-- Rahbar: ${data.teacherName}
-- Kutilayotgan hajm: ${data.pageCount} sahifa
-- Til: ${data.language}
-
-Talablar: Titul, Mundarija, Kirish (dolzarbligi, obyekti, predmeti, maqsadi, vazifalari), I Bob, II Bob (jadval bilan), III Bob, Xulosa va 20 ta foydalanilgan adabiyotlar.
-`;
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const candidateModels = [
-        "gemini-1.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-pro",
-        "gemini-pro",
-      ];
-
-      for (const modelName of candidateModels) {
-        try {
-          const model = genAI.getGenerativeModel({ model: modelName });
-          const result = await model.generateContent(prompt);
-          const responseText = result.response.text();
-          if (responseText && responseText.trim().length > 600) {
-            return NextResponse.json({
-              success: true,
-              result: responseText,
-              pages: academicPages,
-              totalPages: academicPages.length,
-            });
-          }
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    // Deterministic, perfectly paginated standard academic result
     return NextResponse.json({
       success: true,
       result: fullAcademicMarkdown,
       pages: academicPages,
       totalPages: academicPages.length,
+      outline: data.outline,
     });
   } catch (error: unknown) {
     console.error("Coursework Generation Exception:", error);

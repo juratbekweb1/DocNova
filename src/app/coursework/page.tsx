@@ -12,16 +12,21 @@ import {
   Check,
   Lightbulb,
   Presentation,
+  ArrowRight,
+  ArrowLeft,
+  Edit3,
+  RotateCcw,
+  BookOpen,
+  CheckCircle2,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
-
-interface CourseworkPage {
-  pageNumber: number;
-  type: string;
-  title: string;
-  content: string;
-}
+import type { CourseworkOutline, CourseworkPage } from "@/app/api/generate-coursework/route";
 
 const FACULTIES_AND_SUBJECTS: {
   category: string;
@@ -108,6 +113,20 @@ const FACULTIES_AND_SUBJECTS: {
       "Badiiy matnlarni tarjima qilishda soha atamalari va frazeologizmlarning berilishi xususiyatlari",
       "Zamonaviy ommaviy axborot vositalari nutqida neologizmlar va o'zlashma so'zlarning o'rni",
       "Kompyuter lingvistikasi va matnlarni avtomatik tahlil qilish tizimlarining lingvistik asoslari",
+    ],
+  },
+  {
+    category: "Muhandislik va Texnika fanlari",
+    subjects: [
+      "Avtomatlashtirilgan loyihalash tizimlari (CAD/CAM)",
+      "Muqobil va qayta tiklanuvchi energiya manbalari",
+      "Elektronika va mikrotizimlar",
+      "Materialshunoslik va konstruksion materiallar",
+    ],
+    topics: [
+      "Qayta tiklanuvchi energiya manbalarini sanoat korxonalariga integratsiya qilish samaradorligi",
+      "Avtomatlashtirilgan ishlab chiqarish jarayonlarida datchiklar va IoT tizimlaridan foydalanish",
+      "Zamonaviy kompozit materiallarning mustahkamlik ko'rsatkichlarini matematik modellashtirish",
     ],
   },
 ];
@@ -228,16 +247,21 @@ const markdownComponents = {
 
 const GENERATION_STEPS = [
   "Mavzuning dolzarbligi va ilmiy apparati tahlil qilinmoqda...",
-  "Titul varag'i va Mundarija (reja) shakllantirilmoqda...",
-  "Kirish va I Bob (Nazariy-metodologik asoslar) yozilmoqda...",
-  "II Bob (Amaliy tahlil, empirik statistika va jadvallar) hisoblanmoqda...",
-  "III Bob, Xulosa va GOST adabiyotlar ro'yxati tekshirilmoqda...",
-  "A4 formatdagi sahifalar yig'ilmoqda...",
+  "Titul varag'i va tasdiqlangan reja (mundarija) sahifalanmoqda...",
+  "Kirish qismi: dolzarblik, ob'ekt, predmet va metodologiya yozilmoqda...",
+  "I Bob: Nazariy-uslubiy asoslar va fundamental tushunchalar shakllanmoqda...",
+  "II Bob: Amaliy tadqiqot, empirik tahlil va qiyosiy jadvallar hisoblanmoqda...",
+  "III Bob: Mavjud muammolar va ilmiy-amaliy takliflar tizimi ishlab chiqilmoqda...",
+  "Xulosa, tavsiyalar va GOST bo'yicha 15-20 ta adabiyotlar ro'yxati tekshirilmoqda...",
+  "A4 formatidagi sahifalar (Times New Roman, 14pt, 1.5 interval) yig'ilmoqda...",
 ];
 
 export default function CourseworkGenerator() {
   const { toast } = useToast();
   const documentRef = useRef<HTMLDivElement>(null);
+
+  // Multi-step Wizard State: 1 | 2 | 3 | 4
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   const [selectedCategoryIdx, setSelectedCategoryIdx] = useState(0);
   const [formData, setFormData] = useState({
@@ -253,14 +277,22 @@ export default function CourseworkGenerator() {
     language: "uz" as "uz" | "uz-cyrl" | "ru",
   });
 
-  const [loading, setLoading] = useState(false);
+  // Step 2: Outline state
+  const [outline, setOutline] = useState<CourseworkOutline | null>(null);
+  const [isOutlineLoading, setIsOutlineLoading] = useState(false);
+
+  // Step 3: Generation progress state
+  const [_loading, setLoading] = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
 
+  // Step 4: Result state
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [pages, setPages] = useState<CourseworkPage[]>([]);
+  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<"pages" | "continuous">("pages");
   const [copied, setCopied] = useState(false);
 
   const activeCategory = FACULTIES_AND_SUBJECTS[selectedCategoryIdx] || FACULTIES_AND_SUBJECTS[0];
@@ -277,7 +309,10 @@ export default function CourseworkGenerator() {
     });
   };
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  // ------------------------------------------------------------------
+  // STEP 1 -> STEP 2: Generate Outline Preview
+  // ------------------------------------------------------------------
+  const handleProceedToOutline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.topic.trim() || !formData.subject.trim()) {
       toast({
@@ -288,26 +323,120 @@ export default function CourseworkGenerator() {
       return;
     }
 
+    setIsOutlineLoading(true);
+
+    try {
+      const res = await fetch("/api/academic/coursework/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "outline",
+          ...formData,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Rejani shakllantirishda xatolik yuz berdi");
+      }
+
+      setOutline(data.outline);
+      setCurrentStep(2);
+      toast({
+        title: "Reja muvaffaqiyatli tuzildi! 📋",
+        description: "Boblar va paragraflarni ko'rib chiqing va zarur bo'lsa tahrirlang.",
+      });
+    } catch (err: unknown) {
+      const e = err as Error;
+      toast({
+        title: "Reja tuzishda xatolik",
+        description: e.message || "Iltimos, qayta urinib ko'ring.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsOutlineLoading(false);
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // STEP 2: Outline Inline Editing Handlers
+  // ------------------------------------------------------------------
+  const handleChapterTitleChange = (chapterIdx: number, newTitle: string) => {
+    if (!outline) return;
+    const updated = { ...outline };
+    if (updated.chapters[chapterIdx]) {
+      updated.chapters[chapterIdx].title = newTitle;
+      setOutline(updated);
+    }
+  };
+
+  const handleSubsectionChange = (chapterIdx: number, subIdx: number, newText: string) => {
+    if (!outline) return;
+    const updated = { ...outline };
+    if (
+      updated.chapters[chapterIdx] &&
+      updated.chapters[chapterIdx].subsections[subIdx] !== undefined
+    ) {
+      updated.chapters[chapterIdx].subsections[subIdx] = newText;
+      setOutline(updated);
+    }
+  };
+
+  const handleAddSubsection = (chapterIdx: number) => {
+    if (!outline) return;
+    const updated = { ...outline };
+    const ch = updated.chapters[chapterIdx];
+    if (ch) {
+      const nextNum = ch.subsections.length + 1;
+      ch.subsections.push(`${ch.number}.${nextNum}. Yangi qo'shimcha paragraf tahlili`);
+      setOutline(updated);
+    }
+  };
+
+  const handleRemoveSubsection = (chapterIdx: number, subIdx: number) => {
+    if (!outline) return;
+    const updated = { ...outline };
+    const ch = updated.chapters[chapterIdx];
+    if (ch && ch.subsections.length > 2) {
+      ch.subsections.splice(subIdx, 1);
+      setOutline(updated);
+    } else {
+      toast({
+        title: "Kamida 2 ta paragraf bo'lishi shart",
+        description: "MOVSO standartiga binoan har bir bobda kamida 2 ta band bo'lishi kerak.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // STEP 2 -> STEP 3: Full Coursework Generation
+  // ------------------------------------------------------------------
+  const handleStartFullGeneration = async () => {
+    setCurrentStep(3);
     setLoading(true);
     setResult(null);
     setPages([]);
     setCurrentStepIdx(0);
     setProgressPercent(10);
 
-    // Simulated progress steps during fetch
     const stepInterval = setInterval(() => {
       setCurrentStepIdx((prev) => {
         const next = prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev;
-        setProgressPercent(Math.min(92, Math.round(((next + 1) / GENERATION_STEPS.length) * 90)));
+        setProgressPercent(Math.min(94, Math.round(((next + 1) / GENERATION_STEPS.length) * 94)));
         return next;
       });
-    }, 1400);
+    }, 1300);
 
     try {
-      const res = await fetch("/api/generate-coursework", {
+      const res = await fetch("/api/academic/coursework/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          action: "generate",
+          ...formData,
+          outline,
+        }),
       });
 
       const data = await res.json();
@@ -322,24 +451,32 @@ export default function CourseworkGenerator() {
       if (data.pages && Array.isArray(data.pages) && data.pages.length > 0) {
         setPages(data.pages);
       }
+      setActivePageIndex(0);
 
-      toast({
-        title: "Kurs ishi muvaffaqiyatli tayyorlandi! 🎓",
-        description: `${data.pages?.length || formData.pageCount} sahifalik to'liq akademik hujjat shakllantirildi.`,
-      });
+      setTimeout(() => {
+        setLoading(false);
+        setCurrentStep(4);
+        toast({
+          title: "Kurs ishi muvaffaqiyatli tayyorlandi! 🎓",
+          description: `${data.pages?.length || formData.pageCount} sahifalik to'liq akademik hujjat shakllantirildi.`,
+        });
+      }, 500);
     } catch (err: unknown) {
       clearInterval(stepInterval);
+      setLoading(false);
+      setCurrentStep(2); // return to outline on error
       const e = err as Error;
       toast({
         title: "Generatsiyada xatolik",
         description: e.message || "Iltimos, qayta urinib ko'ring.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
+  // ------------------------------------------------------------------
+  // Word (.doc / .docx compatible) Export
+  // ------------------------------------------------------------------
   function formatMarkdownToWordHTML(md: string): string {
     const lines = md.split("\n");
     const resultLines: string[] = [];
@@ -400,7 +537,6 @@ export default function CourseworkGenerator() {
     return `<p>${html}</p>`;
   }
 
-  // Word (.doc / .docx compatible) generator with exact Word margins & typography
   const handleDownloadWord = () => {
     if (!result && pages.length === 0) return;
 
@@ -523,74 +659,45 @@ export default function CourseworkGenerator() {
     toast({
       title: "Word fayl yuklab olindi! 📄",
       description:
-        "Hujjat GOST talablariga mos Times New Roman 14pt va standart hoshiyalar bilan saqlandi.",
+        "Hujjat MOVSO talablariga mos Times New Roman 14pt, 1.5 interval va standart hoshiyalar bilan saqlandi.",
     });
   };
 
+  // ------------------------------------------------------------------
+  // PDF Export
+  // ------------------------------------------------------------------
   const handleDownloadPDF = async () => {
     if (!documentRef.current) return;
     setDownloading(true);
     setDownloadProgress("PDF tayyorlanmoqda...");
 
     try {
-      const { jsPDF } = await import("jspdf");
-      const html2canvasModule = await import("html2canvas");
-      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = html2pdfModule.default || html2pdfModule;
 
-      const pageElements = documentRef.current.querySelectorAll<HTMLElement>(".coursework-page");
-      const cleanStudentName =
-        formData.studentName?.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "DocNova";
+      const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Kurs_Ishi";
+      const element = documentRef.current;
 
-      if (pageElements && pageElements.length > 0) {
-        const total = pageElements.length;
-        const pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: "a4",
-          compress: true,
-        });
+      const opt = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `Kurs_Ishi_${cleanTopic}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+        pagebreak: { mode: ["css", "legacy"] },
+      };
 
-        for (let i = 0; i < total; i++) {
-          setDownloadProgress(`Sahifa (${i + 1}/${total}) saqlanmoqda...`);
-          const el = pageElements[i];
-
-          const canvas = await html2canvas(el, {
-            scale: 1.5,
-            useCORS: true,
-            logging: false,
-            backgroundColor: "#ffffff",
-          });
-
-          const imgData = canvas.toDataURL("image/jpeg", 0.92);
-          if (i > 0) {
-            pdf.addPage("a4", "portrait");
-          }
-          pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-        }
-
-        pdf.save(`Kurs_ishi_${cleanStudentName}_${total}sahifa.pdf`);
-      } else {
-        const canvas = await html2canvas(documentRef.current, {
-          scale: 1.5,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-        });
-        const imgData = canvas.toDataURL("image/jpeg", 0.92);
-        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-        pdf.save(`Kurs_ishi_${cleanStudentName}.pdf`);
-      }
+      await html2pdf().from(element).set(opt).save();
 
       toast({
-        title: "PDF yuklandi!",
-        description: "Hujjat kompyuteringizga saqlandi.",
+        title: "PDF yuklab olindi! 📄",
+        description: "Kurs ishi A4 formatida muvaffaqiyatli saqlandi.",
       });
     } catch (err: unknown) {
       console.error(err);
       toast({
         title: "PDF yaratishda xatolik",
-        description: "Iltimos, 'Chop etish' tugmasi orqali PDF sifatida saqlang.",
+        description: "Iltimos, 'Chop etish' tugmasi orqali 'PDF sifatida saqlash'ni tanlang.",
         variant: "destructive",
       });
     } finally {
@@ -614,31 +721,36 @@ export default function CourseworkGenerator() {
     return result.replace(/<br\s*\/?>/gi, "\n\n").replace(/<hr\s*\/?>/gi, "\n\n---\n\n");
   }, [result]);
 
+  const activePage = pages[activePageIndex] || pages[0];
+
   return (
     <div className="bg-background text-foreground min-h-screen pb-20">
       {/* Top Student Navigation */}
-      <StudentSubNav activeTab="coursework" />
+      <div className="print:hidden">
+        <StudentSubNav activeTab="coursework" />
+      </div>
 
       {/* Top Banner */}
-      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8">
+      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-400">
               <GraduationCap className="h-3.5 w-3.5" />
-              <span>O&apos;zbekiston OTM Standartlari</span>
+              <span>O&apos;zbekiston OTM Standartlari (MOVSO)</span>
             </div>
             <h1 className="text-foreground text-2xl font-extrabold sm:text-3xl">
               Kurs ishi yordamchisi va Generatori
             </h1>
             <p className="text-foreground-secondary mt-1 max-w-2xl text-xs sm:text-sm">
-              Titul varag&apos;i, reja (mundarija), kirish, 3 ta bob, xulosa va 20 ta adabiyotlar
-              ro&apos;yxati bilan 15–100 sahifalik tayyor kurs ishlari.
+              Titul varag&apos;i, tasdiqlangan reja (mundarija), kirish, 3 ta bob, tahliliy
+              jadvallar, xulosa va 20 ta GOST adabiyotlar ro&apos;yxati bilan tayyor akademik kurs
+              ishi.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-foreground-muted text-xs font-medium">Hajm:</span>
-            {["15", "19", "25", "30", "50", "100"].map((cnt) => (
+            {["15", "19", "25", "30"].map((cnt) => (
               <button
                 key={cnt}
                 type="button"
@@ -669,390 +781,728 @@ export default function CourseworkGenerator() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-          {/* Left: Input Wizard Form */}
-          <div className="border-border bg-surface sticky top-24 rounded-2xl border p-6 shadow-sm lg:col-span-5">
-            <div className="border-border mb-4 flex items-center justify-between border-b pb-3">
-              <h2 className="text-foreground flex items-center gap-2 text-base font-bold">
-                <Sparkles className="text-primary h-4 w-4" />
-                <span>Parametrlarni kiritish</span>
-              </h2>
-              <span className="text-primary bg-primary/10 rounded px-2 py-0.5 text-xs font-semibold">
-                {formData.pageCount || "19"} sahifa
-              </span>
-            </div>
-
-            <form onSubmit={handleGenerate} className="space-y-4">
-              {/* Soha / Kafedra */}
-              <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Yo&apos;nalish va Kafedra
-                </label>
-                <select
-                  value={selectedCategoryIdx}
-                  onChange={(e) => {
-                    const idx = parseInt(e.target.value, 10);
-                    setSelectedCategoryIdx(idx);
-                    const cat = FACULTIES_AND_SUBJECTS[idx];
-                    if (cat) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        subject: cat.subjects[0] || prev.subject,
-                        topic: cat.topics[0] || prev.topic,
-                        faculty: `${cat.category.split("(")[0].trim()} fakulteti`,
-                      }));
-                    }
+      {/* Wizard Step Navigation Bar */}
+      <div className="border-border bg-surface/50 border-b px-4 py-3 print:hidden">
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          {[
+            { id: 1, label: "Parametrlar", icon: FileText },
+            { id: 2, label: "Reja va Mundarija", icon: Edit3 },
+            { id: 3, label: "AI Generatsiya", icon: Sparkles },
+            { id: 4, label: "Tayyor Kurs Ishi", icon: CheckCircle2 },
+          ].map((s, idx) => {
+            const isCompleted = currentStep > s.id;
+            const isCurrent = currentStep === s.id;
+            const Icon = s.icon;
+            return (
+              <React.Fragment key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (s.id < currentStep) setCurrentStep(s.id as 1 | 2 | 3 | 4);
                   }}
-                  className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none sm:text-sm"
+                  disabled={s.id > currentStep}
+                  className={`flex items-center gap-2 text-xs font-bold transition-all ${
+                    isCurrent
+                      ? "text-primary"
+                      : isCompleted
+                        ? "text-emerald-400 hover:opacity-80"
+                        : "text-foreground-muted opacity-50"
+                  }`}
                 >
-                  {FACULTIES_AND_SUBJECTS.map((item, idx) => (
-                    <option key={idx} value={idx}>
-                      {item.category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Fan nomi */}
-              <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Fan nomi *
-                </label>
-                <input
-                  type="text"
-                  name="subject"
-                  required
-                  value={formData.subject}
-                  onChange={handleChange}
-                  placeholder="Masalan: Axborot texnologiyalari..."
-                  className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2 text-xs focus:outline-none sm:text-sm"
-                />
-              </div>
-
-              {/* Mavzu + Idea generator */}
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="text-foreground-secondary text-xs font-semibold">
-                    Kurs ishi mavzusi *
-                  </label>
-                </div>
-                <textarea
-                  rows={2}
-                  name="topic"
-                  required
-                  value={formData.topic}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setFormData({ ...formData, topic: e.target.value })
-                  }
-                  placeholder="Masalan: Raqamli iqtisodiyot sharoitida bank xizmatlarini modernizatsiya qilish..."
-                  className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2 text-xs leading-snug focus:outline-none sm:text-sm"
-                />
-
-                {/* Topic Suggestions Chips */}
-                <div className="mt-2 space-y-1.5">
-                  <span className="text-foreground-muted flex items-center gap-1 text-[11px] font-semibold">
-                    <Lightbulb className="h-3 w-3 text-amber-400" />
-                    <span>Kafedra bo&apos;yicha tavsiya etilgan mavzular:</span>
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                      isCurrent
+                        ? "bg-primary text-primary-foreground ring-primary/30 shadow-md ring-2"
+                        : isCompleted
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-surface-elevated text-foreground-muted"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Icon className="h-3.5 w-3.5" />
+                    )}
+                  </div>
+                  <span className="hidden sm:inline">
+                    {s.id}-bosqich: {s.label}
                   </span>
-                  <div className="space-y-1">
-                    {activeCategory.topics.slice(0, 3).map((item, i) => (
+                </button>
+                {idx < 3 && <div className="bg-border h-0.5 w-6 sm:w-16" />}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* ========================================================= */}
+        {/* STEP 1: PARAMETRLARNI KIRITISH */}
+        {/* ========================================================= */}
+        {currentStep === 1 && (
+          <div className="mx-auto max-w-3xl">
+            <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm">
+              <div className="border-border mb-6 flex items-center justify-between border-b pb-4">
+                <div>
+                  <h2 className="text-foreground flex items-center gap-2 text-lg font-bold">
+                    <Sparkles className="text-primary h-5 w-5" />
+                    <span>1-bosqich: Kurs ishi parametrlarini kiritish</span>
+                  </h2>
+                  <p className="text-foreground-secondary mt-1 text-xs">
+                    Mavzu, fan va hajm tanlang. Keyingi bosqichda tizim kurs ishi rejasini
+                    shakllantiradi.
+                  </p>
+                </div>
+                <span className="text-primary bg-primary/10 rounded-full px-3 py-1 text-xs font-bold">
+                  {formData.pageCount || "19"} sahifa
+                </span>
+              </div>
+
+              <form onSubmit={handleProceedToOutline} className="space-y-5">
+                {/* Yo'nalish va Kafedra */}
+                <div>
+                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                    Yo&apos;nalish va Kafedra
+                  </label>
+                  <select
+                    value={selectedCategoryIdx}
+                    onChange={(e) => {
+                      const idx = parseInt(e.target.value, 10);
+                      setSelectedCategoryIdx(idx);
+                      const cat = FACULTIES_AND_SUBJECTS[idx];
+                      if (cat) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          subject: cat.subjects[0] || prev.subject,
+                          topic: cat.topics[0] || prev.topic,
+                          faculty: `${cat.category.split("(")[0].trim()} fakulteti`,
+                        }));
+                      }
+                    }}
+                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
+                  >
+                    {FACULTIES_AND_SUBJECTS.map((item, idx) => (
+                      <option key={idx} value={idx}>
+                        {item.category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Fan nomi */}
+                <div>
+                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                    Fan nomi *
+                  </label>
+                  <input
+                    type="text"
+                    name="subject"
+                    required
+                    value={formData.subject}
+                    onChange={handleChange}
+                    placeholder="Masalan: Axborot texnologiyalari va dasturlash..."
+                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
+                  />
+                </div>
+
+                {/* Mavzu */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-foreground-secondary text-xs font-semibold">
+                      Kurs ishi mavzusi *
+                    </label>
+                  </div>
+                  <textarea
+                    rows={3}
+                    name="topic"
+                    required
+                    value={formData.topic}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setFormData({ ...formData, topic: e.target.value })
+                    }
+                    placeholder="Masalan: Sun'iy intellekt va mashinaviy o'rganish modellarining tibbiy diagnostikadagi amaliy samaradorligi..."
+                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs leading-snug focus:outline-none sm:text-sm"
+                  />
+
+                  {/* Smart topic suggestions */}
+                  <div className="mt-2.5 space-y-1.5">
+                    <span className="text-foreground-muted flex items-center gap-1 text-[11px] font-semibold">
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                      <span>Kafedra bo&apos;yicha tavsiya etilgan dolzarb mavzular:</span>
+                    </span>
+                    <div className="space-y-1">
+                      {activeCategory.topics.slice(0, 3).map((item, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleSelectTopicSuggestion(item)}
+                          className="border-border/70 bg-surface-elevated/70 hover:bg-primary/10 hover:border-primary/40 text-foreground-secondary hover:text-foreground block w-full cursor-pointer truncate rounded-lg border px-3 py-1.5 text-left text-xs transition-all"
+                          title={item}
+                        >
+                          → {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hajm tanlash */}
+                <div>
+                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                    Kutilayotgan hajm (sahifalar soni)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {[
+                      { cnt: "15", label: "15 bet", desc: "Qisqa kurs ishi" },
+                      { cnt: "19", label: "19 bet", desc: "Standart hajm" },
+                      { cnt: "25", label: "25 bet", desc: "Kengaytirilgan" },
+                      { cnt: "30", label: "30 bet", desc: "To'liq akademik" },
+                    ].map((item) => (
                       <button
-                        key={i}
+                        key={item.cnt}
                         type="button"
-                        onClick={() => handleSelectTopicSuggestion(item)}
-                        className="border-border/70 bg-surface-elevated/70 hover:bg-primary/10 hover:border-primary/40 text-foreground-secondary hover:text-foreground block w-full cursor-pointer truncate rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition-all"
-                        title={item}
+                        onClick={() => setFormData({ ...formData, pageCount: item.cnt })}
+                        className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all ${
+                          formData.pageCount === item.cnt
+                            ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
+                            : "bg-surface-elevated border-border text-foreground hover:border-primary/50"
+                        }`}
                       >
-                        → {item}
+                        <span className="text-xs font-bold">{item.label}</span>
+                        <span className="text-[10px] opacity-75">{item.desc}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Til tanlash */}
-              <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Yozish tili
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "uz" as const, label: "O'zbek (Lotin)", flag: "🇺🇿" },
-                    { id: "uz-cyrl" as const, label: "Ўзбек (Кирилл)", flag: "🇺🇿" },
-                    { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
-                  ].map((lang) => (
-                    <button
-                      key={lang.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, language: lang.id })}
-                      className={`flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-1 py-2 text-xs font-semibold transition-all ${
-                        formData.language === lang.id
-                          ? "bg-primary border-primary text-white shadow-sm"
-                          : "bg-background border-border text-foreground hover:bg-surface-elevated"
-                      }`}
-                    >
-                      <span>{lang.flag}</span>
-                      <span className="truncate">{lang.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* OTM va Talaba / Rahbar */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* Til tanlash */}
                 <div>
-                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                    OTM nomi
+                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                    Yozish tili
                   </label>
-                  <input
-                    type="text"
-                    name="university"
-                    value={formData.university}
-                    onChange={handleChange}
-                    placeholder="O'zbekiston Milliy Universiteti"
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                    Yil
-                  </label>
-                  <input
-                    type="text"
-                    name="year"
-                    value={formData.year}
-                    onChange={handleChange}
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                    Talaba F.I.Sh.
-                  </label>
-                  <input
-                    type="text"
-                    name="studentName"
-                    value={formData.studentName}
-                    onChange={handleChange}
-                    placeholder="Aliyev Vali"
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                    Ilmiy rahbar
-                  </label>
-                  <input
-                    type="text"
-                    name="teacherName"
-                    value={formData.teacherName}
-                    onChange={handleChange}
-                    placeholder="dots. Karimov A."
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20 mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-xs font-bold shadow-lg transition-all hover:scale-[1.01] disabled:opacity-50 sm:text-sm"
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="text-primary-foreground mr-2 h-4 w-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Generatsiya qilinmoqda...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    <span>Kurs ishini yaratish ({formData.pageCount || "19"} bet) 🚀</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Right: Preview & A4 Rendering */}
-          <div className="flex flex-col lg:col-span-7">
-            {/* Loading Wizard Stepper */}
-            {loading && (
-              <div className="border-primary/30 bg-surface animate-in fade-in mb-6 rounded-2xl border p-6 shadow-xl">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-primary flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
-                    <Sparkles className="h-4 w-4 animate-spin" />
-                    <span>Kurs ishi generatsiyasi jarayoni</span>
-                  </span>
-                  <span className="text-primary font-mono text-xs font-bold">
-                    {progressPercent}%
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div className="bg-surface-elevated mb-5 h-2 w-full overflow-hidden rounded-full">
-                  <div
-                    className="bg-primary h-full transition-all duration-500 ease-out"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-
-                {/* Step indicators */}
-                <div className="space-y-2.5">
-                  {GENERATION_STEPS.map((step, idx) => {
-                    const isDone = idx < currentStepIdx;
-                    const isCurrent = idx === currentStepIdx;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex items-center gap-3 text-xs transition-colors ${
-                          isCurrent
-                            ? "text-primary font-bold"
-                            : isDone
-                              ? "font-medium text-emerald-400"
-                              : "text-foreground-muted"
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "uz" as const, label: "O'zbek (Lotin)", flag: "🇺🇿" },
+                      { id: "uz-cyrl" as const, label: "Ўзбек (Кирилл)", flag: "🇺🇿" },
+                      { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
+                    ].map((lang) => (
+                      <button
+                        key={lang.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, language: lang.id })}
+                        className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition-all ${
+                          formData.language === lang.id
+                            ? "bg-primary border-primary text-white shadow-sm"
+                            : "bg-surface-elevated border-border text-foreground hover:bg-border/40"
                         }`}
                       >
-                        <div
-                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                            isCurrent
-                              ? "bg-primary text-primary-foreground animate-pulse"
-                              : isDone
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-surface-elevated text-foreground-muted"
-                          }`}
-                        >
-                          {isDone ? "✓" : idx + 1}
-                        </div>
-                        <span>{step}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Actions Bar (when result is ready) */}
-            {(pages.length > 0 || cleanResult) && (
-              <div className="border-border bg-surface mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5 shadow-sm print:hidden">
-                <div className="text-foreground flex items-center gap-2 text-xs font-semibold sm:text-sm">
-                  <span>📄 Jami hajm:</span>
-                  <span className="text-primary font-bold">
-                    {pages.length > 0
-                      ? `${pages.length} sahifa`
-                      : `${formData.pageCount || "19"} sahifa`}
-                  </span>
+                        <span>{lang.flag}</span>
+                        <span className="truncate">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Word Download */}
-                  <button
-                    onClick={handleDownloadWord}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 hover:bg-blue-500"
-                  >
-                    <FileDown className="h-3.5 w-3.5" />
-                    <span>Word (.doc)</span>
-                  </button>
-
-                  {/* PDF Download */}
-                  <button
-                    onClick={handleDownloadPDF}
-                    disabled={downloading}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground flex cursor-pointer items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold shadow-sm transition-all hover:scale-105 disabled:opacity-50"
-                  >
-                    <span>{downloading ? "⏳" : "📥"}</span>
-                    <span>{downloading ? downloadProgress || "Yuklanmoqda..." : "PDF"}</span>
-                  </button>
-
-                  {/* Copy */}
-                  <button
-                    onClick={handleCopy}
-                    className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
-                  >
-                    {copied ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                    <span>{copied ? "Nusxalandi" : "Nusxa"}</span>
-                  </button>
-
-                  {/* Print */}
-                  <button
-                    onClick={() => window.print()}
-                    className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    <span>Chop etish</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Presentation Cross-sell Banner */}
-            {(pages.length > 0 || cleanResult) && (
-              <Link
-                href={`/academic/presentation?topic=${encodeURIComponent(formData.topic)}`}
-                className="group mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent p-3.5 transition-all hover:border-orange-500/60 print:hidden"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 rounded-lg bg-orange-500/20 p-2 text-orange-400">
-                    <Presentation className="h-5 w-5" />
+                {/* OTM va Yil */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                      OTM nomi
+                    </label>
+                    <input
+                      type="text"
+                      name="university"
+                      value={formData.university}
+                      onChange={handleChange}
+                      placeholder="O'zbekiston Milliy Universiteti"
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
+                    />
                   </div>
                   <div>
-                    <div className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
-                      <span>Himoya uchun taqdimot (PPTX) kerakmi?</span>
-                      <span className="rounded bg-orange-500/20 px-2 py-0.5 text-[10px] font-semibold text-orange-300">
-                        1-bosishda
-                      </span>
-                    </div>
-                    <div className="text-foreground-secondary text-[11px] sm:text-xs">
-                      Ushbu kurs ishingiz asosida slaydlar va ma&apos;ruzachi nutqini (Speaker
-                      Notes) tayyorlang
-                    </div>
+                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                      Yil
+                    </label>
+                    <input
+                      type="text"
+                      name="year"
+                      value={formData.year}
+                      onChange={handleChange}
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
+                    />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-orange-400 transition-transform group-hover:translate-x-1">
-                  <span>Slaydlar yaratish</span>
-                  <span>→</span>
+
+                {/* Talaba va Ilmiy rahbar */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                      Talaba F.I.Sh. (Titul varaq uchun)
+                    </label>
+                    <input
+                      type="text"
+                      name="studentName"
+                      value={formData.studentName}
+                      onChange={handleChange}
+                      placeholder="Aliyev Vali G'aniyevich"
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                      Ilmiy rahbar (F.I.Sh., ilmiy daraja)
+                    </label>
+                    <input
+                      type="text"
+                      name="teacherName"
+                      value={formData.teacherName}
+                      onChange={handleChange}
+                      placeholder="dots. Karimov A.A."
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
+                    />
+                  </div>
                 </div>
-              </Link>
+
+                {/* Proceed Button */}
+                <button
+                  type="submit"
+                  disabled={isOutlineLoading}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20 mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-xs font-bold shadow-lg transition-all hover:scale-[1.01] disabled:opacity-50 sm:text-sm"
+                >
+                  {isOutlineLoading ? (
+                    <>
+                      <Sparkles className="h-4 w-4 animate-spin" />
+                      <span>Reja tuzilmoqda...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Rejani shakllantirish va tahrirlash (2-bosqich)</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STEP 2: REJA VA MUNDARIJANI KO'RISH VA TAHRIRLASH */}
+        {/* ========================================================= */}
+        {currentStep === 2 && outline && (
+          <div className="mx-auto max-w-4xl space-y-6">
+            <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm">
+              <div className="border-border mb-6 flex flex-col justify-between gap-3 border-b pb-4 sm:flex-row sm:items-center">
+                <div>
+                  <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-400">
+                    <BookOpen className="h-3.5 w-3.5" />
+                    <span>Mundarija tuzilmasi</span>
+                  </div>
+                  <h2 className="text-foreground text-lg font-bold sm:text-xl">
+                    2-bosqich: Kurs ishi rejasini tasdiqlash va tahrirlash
+                  </h2>
+                  <p className="text-foreground-secondary text-xs">
+                    Reja MOVSO talablari asosida shakllantirildi. Boblar va paragraflar nomini
+                    o&apos;zingiz yoki rahbar talabiga ko&apos;ra tahrirlashingiz mumkin.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleProceedToOutline}
+                  disabled={isOutlineLoading}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                >
+                  <RotateCcw className={`h-3.5 w-3.5 ${isOutlineLoading ? "animate-spin" : ""}`} />
+                  <span>Qayta tuzish (AI)</span>
+                </button>
+              </div>
+
+              {/* Titul Varaq Preview Box */}
+              <div className="border-border/60 bg-surface-elevated/40 mb-5 rounded-xl border p-3 text-xs">
+                <span className="text-foreground-muted block font-semibold">
+                  Titul varaq ma&apos;lumotlari:
+                </span>
+                <span className="text-foreground font-medium">
+                  {formData.university} • {formData.subject} • {formData.pageCount} sahifa
+                </span>
+              </div>
+
+              {/* Kirish Preview Card */}
+              <div className="border-border/70 bg-surface-elevated/60 mb-5 rounded-xl border p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-foreground text-sm font-bold">KIRISH</h3>
+                  <span className="text-primary bg-primary/10 rounded px-2 py-0.5 text-[11px] font-semibold">
+                    1-2 sahifa
+                  </span>
+                </div>
+                <div className="mt-2.5 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                  <div className="text-foreground-secondary flex items-start gap-1.5">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <span>Mavzuning dolzarbligi va ahamiyati</span>
+                  </div>
+                  <div className="text-foreground-secondary flex items-start gap-1.5">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <span>Muammoning ilmiy o&apos;rganilganlik darajasi</span>
+                  </div>
+                  <div className="text-foreground-secondary flex items-start gap-1.5">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <span>Tadqiqot maqsadi va vazifalari</span>
+                  </div>
+                  <div className="text-foreground-secondary flex items-start gap-1.5">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <span>Tadqiqot obyekti, predmeti va metodologiyasi</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Editable Chapters */}
+              <div className="space-y-4">
+                {outline.chapters.map((chapter, chIdx) => (
+                  <div
+                    key={chIdx}
+                    className="border-border bg-surface-elevated/70 focus-within:border-primary/50 rounded-xl border p-4 transition-all"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-primary text-xs font-bold">
+                        {chIdx === 0
+                          ? "I BOB: Nazariy asoslar"
+                          : chIdx === 1
+                            ? "II BOB: Amaliy tahlil"
+                            : "III BOB: Takliflar va yechimlar"}
+                      </span>
+                      <span className="text-foreground-muted text-[11px]">
+                        {chapter.subsections.length} ta paragraf
+                      </span>
+                    </div>
+
+                    {/* Chapter Title Input */}
+                    <input
+                      type="text"
+                      value={chapter.title}
+                      onChange={(e) => handleChapterTitleChange(chIdx, e.target.value)}
+                      className="border-border bg-background text-foreground focus:border-primary mb-3 w-full rounded-lg border px-3 py-2 text-xs font-bold focus:outline-none sm:text-sm"
+                      placeholder="Bob sarlavhasi..."
+                    />
+
+                    {/* Subsections list */}
+                    <div className="space-y-2">
+                      {chapter.subsections.map((sub, subIdx) => (
+                        <div key={subIdx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={sub}
+                            onChange={(e) => handleSubsectionChange(chIdx, subIdx, e.target.value)}
+                            className="border-border bg-background text-foreground-secondary focus:text-foreground focus:border-primary w-full rounded-lg border px-3 py-1.5 text-xs focus:outline-none"
+                            placeholder="Paragraf nomi..."
+                          />
+                          {chapter.subsections.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSubsection(chIdx, subIdx)}
+                              className="text-foreground-muted p-1 transition-colors hover:text-red-400"
+                              title="Paragrafni o'chirish"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleAddSubsection(chIdx)}
+                      className="text-primary hover:text-primary/80 mt-2 flex cursor-pointer items-center gap-1 text-[11px] font-semibold transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Paragraf qo&apos;shish</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Xulosa va Adabiyotlar preview */}
+              <div className="border-border/70 bg-surface-elevated/40 mt-5 space-y-2 rounded-xl border p-3.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground font-semibold">XULOSA VA AMALIY TAVSIYALAR</span>
+                  <span className="font-semibold text-emerald-400">1-2 sahifa</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground font-semibold">
+                    FOYDALANILGAN ADABIYOTLAR RO&apos;YXATI (GOST bo&apos;yicha 20 ta manba)
+                  </span>
+                  <span className="font-semibold text-emerald-400">20 ta manba</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-4 py-3 text-xs font-semibold transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Ortga (Parametrlarni o&apos;zgartirish)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStartFullGeneration}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20 flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-xs font-bold shadow-lg transition-all hover:scale-[1.01] sm:text-sm"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>To&apos;liq kurs ishini yaratish ({formData.pageCount} bet) 🚀</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STEP 3: SUN'IY INTELLEKT GENERATSIYASI VA SKELETON */}
+        {/* ========================================================= */}
+        {currentStep === 3 && (
+          <div className="mx-auto max-w-2xl">
+            <div className="border-primary/30 bg-surface animate-in fade-in rounded-2xl border p-8 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-primary h-5 w-5 animate-spin" />
+                  <span className="text-foreground text-base font-bold">
+                    Sun&apos;iy intellekt kurs ishini yaratmoqda...
+                  </span>
+                </div>
+                <span className="text-primary font-mono text-sm font-bold">{progressPercent}%</span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="bg-surface-elevated mb-6 h-2.5 w-full overflow-hidden rounded-full">
+                <div
+                  className="bg-primary h-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              {/* Step indicators */}
+              <div className="mb-8 space-y-3">
+                {GENERATION_STEPS.map((step, idx) => {
+                  const isDone = idx < currentStepIdx;
+                  const isCurrent = idx === currentStepIdx;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-3 text-xs transition-colors ${
+                        isCurrent
+                          ? "text-primary font-bold"
+                          : isDone
+                            ? "font-medium text-emerald-400"
+                            : "text-foreground-muted opacity-60"
+                      }`}
+                    >
+                      <div
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                          isCurrent
+                            ? "bg-primary text-primary-foreground animate-pulse"
+                            : isDone
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-surface-elevated text-foreground-muted"
+                        }`}
+                      >
+                        {isDone ? "✓" : idx + 1}
+                      </div>
+                      <span>{step}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Animated Skeleton Loader mimicking A4 Page */}
+              <div className="border-border/60 bg-surface-elevated/40 rounded-xl border p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
+                  <span className="text-foreground-muted text-[11px] font-semibold">
+                    Hujjat strukturasi yig&apos;ilmoqda (A4 format, Times New Roman 14pt, 1.5
+                    interval)...
+                  </span>
+                </div>
+                <div className="animate-pulse space-y-2.5">
+                  <div className="bg-surface-elevated mx-auto h-4 w-3/4 rounded" />
+                  <div className="bg-surface-elevated mx-auto h-3 w-1/2 rounded" />
+                  <div className="bg-surface-elevated mt-4 h-2 w-full rounded" />
+                  <div className="bg-surface-elevated h-2 w-full rounded" />
+                  <div className="bg-surface-elevated h-2 w-5/6 rounded" />
+                  <div className="bg-surface-elevated/60 my-3 h-10 w-full rounded" />
+                  <div className="bg-surface-elevated h-2 w-full rounded" />
+                  <div className="bg-surface-elevated h-2 w-4/5 rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STEP 4: TAYYOR KURS ISHI VA EKSPORT DASHBOARD */}
+        {/* ========================================================= */}
+        {currentStep === 4 && (pages.length > 0 || cleanResult) && (
+          <div className="flex flex-col items-center">
+            {/* Top Export Toolbar */}
+            <div className="border-border bg-surface mb-6 flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 shadow-sm print:hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-foreground text-sm font-bold">
+                    Kurs ishi tayyor (
+                    {pages.length > 0 ? `${pages.length} sahifa` : `${formData.pageCount} sahifa`})
+                  </h3>
+                  <span className="text-foreground-secondary text-xs">
+                    MOVSO standarti • Times New Roman 14pt • Chapdan 25mm
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Word Download */}
+                <button
+                  onClick={handleDownloadWord}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 hover:bg-blue-500"
+                >
+                  <FileDown className="h-4 w-4" />
+                  <span>Word (.doc)</span>
+                </button>
+
+                {/* PDF Download */}
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={downloading}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground flex cursor-pointer items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all hover:scale-105 disabled:opacity-50"
+                >
+                  <span>{downloading ? "⏳" : "📥"}</span>
+                  <span>{downloading ? downloadProgress || "Yuklanmoqda..." : "PDF"}</span>
+                </button>
+
+                {/* Print */}
+                <button
+                  onClick={() => window.print()}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  <span>Chop etish</span>
+                </button>
+
+                {/* Copy */}
+                <button
+                  onClick={handleCopy}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  <span>{copied ? "Nusxalandi" : "Nusxa"}</span>
+                </button>
+
+                {/* Edit Outline */}
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                  title="Rejani tahrirlash"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Rejani tahrirlash</span>
+                </button>
+
+                {/* New Coursework */}
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                  title="Yangi mavzu kiritish"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Yangi mavzu</span>
+                </button>
+
+                {/* Presentation Maker */}
+                <Link
+                  href={`/academic/presentation?topic=${encodeURIComponent(formData.topic)}&type=coursework`}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 hover:bg-purple-500"
+                >
+                  <Presentation className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline">Slayd yaratish</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* View Mode & Page Navigator */}
+            {pages.length > 0 && (
+              <div className="mb-4 flex w-full max-w-5xl items-center justify-between print:hidden">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("pages")}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      viewMode === "pages"
+                        ? "bg-primary text-primary-foreground shadow"
+                        : "bg-surface text-foreground-secondary hover:text-foreground"
+                    }`}
+                  >
+                    A4 Sahifalar ({pages.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("continuous")}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      viewMode === "continuous"
+                        ? "bg-primary text-primary-foreground shadow"
+                        : "bg-surface text-foreground-secondary hover:text-foreground"
+                    }`}
+                  >
+                    Barcha sahifalar ro&apos;yxati
+                  </button>
+                </div>
+
+                {viewMode === "pages" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={activePageIndex === 0}
+                      onClick={() => setActivePageIndex((p) => Math.max(0, p - 1))}
+                      className="border-border bg-surface text-foreground hover:bg-surface-elevated rounded-lg border p-1.5 transition-colors disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-foreground text-xs font-semibold">
+                      Sahifa {activePageIndex + 1} / {pages.length}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={activePageIndex === pages.length - 1}
+                      onClick={() => setActivePageIndex((p) => Math.min(pages.length - 1, p + 1))}
+                      className="border-border bg-surface text-foreground hover:bg-surface-elevated rounded-lg border p-1.5 transition-colors disabled:opacity-40"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* A4 Paper Container */}
-            <div className="flex w-full max-w-full justify-center overflow-x-auto p-2 print:block print:w-full print:p-0">
-              {pages.length > 0 ? (
-                <div
-                  ref={documentRef}
-                  id="coursework-document"
-                  className="coursework-document flex w-[210mm] shrink-0 flex-col items-center print:block print:w-full"
-                >
-                  {pages.map((p) => (
+            {/* Document Render Container */}
+            <div className="flex w-full justify-center overflow-x-auto pb-10">
+              <div
+                ref={documentRef}
+                id="coursework-document"
+                className="coursework-document flex w-[210mm] shrink-0 flex-col items-center print:block print:w-full"
+              >
+                {pages.length > 0 ? (
+                  viewMode === "pages" ? (
+                    // Single Page View with pagination controls
                     <div
-                      key={p.pageNumber}
+                      key={activePage.pageNumber}
                       className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
                     >
                       <div
@@ -1060,59 +1510,86 @@ export default function CourseworkGenerator() {
                         style={{
                           width: "210mm",
                           minHeight: "297mm",
-                          maxHeight: "297mm",
                           boxSizing: "border-box",
-                          padding: "20mm 20mm 20mm 25mm", // GOST: chap 25mm, yuqori/o'ng/past 20mm
-                          overflow: "hidden",
+                          paddingTop: "20mm",
+                          paddingBottom: "20mm",
+                          paddingRight: "20mm",
+                          paddingLeft: "25mm",
                         }}
                       >
                         <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
-                          <ReactMarkdown components={markdownComponents}>{p.content}</ReactMarkdown>
+                          <ReactMarkdown components={markdownComponents}>
+                            {activePage.content}
+                          </ReactMarkdown>
                         </div>
-
-                        {/* Page number footer */}
-                        {p.pageNumber > 1 ? (
+                        {activePage.pageNumber > 1 && (
                           <div className="coursework-page-footer mt-auto pt-3 text-center font-serif text-xs text-slate-700">
-                            {p.pageNumber}
+                            {activePage.pageNumber}
                           </div>
-                        ) : (
-                          <div className="h-4" />
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : cleanResult ? (
-                <div
-                  ref={documentRef}
-                  className="a4-document prose prose-slate max-w-full shrink-0 bg-white p-6 font-serif text-black shadow-2xl sm:p-10 md:p-[25mm]"
-                  style={{
-                    width: "210mm",
-                    minHeight: "297mm",
-                    maxWidth: "100%",
-                  }}
-                >
-                  <ReactMarkdown components={markdownComponents}>{cleanResult}</ReactMarkdown>
-                </div>
-              ) : (
-                !loading && (
-                  <div className="flex h-full flex-col items-center justify-center space-y-4 pt-32 pb-32 text-center text-slate-400 opacity-60">
-                    <div className="mb-2 text-6xl">📄</div>
-                    <h3 className="text-foreground text-base font-bold">
-                      A4 formatdagi kurs ishi shu yerda shakllanadi
-                    </h3>
-                    <p className="text-foreground-secondary max-w-sm text-xs">
-                      Kafedra, fan va mavzuni tanlang hamda &quot;Kurs ishini yaratish&quot;
-                      tugmasini bosing.
-                    </p>
+                  ) : (
+                    // Continuous all pages view
+                    pages.map((p) => (
+                      <div
+                        key={p.pageNumber}
+                        className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
+                      >
+                        <div
+                          className="coursework-page relative flex flex-col justify-between bg-white font-serif text-black"
+                          style={{
+                            width: "210mm",
+                            minHeight: "297mm",
+                            boxSizing: "border-box",
+                            paddingTop: "20mm",
+                            paddingBottom: "20mm",
+                            paddingRight: "20mm",
+                            paddingLeft: "25mm",
+                          }}
+                        >
+                          <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
+                            <ReactMarkdown components={markdownComponents}>
+                              {p.content}
+                            </ReactMarkdown>
+                          </div>
+                          {p.pageNumber > 1 && (
+                            <div className="coursework-page-footer mt-auto pt-3 text-center font-serif text-xs text-slate-700">
+                              {p.pageNumber}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  // Fallback continuous markdown view
+                  <div className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none">
+                    <div
+                      className="coursework-page relative flex flex-col justify-between bg-white font-serif text-black"
+                      style={{
+                        width: "210mm",
+                        minHeight: "297mm",
+                        boxSizing: "border-box",
+                        paddingTop: "20mm",
+                        paddingBottom: "20mm",
+                        paddingRight: "20mm",
+                        paddingLeft: "25mm",
+                      }}
+                    >
+                      <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
+                        <ReactMarkdown components={markdownComponents}>{cleanResult}</ReactMarkdown>
+                      </div>
+                    </div>
                   </div>
-                )
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Print Specific CSS */}
       <style jsx global>{`
         @media print {
           @page {
@@ -1120,30 +1597,32 @@ export default function CourseworkGenerator() {
             margin: 0;
           }
           body {
-            background: white !important;
+            background-color: white !important;
             color: black !important;
-            margin: 0 !important;
-            padding: 0 !important;
           }
           .print\\:hidden {
             display: none !important;
           }
+          .coursework-document {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           .coursework-page-card {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
             page-break-after: always !important;
             break-after: page !important;
-            margin: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
           }
           .coursework-page {
             width: 210mm !important;
             min-height: 297mm !important;
-            max-height: 297mm !important;
             box-sizing: border-box !important;
             padding: 20mm 20mm 20mm 25mm !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
           }
         }
       `}</style>
