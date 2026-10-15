@@ -10,46 +10,51 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
+    let plan = "FREE";
+    let limitCheck: { allowed: boolean; error?: string } = { allowed: true, error: "" };
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { plan: true },
-    });
-
-    const plan = (user?.plan as string) || "FREE";
-
-    const limitCheck = await checkUserLimit(userId, "rewrite");
-    if (!limitCheck.allowed) {
-      await trackAIUsage({
-        userId,
-        plan,
-        feature: "REWRITE",
-        status: "QUOTA_EXCEEDED",
-        errorCode: "LIMIT_EXCEEDED",
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { plan: true },
       });
-      return NextResponse.json(
-        { error: "Limit reached", requireUpgrade: true, upgradeMessage: limitCheck.error },
-        { status: 403 }
-      );
+      plan = (user?.plan as string) || "FREE";
+      limitCheck = await checkUserLimit(userId, "rewrite");
+      if (!limitCheck.allowed) {
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "REWRITE",
+          status: "QUOTA_EXCEEDED",
+          errorCode: "LIMIT_EXCEEDED",
+        });
+        return NextResponse.json(
+          { error: "Limit reached", requireUpgrade: true, upgradeMessage: limitCheck.error },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await req.json();
-    const { prompt: userPrompt, action } = body;
+    const { prompt: userPrompt, action = "improve", jobTitle } = body;
 
-    let systemInstruction = "You are a professional AI writer.";
-    if (action === "improve") {
-      systemInstruction =
-        "Improve the following text. Make it more professional, grammatically correct, and engaging. Only return the improved text.";
+    if (!userPrompt || typeof userPrompt !== "string" || userPrompt.trim().length === 0) {
+      return NextResponse.json({ error: "Matn kiritilmadi" }, { status: 400 });
+    }
+
+    let systemInstruction = "You are an elite multilingual copy editor and resume specialist.";
+    if (action === "improve" || action === "fix") {
+      systemInstruction = `You are an elite multilingual resume copy editor and career architect. ${jobTitle ? `Target role: ${jobTitle}.` : ""}
+Correct all grammatical, orthographical, and stylistic mistakes. Rephrase rough notes into high-impact, professional, ATS-optimized resume bullet points.
+Start each bullet with an active, powerful verb. Include measurable metrics or outcomes if feasible.
+Preserve the user's primary language (Uzbek latin/cyrillic, Russian, English, etc.).
+Return ONLY the polished, formatted text (clean bullet points or paragraphs) without intro, outro, or quotes.`;
     } else if (action === "summarize") {
       systemInstruction =
         "Summarize the following text in a concise and clear manner. Only return the summary.";
     }
 
-    const prompt = `${systemInstruction}\n\nUser Input: ${userPrompt}`;
+    const prompt = `${systemInstruction}\n\nUser Input:\n${userPrompt}`;
 
     const startTime = Date.now();
     let status: "SUCCESS" | "FAILED" = "SUCCESS";

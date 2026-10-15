@@ -24,15 +24,16 @@ export async function POST(req: Request) {
     const transaction = await prisma.transaction.create({
       data: {
         userId: session.user.id,
-        amount: plan === "PRO" ? 50000 : 150000, // Example amounts in UZS
+        amount: plan === "PRO" ? 39000 : 69000, // UZS
         provider: provider.toUpperCase(),
         status: "PENDING",
       },
     });
 
-    const paymentUrl = provider === "click" 
-      ? `https://my.click.uz/services/pay?service_id=123&merchant_id=456&amount=${transaction.amount}&transaction_param=${transaction.id}`
-      : `https://checkout.paycom.uz/base64encodedStringHere`; // Payme URL
+    const paymentUrl =
+      provider === "click"
+        ? `https://my.click.uz/services/pay?service_id=123&merchant_id=456&amount=${transaction.amount}&transaction_param=${transaction.id}`
+        : `https://checkout.paycom.uz/base64encodedStringHere`; // Payme URL
 
     return NextResponse.json({ paymentUrl, transactionId: transaction.id });
   } catch (error) {

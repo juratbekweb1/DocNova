@@ -28,9 +28,34 @@ interface AtsResultData {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    let userId: string | undefined = undefined;
+    let plan = "FREE";
 
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, plan: true },
+      });
+
+      if (user) {
+        userId = user.id;
+        plan = (user.plan as string) || "FREE";
+
+        const limitCheck = await checkUserLimit(userId, "resume_analysis");
+        if (limitCheck.limitExceeded) {
+          await trackAIUsage({
+            userId,
+            plan,
+            feature: "RESUME_ANALYSIS",
+            status: "QUOTA_EXCEEDED",
+            errorCode: "LIMIT_EXCEEDED",
+          });
+          return NextResponse.json(
+            { error: limitCheck.error, code: limitCheck.code },
+            { status: 429 }
+          );
+        }
+      }
     }
 
     const jsonBody = await req.json();
@@ -45,30 +70,6 @@ export async function POST(req: Request) {
 
     const resumeText = xss(parsed.data.resumeText);
     const jobDescription = xss(parsed.data.jobDescription);
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true, plan: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userId = user.id;
-    const plan = (user.plan as string) || "FREE";
-
-    const limitCheck = await checkUserLimit(userId, "resume_analysis");
-    if (limitCheck.limitExceeded) {
-      await trackAIUsage({
-        userId,
-        plan,
-        feature: "RESUME_ANALYSIS",
-        status: "QUOTA_EXCEEDED",
-        errorCode: "LIMIT_EXCEEDED",
-      });
-      return NextResponse.json({ error: limitCheck.error, code: limitCheck.code }, { status: 429 });
-    }
 
     const prompt = `You are a strict and highly accurate Applicant Tracking System (ATS) simulator. 
 Your job is to analyze the provided resume text against standard ATS compliance rules. 
@@ -188,20 +189,27 @@ ${jobDescription || "None provided. Analyze for general best practices."}
       errorCode,
     });
 
-    const atsAnalysis = await prisma.atsAnalysis.create({
-      data: {
-        userId: user.id,
-        resumeText,
-        jobDescription,
-        overallScore: resultData.overallScore || 0,
-        keywordScore: resultData.keywordScore || 0,
-        formatScore: resultData.formatScore || 0,
-        completenessScore: resultData.completenessScore || 0,
-        feedback: resultData as unknown as object,
-      },
-    });
+    if (userId) {
+      const atsAnalysis = await prisma.atsAnalysis.create({
+        data: {
+          userId,
+          resumeText,
+          jobDescription,
+          overallScore: resultData.overallScore || 0,
+          keywordScore: resultData.keywordScore || 0,
+          formatScore: resultData.formatScore || 0,
+          completenessScore: resultData.completenessScore || 0,
+          feedback: resultData as unknown as object,
+        },
+      });
 
-    return NextResponse.json({ success: true, data: atsAnalysis });
+      return NextResponse.json({ success: true, data: atsAnalysis, ...resultData });
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...resultData,
+    });
   } catch (error: unknown) {
     console.error("[ATS_ANALYZER_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

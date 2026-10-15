@@ -221,8 +221,8 @@ export const translations = {
     premiumPlanDesc:
       "Cheksiz imkoniyatlar, barcha premium shablonlar va to'liq cheklovsiz foydalanish.",
     priceFree: "0 UZS",
-    pricePro: "29,990 UZS",
-    pricePremium: "49,990 UZS",
+    pricePro: "39 000 so'm",
+    pricePremium: "69 000 so'm",
     usageLimitTitle: "Foydalanish limiti tugadi",
     usageLimitDesc:
       "Siz ushbu bo'limdan bepul foydalanish limitingizni (1 marta) ishlatib bo'ldingiz. Cheklovsiz davom etish uchun Pro yoki Premium obunasini xarid qiling.",
@@ -675,8 +675,8 @@ export const translations = {
     premiumPlanDesc:
       "Неограниченные возможности, все премиум шаблоны и полный доступ без ограничений.",
     priceFree: "0 UZS",
-    pricePro: "29,990 UZS",
-    pricePremium: "49,990 UZS",
+    pricePro: "39 000 сум",
+    pricePremium: "69 000 сум",
     usageLimitTitle: "Лимит исчерпан",
     usageLimitDesc:
       "Вы исчерпали свой бесплатный лимит (1 раз) для этого раздела. Чтобы продолжить без ограничений, приобретите подписку Pro или Premium.",
@@ -1128,8 +1128,8 @@ export const translations = {
     premiumPlanDesc:
       "Unlimited possibilities, all premium templates, and fully unrestricted access.",
     priceFree: "0 UZS",
-    pricePro: "29,990 UZS",
-    pricePremium: "49,990 UZS",
+    pricePro: "39,000 UZS",
+    pricePremium: "69,000 UZS",
     usageLimitTitle: "Usage limit reached",
     usageLimitDesc:
       "You have used your free limit (1 time) for this tool. To continue without restrictions, please upgrade to a Pro or Premium subscription.",
@@ -1581,8 +1581,8 @@ export const translations = {
     premiumPlan: "Premium",
     premiumPlanDesc: "Sınırsız olasılıklar, tüm premium şablonlar ve tamamen kısıtlamasız erişim.",
     priceFree: "0 UZS",
-    pricePro: "29,990 UZS",
-    pricePremium: "49,990 UZS",
+    pricePro: "39.000 UZS",
+    pricePremium: "69.000 UZS",
     usageLimitTitle: "Kullanım sınırı aşıldı",
     usageLimitDesc:
       "Bu araç için ücretsiz sınırınızı (1 kez) kullandınız. Kısıtlama olmadan devam etmek için lütfen Pro veya Premium aboneliğine yükseltin.",

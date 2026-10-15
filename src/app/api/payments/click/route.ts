@@ -9,10 +9,10 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const body = Object.fromEntries(formData.entries());
-    
+
     const clickTransId = body.click_trans_id as string;
     const serviceId = body.service_id as string;
-    const clickPaydocId = body.click_paydoc_id as string;
+    const _clickPaydocId = body.click_paydoc_id as string;
     const merchantTransId = body.merchant_trans_id as string; // transaction.id in our DB
     const amount = body.amount as string;
     const action = body.action as string; // 0 = Prepare, 1 = Complete
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         merchant_trans_id: merchantTransId,
         merchant_prepare_id: transaction.id,
         error: 0,
-        error_note: "Success"
+        error_note: "Success",
       });
     } else if (action === "1") {
       // COMPLETE
@@ -59,20 +59,20 @@ export async function POST(req: Request) {
         await prisma.$transaction(async (tx) => {
           await tx.transaction.update({
             where: { id: merchantTransId },
-            data: { status: "PAID" }
+            data: { status: "PAID" },
           });
 
-          const planName = transaction.amount >= 150000 ? "PREMIUM" : "PRO";
+          const planName = transaction.amount >= 60000 ? "PREMIUM" : "PRO";
           const endDate = new Date();
           endDate.setDate(endDate.getDate() + 30); // Add 30 days
 
           await tx.user.update({
             where: { id: transaction.userId },
-            data: { 
-              plan: planName, 
+            data: {
+              plan: planName,
               paymentStatus: "PAID",
-              subscriptionEndDate: endDate
-            }
+              subscriptionEndDate: endDate,
+            },
           });
         });
 
@@ -81,22 +81,24 @@ export async function POST(req: Request) {
           merchant_trans_id: merchantTransId,
           merchant_confirm_id: transaction.id,
           error: 0,
-          error_note: "Success"
+          error_note: "Success",
         });
       } else {
         // Payment failed
         await prisma.transaction.update({
           where: { id: merchantTransId },
-          data: { status: "FAILED" }
+          data: { status: "FAILED" },
         });
         return NextResponse.json({ error: "-9", error_note: errorNote });
       }
     }
 
     return NextResponse.json({ error: "-3", error_note: "Action not found" });
-
   } catch (err) {
     console.error("Click Webhook Error:", err);
-    return NextResponse.json({ error: "-8", error_note: "Error in request from click" }, { status: 500 });
+    return NextResponse.json(
+      { error: "-8", error_note: "Error in request from click" },
+      { status: 500 }
+    );
   }
 }

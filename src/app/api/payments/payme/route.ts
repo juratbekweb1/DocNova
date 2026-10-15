@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // In production, verify Payme Merchant Password from Basic Auth Header
-const PAYME_PASSWORD = process.env.PAYME_PASSWORD || "YOUR_PAYME_PASSWORD";
+const _PAYME_PASSWORD = process.env.PAYME_PASSWORD || "YOUR_PAYME_PASSWORD";
 
 export async function POST(req: Request) {
   try {
@@ -17,14 +17,18 @@ export async function POST(req: Request) {
     switch (method) {
       case "CheckPerformTransaction": {
         const transaction = await prisma.transaction.findUnique({
-          where: { id: params.account.transaction_id }
+          where: { id: params.account.transaction_id },
         });
 
         if (!transaction) {
-          return NextResponse.json({ error: { code: -31050, message: "Transaction not found" }, id });
+          return NextResponse.json({
+            error: { code: -31050, message: "Transaction not found" },
+            id,
+          });
         }
 
-        if (transaction.amount * 100 !== params.amount) { // Payme sends tiyins
+        if (transaction.amount * 100 !== params.amount) {
+          // Payme sends tiyins
           return NextResponse.json({ error: { code: -31001, message: "Incorrect amount" }, id });
         }
 
@@ -36,22 +40,22 @@ export async function POST(req: Request) {
           result: {
             create_time: new Date().getTime(),
             transaction: params.id,
-            state: 1
+            state: 1,
           },
-          id
+          id,
         });
       }
 
       case "PerformTransaction": {
         const transactionId = params.account?.transaction_id || params.id;
-        
+
         await prisma.$transaction(async (tx) => {
           const t = await tx.transaction.update({
             where: { id: transactionId },
-            data: { status: "PAID" }
+            data: { status: "PAID" },
           });
 
-          const planName = t.amount >= 150000 ? "PREMIUM" : "PRO";
+          const planName = t.amount >= 60000 ? "PREMIUM" : "PRO";
           const endDate = new Date();
           endDate.setDate(endDate.getDate() + 30);
 
@@ -60,8 +64,8 @@ export async function POST(req: Request) {
             data: {
               plan: planName,
               paymentStatus: "PAID",
-              subscriptionEndDate: endDate
-            }
+              subscriptionEndDate: endDate,
+            },
           });
         });
 
@@ -69,9 +73,9 @@ export async function POST(req: Request) {
           result: {
             transaction: params.id,
             perform_time: new Date().getTime(),
-            state: 2
+            state: 2,
           },
-          id
+          id,
         });
       }
 
@@ -79,16 +83,16 @@ export async function POST(req: Request) {
         const transactionId = params.account?.transaction_id || params.id;
         await prisma.transaction.update({
           where: { id: transactionId },
-          data: { status: "CANCELED" }
+          data: { status: "CANCELED" },
         });
 
         return NextResponse.json({
           result: {
             transaction: params.id,
             cancel_time: new Date().getTime(),
-            state: -2
+            state: -2,
           },
-          id
+          id,
         });
       }
 

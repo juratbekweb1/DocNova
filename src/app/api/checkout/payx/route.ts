@@ -17,8 +17,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    // Pro is 29990, Premium is 49990
-    const amount = plan === "premium" ? 49990 : 29990;
+    // Pro is 39000, Premium is 69000
+    const amount = plan === "premium" ? 69000 : 39000;
 
     // Create a pending transaction
     const transaction = await prisma.transaction.create({
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const payxRes = await fetch("https://backend.payx.uz/api/v1/invoice", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${PAYX_API_KEY}`,
+        Authorization: `Bearer ${PAYX_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -59,8 +59,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ pay_url: payxData.pay_url });
-  } catch (error: any) {
-    console.error("PayX API error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    console.error("PayX API error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

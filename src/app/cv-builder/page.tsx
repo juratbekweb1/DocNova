@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Download,
   Printer,
@@ -302,13 +303,34 @@ const TEMPLATES: TemplateConfig[] = [
   },
 ];
 
-export default function CvBuilderPage() {
+function CvBuilderContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const resumeRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"templates" | "editor">("templates");
-  const [activeTemplate, setActiveTemplate] = useState<string>("modern");
+
+  const tplParam = searchParams.get("template");
+  const tabParam = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState<"templates" | "editor">(
+    tabParam === "editor" ? "editor" : "templates"
+  );
+  const [activeTemplate, setActiveTemplate] = useState<string>(
+    tplParam && TEMPLATES.some((t) => t.id === tplParam) ? tplParam : "modern"
+  );
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const prefilledBullet = localStorage.getItem("docnova_prefilled_bullet");
+      if (prefilledBullet) {
+        toast({
+          title: "AI Yozish vositasidan ma'lumot yuklandi",
+          description: "Nusxalangan yutuqlar tajriba bo'limiga kiritish uchun tayyor.",
+        });
+      }
+    } catch {}
+  }, [toast]);
 
   // Resume State
   const [personalInfo, setPersonalInfo] = useState({
@@ -1963,5 +1985,19 @@ export default function CvBuilderPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function CvBuilderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+          Yuklanmoqda...
+        </div>
+      }
+    >
+      <CvBuilderContent />
+    </Suspense>
   );
 }
