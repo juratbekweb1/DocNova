@@ -9,8 +9,8 @@ export const mainNavConfig: NavItem[] = [
     href: "/chat",
   },
   {
-    title: "Kurs ishi uchun",
-    href: "/coursework",
+    title: "Talabalar uchun",
+    href: "/academic",
   },
   {
     title: "Asboblar",

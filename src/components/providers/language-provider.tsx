@@ -7,6 +7,8 @@ export type Lang = "uz" | "ru" | "en" | "tr";
 export const translations = {
   uz: {
     sidebarDashboard: "Boshqaruv paneli",
+    sidebarStudents: "Talabalar uchun",
+    navStudents: "Talabalar uchun",
     sidebarCoursework: "Kurs ishi uchun",
     navCoursework: "Kurs ishi uchun",
     sidebarAcademic: "Akademik",
@@ -23,7 +25,8 @@ export const translations = {
     topbarHelp: "Yordam",
     topbarLogout: "Tizimdan chiqish",
     welcomeGreeting: "Xush kelibsiz",
-    welcomeSubtitle: "Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada tayyorlang.",
+    welcomeSubtitle:
+      "Bugun qanday hujjat yaratasiz? AI yordamida professional hujjatlarni bir necha daqiqada tayyorlang.",
     activePlanLabel: "Faol tarif",
     aiGenerationsLabel: "AI Yaratishlar",
     cvAnalyzerLabel: "CV Tahlili",
@@ -188,17 +191,21 @@ export const translations = {
     demoDesc:
       "Quyidagi maydonga tajribangizni oddiy so'zlar bilan yozib, 'Yaratish' tugmasini bosing va sun'iy intellekt natijasini bir zumda ko'ring.",
     profSummaryTag: "1. O'zingiz haqingizda xulosa (Summary)",
-    profSummaryDesc: "Oddiy qoralamani professional, ish beruvchilarni jalb qiladigan kuchli jumlalarga aylantirish.",
+    profSummaryDesc:
+      "Oddiy qoralamani professional, ish beruvchilarni jalb qiladigan kuchli jumlalarga aylantirish.",
     expBuilder: "2. Ish tajribasini tartibga solish",
     expBuilderDesc: "Ish joylaringizni surib (drag & drop) tartiblang va AI maslahatlarini oling.",
-    demoInputDefault: "5 yil davomida dizayner bo'lib ishladim. Jamoani boshqardim, natijani 40% ga oshirdim.",
-    demoOutputDefault: "5+ yillik tajribaga ega yetakchi mahsulot dizayneri. Murakkab loyihalarni muvaffaqiyatli amalga oshirgan, jamoani boshqargan va foydalanuvchilar faolligini 40% ga oshirishga erishgan yuqori malakali mutaxassis.",
+    demoInputDefault:
+      "5 yil davomida dizayner bo'lib ishladim. Jamoani boshqardim, natijani 40% ga oshirdim.",
+    demoOutputDefault:
+      "5+ yillik tajribaga ega yetakchi mahsulot dizayneri. Murakkab loyihalarni muvaffaqiyatli amalga oshirgan, jamoani boshqargan va foydalanuvchilar faolligini 40% ga oshirishga erishgan yuqori malakali mutaxassis.",
     demoInputPlaceholder: "O'zingiz haqingizda oddiy so'zlar bilan yozing...",
     demoGenerateBtn: "Yaratish (AI Takomillashtirish)",
     demoGeneratingBtn: "AI Yaratmoqda...",
     demoDragHint: "Ish joylarini o'rnini almashtirish uchun torting (Drag & drop):",
     demoSuggestionLabel: "AI Tavsiyasi:",
-    demoSuggestionText: "Ish tajribangizni 'Mas'ul edim' deyish o'rniga 'Boshqardim', 'Muvaffaqiyatli joriy qildim' kabi kuchli harakat so'zlari bilan boshlang.",
+    demoSuggestionText:
+      "Ish tajribangizni 'Mas'ul edim' deyish o'rniga 'Boshqardim', 'Muvaffaqiyatli joriy qildim' kabi kuchli harakat so'zlari bilan boshlang.",
 
     templatesTagline: "Shablonlar",
     templatesHeadline: "Hikoyangizga va maqsadli rolingizga mos keladigan dizaynni tanlang.",
@@ -452,24 +459,28 @@ export const translations = {
 
     // Main Hubs (Landing Page)
     hubCvBuilderTitle: "AI Rezyume (CV) Yaratuvchi",
-    hubCvBuilderDesc: "20+ zamonaviy shablonlar, qulay tahrirlagich va bir bosishda PDF yoki Word formatida yuklab olish imkoniyatiga ega professional rezyume yaratuvchi.",
+    hubCvBuilderDesc:
+      "20+ zamonaviy shablonlar, qulay tahrirlagich va bir bosishda PDF yoki Word formatida yuklab olish imkoniyatiga ega professional rezyume yaratuvchi.",
     hubCvBuilderBadge: "Rezyume Shablonlar",
     hubCvBuilderStat: "20+",
     hubCvBuilderStatLabel: "Dizaynlar",
     hubCopilotTitle: "AI Karyera & Suhbat Maslahatchisi",
-    hubCopilotDesc: "24/7 ishlaydigan aqlli yordamchi. Rezyumeni kuchaytirish, ish topish, ish beruvchilar bilan suhbatdan o'tish bo'yicha shaxsiy maslahat oling.",
+    hubCopilotDesc:
+      "24/7 ishlaydigan aqlli yordamchi. Rezyumeni kuchaytirish, ish topish, ish beruvchilar bilan suhbatdan o'tish bo'yicha shaxsiy maslahat oling.",
     hubCopilotBadge: "AI Maslahatchi",
     hubCopilotStat: "24/7",
     hubCopilotStatLabel: "Onlayn Yordam",
     hubMockTestTitle: "Xorijiy Tillar & Ish Suhbati (Mock Test)",
-    hubMockTestDesc: "Ingliz, Rus va Turk tillarini o'rganish, IELTS/CEFR darajasini tekshirish hamda ishga kirishdagi suhbatlarga (intervyu) AI bilan jonli tayyorgarlik ko'rish.",
+    hubMockTestDesc:
+      "Ingliz, Rus va Turk tillarini o'rganish, IELTS/CEFR darajasini tekshirish hamda ishga kirishdagi suhbatlarga (intervyu) AI bilan jonli tayyorgarlik ko'rish.",
     hubMockTestBadge: "Til & Intervyu",
     hubMockTestStat: "AI",
     hubMockTestStatLabel: "Test & Tahlil",
-
   },
   ru: {
     sidebarDashboard: "Панель управления",
+    sidebarStudents: "Студентам",
+    navStudents: "Студентам",
     sidebarCoursework: "Для курсовых работ",
     navCoursework: "Для курсовых работ",
     sidebarAcademic: "Академический",
@@ -486,7 +497,8 @@ export const translations = {
     topbarHelp: "Помощь",
     topbarLogout: "Выйти из системы",
     welcomeGreeting: "Добро пожаловать",
-    welcomeSubtitle: "Какой документ вы хотите создать сегодня? Создавайте профессиональные документы за считанные минуты с помощью ИИ.",
+    welcomeSubtitle:
+      "Какой документ вы хотите создать сегодня? Создавайте профессиональные документы за считанные минуты с помощью ИИ.",
     activePlanLabel: "Текущий тариф",
     aiGenerationsLabel: "Генерации ИИ",
     cvAnalyzerLabel: "Анализ резюме",
@@ -629,22 +641,24 @@ export const translations = {
     statAvgBuildTime: "Ср. время создания",
 
     demoTagline: "Интерактивное демо ИИ-генератора",
-    demoTitle:
-      "Напишите о себе простыми словами — ИИ создаст безупречное резюме.",
+    demoTitle: "Напишите о себе простыми словами — ИИ создаст безупречное резюме.",
     demoDesc:
       "Введите в поле ваш опыт простыми словами, нажмите «Создать» и сразу оцените результат работы искусственного интеллекта.",
     profSummaryTag: "1. Саммари о себе (Summary)",
-    profSummaryDesc: "Превращение простых заметок в убедительный профессиональный текст для работодателей.",
+    profSummaryDesc:
+      "Превращение простых заметок в убедительный профессиональный текст для работодателей.",
     expBuilder: "2. Упорядочивание опыта работы",
     expBuilderDesc: "Перетаскивайте места работы мышкой (drag & drop) и получайте подсказки от ИИ.",
     demoInputDefault: "Работал дизайнером 5 лет. Руководил командой, увеличил показатели на 40%.",
-    demoOutputDefault: "Ведущий продуктовый дизайнер с 5+ годами опыта. Успешный опыт руководства кросс-функциональными командами и повышения вовлеченности пользователей на 40%.",
+    demoOutputDefault:
+      "Ведущий продуктовый дизайнер с 5+ годами опыта. Успешный опыт руководства кросс-функциональными командами и повышения вовлеченности пользователей на 40%.",
     demoInputPlaceholder: "Опишите ваш опыт простыми словами...",
     demoGenerateBtn: "Создать (ИИ Улучшение)",
     demoGeneratingBtn: "ИИ Генерирует...",
     demoDragHint: "Перетаскивайте блоки для изменения порядка (Drag & drop):",
     demoSuggestionLabel: "Совет от ИИ:",
-    demoSuggestionText: "Начинайте пункты резюме с сильных глаголов действий, например «Руководил», «Реализовал», вместо «Был ответственным за».",
+    demoSuggestionText:
+      "Начинайте пункты резюме с сильных глаголов действий, например «Руководил», «Реализовал», вместо «Был ответственным за».",
 
     templatesTagline: "Шаблоны",
     templatesHeadline: "Выберите макет, который подходит вашей истории и целевой должности.",
@@ -899,24 +913,28 @@ export const translations = {
 
     // Main Hubs (Landing Page)
     hubCvBuilderTitle: "AI Конструктор резюме (CV)",
-    hubCvBuilderDesc: "20+ современных шаблонов, удобный редактор и скачивание в PDF или Word в один клик.",
+    hubCvBuilderDesc:
+      "20+ современных шаблонов, удобный редактор и скачивание в PDF или Word в один клик.",
     hubCvBuilderBadge: "Шаблоны резюме",
     hubCvBuilderStat: "20+",
     hubCvBuilderStatLabel: "Дизайнов",
     hubCopilotTitle: "AI Карьерный консультант",
-    hubCopilotDesc: "Круглосуточный умный помощник: улучшение резюме, поиск работы, подготовка к собеседованию и персональные советы.",
+    hubCopilotDesc:
+      "Круглосуточный умный помощник: улучшение резюме, поиск работы, подготовка к собеседованию и персональные советы.",
     hubCopilotBadge: "AI Помощник",
     hubCopilotStat: "24/7",
     hubCopilotStatLabel: "Онлайн 24/7",
     hubMockTestTitle: "AI Языковой хаб & Собеседования",
-    hubMockTestDesc: "Изучение английского, русского и турецкого языков, проверка уровня IELTS/CEFR и тренировка реальных собеседований с ИИ.",
+    hubMockTestDesc:
+      "Изучение английского, русского и турецкого языков, проверка уровня IELTS/CEFR и тренировка реальных собеседований с ИИ.",
     hubMockTestBadge: "Языки & Интервью",
     hubMockTestStat: "AI",
     hubMockTestStatLabel: "Тесты и анализ",
-
   },
   en: {
     sidebarDashboard: "Dashboard",
+    sidebarStudents: "For Students",
+    navStudents: "For Students",
     sidebarCoursework: "For Coursework",
     navCoursework: "For Coursework",
     sidebarAcademic: "Academic",
@@ -933,7 +951,8 @@ export const translations = {
     topbarHelp: "Help",
     topbarLogout: "Sign out",
     welcomeGreeting: "Welcome",
-    welcomeSubtitle: "What document will you create today? Build professional documents in minutes with AI.",
+    welcomeSubtitle:
+      "What document will you create today? Build professional documents in minutes with AI.",
     activePlanLabel: "Active Plan",
     aiGenerationsLabel: "AI Generations",
     cvAnalyzerLabel: "CV Analyzer",
@@ -1083,14 +1102,17 @@ export const translations = {
     profSummaryDesc: "Turn rough notes into strong, recruiter-ready bullet points.",
     expBuilder: "2. Experience Organizer",
     expBuilderDesc: "Drag & drop your past roles to reorder and get instant AI recommendations.",
-    demoInputDefault: "Worked as a product designer for 5 years. Managed teams, improved engagement by 40%.",
-    demoOutputDefault: "Highly motivated Product Designer with 5+ years of experience building scalable design systems and improving user engagement by 40%. Proven track record of leading cross-functional teams.",
+    demoInputDefault:
+      "Worked as a product designer for 5 years. Managed teams, improved engagement by 40%.",
+    demoOutputDefault:
+      "Highly motivated Product Designer with 5+ years of experience building scalable design systems and improving user engagement by 40%. Proven track record of leading cross-functional teams.",
     demoInputPlaceholder: "Describe your experience in plain words...",
     demoGenerateBtn: "Generate (AI Polish)",
     demoGeneratingBtn: "AI Generating...",
     demoDragHint: "Drag and drop items to reorder experience:",
     demoSuggestionLabel: "AI Suggestion:",
-    demoSuggestionText: "Start bullet points with strong action verbs like 'Spearheaded' or 'Architected' instead of 'Responsible for'.",
+    demoSuggestionText:
+      "Start bullet points with strong action verbs like 'Spearheaded' or 'Architected' instead of 'Responsible for'.",
 
     templatesTagline: "Templates",
     templatesHeadline: "Choose a layout that fits your story and your target role.",
@@ -1341,24 +1363,28 @@ export const translations = {
 
     // Main Hubs (Landing Page)
     hubCvBuilderTitle: "AI CV & Resume Builder",
-    hubCvBuilderDesc: "Professional resume builder with 20+ templates, live editor, and one-click PDF/Word export.",
+    hubCvBuilderDesc:
+      "Professional resume builder with 20+ templates, live editor, and one-click PDF/Word export.",
     hubCvBuilderBadge: "Resume Templates",
     hubCvBuilderStat: "20+",
     hubCvBuilderStatLabel: "Templates",
     hubCopilotTitle: "Nova AI Career Copilot",
-    hubCopilotDesc: "24/7 intelligent career assistant: resume reviews, job search guidance, and interview tips.",
+    hubCopilotDesc:
+      "24/7 intelligent career assistant: resume reviews, job search guidance, and interview tips.",
     hubCopilotBadge: "AI Assistant",
     hubCopilotStat: "24/7",
     hubCopilotStatLabel: "Live Support",
     hubMockTestTitle: "AI Languages & Mock Interview Hub",
-    hubMockTestDesc: "English, Russian, and Turkish language prep, IELTS/CEFR tests, and AI-powered job interview practice.",
+    hubMockTestDesc:
+      "English, Russian, and Turkish language prep, IELTS/CEFR tests, and AI-powered job interview practice.",
     hubMockTestBadge: "Languages & Mocks",
     hubMockTestStat: "AI",
     hubMockTestStatLabel: "Analysis & Tests",
-
   },
   tr: {
     sidebarDashboard: "Gösterge Paneli",
+    sidebarStudents: "Öğrenciler için",
+    navStudents: "Öğrenciler için",
     sidebarCoursework: "Dönem Ödevi / Tez İçin",
     navCoursework: "Dönem Ödevi İçin",
     sidebarAcademic: "Akademik",
@@ -1375,7 +1401,8 @@ export const translations = {
     topbarHelp: "Yardım",
     topbarLogout: "Çıkış Yap",
     welcomeGreeting: "Hoş geldiniz",
-    welcomeSubtitle: "Bugün hangi belgeyi oluşturacaksınız? Yapay zeka ile dakikalar içinde profesyonel belgeler hazırlayın.",
+    welcomeSubtitle:
+      "Bugün hangi belgeyi oluşturacaksınız? Yapay zeka ile dakikalar içinde profesyonel belgeler hazırlayın.",
     activePlanLabel: "Aktif Plan",
     aiGenerationsLabel: "Yapay Zeka Üretimleri",
     cvAnalyzerLabel: "CV Analizörü",
@@ -1519,21 +1546,26 @@ export const translations = {
     statAvgBuildTime: "Ort. oluşturma süresi",
 
     demoTagline: "İnteraktif Özgeçmiş Demosu",
-    demoTitle: "Kendinizi sade kelimelerle anlatın — yapay zeka kusursuz bir özgeçmişe dönüştürsün.",
+    demoTitle:
+      "Kendinizi sade kelimelerle anlatın — yapay zeka kusursuz bir özgeçmişe dönüştürsün.",
     demoDesc:
       "Aşağıdaki alana deneyiminizi yazın, 'Oluştur'a tıklayın ve yapay zekanın sonucunu anında görün.",
     profSummaryTag: "1. Profesyonel Özet (Summary)",
     profSummaryDesc: "Basit notları işverenlerin dikkatini çekecek güçlü cümlelere dönüştürün.",
     expBuilder: "2. Deneyim Sıralama",
-    expBuilderDesc: "İş deneyimlerinizi sürükleyip bırakarak düzenleyin ve yapay zeka tavsiyeleri alın.",
-    demoInputDefault: "5 yıl boyunca ürün tasarımcısı olarak çalıştım. Ekibi yönettim ve kullanıcı etkileşimini %40 artırdım.",
-    demoOutputDefault: "Ölçeklenebilir tasarım sistemleri kurma ve kullanıcı etkileşimini %40 artırma konusunda 5+ yıllık deneyime sahip Kıdemli Ürün Tasarımcısı.",
+    expBuilderDesc:
+      "İş deneyimlerinizi sürükleyip bırakarak düzenleyin ve yapay zeka tavsiyeleri alın.",
+    demoInputDefault:
+      "5 yıl boyunca ürün tasarımcısı olarak çalıştım. Ekibi yönettim ve kullanıcı etkileşimini %40 artırdım.",
+    demoOutputDefault:
+      "Ölçeklenebilir tasarım sistemleri kurma ve kullanıcı etkileşimini %40 artırma konusunda 5+ yıllık deneyime sahip Kıdemli Ürün Tasarımcısı.",
     demoInputPlaceholder: "Deneyiminizi sade kelimelerle yazın...",
     demoGenerateBtn: "Oluştur (AI İyileştirme)",
     demoGeneratingBtn: "AI Oluşturuyor...",
     demoDragHint: "Deneyimleri yeniden sıralamak için sürükleyip bırakın (Drag & drop):",
     demoSuggestionLabel: "AI Tavsiyesi:",
-    demoSuggestionText: "Maddeleri 'Sorumluydum' yerine 'Yönettim', 'Geliştirdim' gibi güçlü eylem fiilleriyle başlatın.",
+    demoSuggestionText:
+      "Maddeleri 'Sorumluydum' yerine 'Yönettim', 'Geliştirdim' gibi güçlü eylem fiilleriyle başlatın.",
 
     templatesTagline: "Şablonlar",
     templatesHeadline: "Hikayenize ve hedef rolünüze uyan bir düzen seçin.",
@@ -1787,21 +1819,23 @@ export const translations = {
 
     // Main Hubs (Landing Page)
     hubCvBuilderTitle: "AI Özgeçmiş (CV) Oluşturucu",
-    hubCvBuilderDesc: "20+ modern şablon, kullanımı kolay editör ve tek tıkla PDF veya Word formatında indirme.",
+    hubCvBuilderDesc:
+      "20+ modern şablon, kullanımı kolay editör ve tek tıkla PDF veya Word formatında indirme.",
     hubCvBuilderBadge: "Özgeçmiş Şablonları",
     hubCvBuilderStat: "20+",
     hubCvBuilderStatLabel: "Tasarım",
     hubCopilotTitle: "AI Kariyer ve Mülakat Danışmanı",
-    hubCopilotDesc: "7/24 akıllı asistan: özgeçmiş geliştirme, iş arama, mülakat hazırlığı ve kişiselleştirilmiş rehberlik.",
+    hubCopilotDesc:
+      "7/24 akıllı asistan: özgeçmiş geliştirme, iş arama, mülakat hazırlığı ve kişiselleştirilmiş rehberlik.",
     hubCopilotBadge: "AI Asistan",
     hubCopilotStat: "7/24",
     hubCopilotStatLabel: "Canlı Destek",
     hubMockTestTitle: "AI Dil ve Mülakat Merkezi (Mock Test)",
-    hubMockTestDesc: "İngilizce, Rusça ve Türkçe dil eğitimi, IELTS/CEFR seviye tespiti ve yapay zeka ile mülakat simülasyonu.",
+    hubMockTestDesc:
+      "İngilizce, Rusça ve Türkçe dil eğitimi, IELTS/CEFR seviye tespiti ve yapay zeka ile mülakat simülasyonu.",
     hubMockTestBadge: "Dil & Mülakat",
     hubMockTestStat: "AI",
     hubMockTestStatLabel: "Test ve Analiz",
-
   },
 } as const;
 
@@ -1860,7 +1894,9 @@ export function LanguageProvider({
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t: (translations[lang] || translations.uz) as Translations }}>
+    <LanguageContext.Provider
+      value={{ lang, setLang, t: (translations[lang] || translations.uz) as Translations }}
+    >
       {children}
     </LanguageContext.Provider>
   );

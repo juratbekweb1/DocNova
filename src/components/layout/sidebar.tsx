@@ -11,7 +11,6 @@ import {
   Settings,
   Star,
   PlusCircle,
-  LayoutTemplate,
   Wand2,
   HelpCircle,
   Users,
@@ -34,7 +33,11 @@ export function Sidebar() {
 
   const userNavigation = [
     { name: t.sidebarDashboard || "Boshqaruv paneli", href: "/dashboard", icon: LayoutDashboard },
-    { name: t.sidebarCoursework || "Kurs ishi uchun", href: "/coursework", icon: GraduationCap },
+    {
+      name: t.sidebarStudents || t.sidebarCoursework || "Talabalar uchun",
+      href: "/academic",
+      icon: GraduationCap,
+    },
     { name: t.sidebarDocuments || "Hujjatlar", href: "/documents", icon: FileText },
     { name: t.sidebarAts || "ATS Tahlili", href: "/dashboard/ats-analyzer", icon: Search },
     { name: t.sidebarRefinement || "Tahrirlash", href: "/refinement", icon: Wand2 },
@@ -57,7 +60,7 @@ export function Sidebar() {
 
   let topNavigation = userNavigation;
   let title = "DocNova";
-  
+
   if (pathname.startsWith("/super-admin")) {
     topNavigation = superAdminNavigation;
     title = t.superAdminTitle || "Super Admin";
@@ -66,16 +69,23 @@ export function Sidebar() {
     title = t.adminPanelTitle || "Admin Panel";
   }
 
-  const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/academic" || pathname === "/coursework" || pathname === "/documents" || pathname === "/refinement";
+  const isDashboardRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname === "/academic" ||
+    pathname === "/coursework" ||
+    pathname === "/documents" ||
+    pathname === "/refinement";
 
-  const bottomNavigation = isDashboardRoute 
+  const bottomNavigation = isDashboardRoute
     ? [
-        { name: t.sidebarSettings || "Settings & Profile", href: "/dashboard/settings/profile", icon: Settings },
+        {
+          name: t.sidebarSettings || "Settings & Profile",
+          href: "/dashboard/settings/profile",
+          icon: Settings,
+        },
         { name: t.sidebarHelp || "Help & Support", href: "/help", icon: HelpCircle },
       ]
-    : [
-        { name: t.adminExitDashboard || "Exit to Dashboard", href: "/dashboard", icon: LogOut },
-      ];
+    : [{ name: t.adminExitDashboard || "Exit to Dashboard", href: "/dashboard", icon: LogOut }];
 
   return (
     <div className="border-border bg-background text-foreground-secondary flex h-full w-64 flex-col border-r">
@@ -104,7 +114,10 @@ export function Sidebar() {
           {topNavigation.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== "/dashboard" && item.href !== "/admin" && item.href !== "/super-admin" && pathname.startsWith(item.href));
+              (item.href !== "/dashboard" &&
+                item.href !== "/admin" &&
+                item.href !== "/super-admin" &&
+                pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}

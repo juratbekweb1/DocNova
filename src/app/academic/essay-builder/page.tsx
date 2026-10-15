@@ -6,6 +6,7 @@ import { GraduationCap, Sparkles, Loader2, Copy, Eraser, FileDown, BookOpen } fr
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
 import { useToast } from "@/hooks/use-toast";
+import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
 export default function AcademicEssayBuilderPage() {
   useRecentTool("essay-builder", "Essay Builder", "Academic Hub", "/academic/essay-builder");
@@ -101,7 +102,8 @@ Quyidagi tuzilmani qat'iy saqla:
   };
 
   return (
-    <div className="bg-background min-h-screen px-6 py-12">
+    <div className="bg-background min-h-screen pb-16">
+      <StudentSubNav activeTab="referat" />
       <UpgradeModal
         isOpen={showUpgrade}
         onClose={() => setShowUpgrade(false)}
