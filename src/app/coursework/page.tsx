@@ -585,14 +585,14 @@ export default function CourseworkGenerator() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-foreground-muted text-xs font-medium">Hajm:</span>
             {["15", "19", "25", "30"].map((cnt) => (
               <button
                 key={cnt}
                 type="button"
                 onClick={() => setFormData({ ...formData, pageCount: cnt })}
-                className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
+                className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
                   formData.pageCount === cnt
                     ? "bg-primary border-primary text-white shadow-sm"
                     : "bg-surface border-border text-foreground hover:border-primary/50"
@@ -601,6 +601,19 @@ export default function CourseworkGenerator() {
                 {cnt} bet
               </button>
             ))}
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={5}
+                max={60}
+                value={formData.pageCount}
+                onChange={(e) => setFormData({ ...formData, pageCount: e.target.value })}
+                placeholder="Boshqa"
+                className="border-border bg-background text-foreground h-7 w-16 rounded border text-center text-xs font-bold"
+                title="O'zingiz xohlagan sahifalar sonini kiriting"
+              />
+              <span className="text-foreground-muted text-[11px]">bet</span>
+            </div>
           </div>
         </div>
       </div>

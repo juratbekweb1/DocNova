@@ -18,6 +18,16 @@ import {
   Layers,
   Lightbulb,
   FileCheck2,
+  Plus,
+  Trash2,
+  Edit3,
+  Minus,
+  GraduationCap,
+  Award,
+  CheckSquare,
+  Save,
+  X,
+  Globe2,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +95,45 @@ const STYLE_OPTIONS: StyleOption[] = [
   },
 ];
 
+// Bo'limlar ro'yxati (2-rasmdagi barcha bo'limlar)
+const ACADEMIC_MODULE_OPTIONS = [
+  {
+    id: "coursework",
+    label: "Kurs ishi",
+    icon: GraduationCap,
+    defaultSlides: 10,
+    desc: "Kurs ishi himoyasi uchun 8-15 ta slayd",
+  },
+  {
+    id: "diplom",
+    label: "Diplom (BMI)",
+    icon: Award,
+    defaultSlides: 15,
+    desc: "BMI va magistrlik dissertatsiyasi himoyasi",
+  },
+  {
+    id: "referat",
+    label: "Referat & Mustaqil",
+    icon: FileText,
+    defaultSlides: 8,
+    desc: "Mustaqil ta'lim va referatlar taqdimoti",
+  },
+  {
+    id: "exam",
+    label: "Imtihon & Test",
+    icon: CheckSquare,
+    defaultSlides: 12,
+    desc: "Bilet savollari va vizual ko'rgazmalar",
+  },
+  {
+    id: "mock",
+    label: "Mock Test & Tillar",
+    icon: Globe2,
+    defaultSlides: 10,
+    desc: "IELTS / CEFR taqdimotlari",
+  },
+];
+
 const SUGGESTED_TOPICS = [
   "Raqamli iqtisodiyot sharoitida bank xizmatlarini transformatsiya qilish",
   "Sun'iy intellekt va mashinali o'rganish texnologiyalarini ta'limga tatbiq etish",
@@ -111,7 +160,9 @@ function PresentationContent() {
   const [showSourceText, setShowSourceText] = useState(false);
   const [slidesCount, setSlidesCount] = useState<number>(10);
   const [selectedStyle, setSelectedStyle] = useState<PresentationStyle>("academic");
-  const [presentationType, setPresentationType] = useState<string>("defense");
+  const [presentationType, setPresentationType] = useState<string>(
+    () => searchParams.get("type") || "coursework"
+  );
   const [language, setLanguage] = useState<"uz" | "uz-cyrl" | "ru" | "en">("uz");
 
   // Output & viewer state
@@ -122,6 +173,13 @@ function PresentationContent() {
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPptx, setIsExportingPptx] = useState(false);
+
+  // Slide inline editor state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubtitle, setEditSubtitle] = useState("");
+  const [editBulletPoints, setEditBulletPoints] = useState("");
+  const [editSpeakerNotes, setEditSpeakerNotes] = useState("");
 
   const slideRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +194,7 @@ function PresentationContent() {
 
   // Keyboard navigation
   useEffect(() => {
-    if (slides.length === 0) return;
+    if (slides.length === 0 || isEditing) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -153,7 +211,7 @@ function PresentationContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [slides.length]);
+  }, [slides.length, isEditing]);
 
   const activeStyleConfig = STYLE_OPTIONS.find((s) => s.id === selectedStyle) || STYLE_OPTIONS[0];
   const currentSlide = slides[currentSlideIndex];
@@ -172,6 +230,7 @@ function PresentationContent() {
 
     setIsGenerating(true);
     setSlides([]);
+    setIsEditing(false);
 
     try {
       const response = await fetch("/api/academic/presentation", {
@@ -208,6 +267,93 @@ function PresentationContent() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Add a new custom slide dynamically
+  const handleAddNewSlide = () => {
+    const newSlideNum = slides.length + 1;
+    const newSlide: SlideItem = {
+      slideNumber: newSlideNum,
+      type: "content",
+      title: `Yangi ilmiy slayd #${newSlideNum}`,
+      subtitle: "Amaliy tahlil yoki qo'shimcha ilmiy ma'lumot",
+      badge: `0${newSlideNum} / Qo'shimcha`,
+      bulletPoints: [
+        "Yangi asosiy ilmiy tezis va tahliliy dalil",
+        "Amaliyotdagi muammolar va statistik ko'rsatkichlar",
+        "Taklif etilayotgan yondashuv va natijalar",
+      ],
+      speakerNotes:
+        "Hurmatli komissiya a'zolari! Ushbu qo'shimcha slaydda tadqiqotimizning muhim amaliy natijalarini ko'rib chiqamiz...",
+      highlightMetric: `#${newSlideNum}`,
+    };
+
+    setSlides((prev) => [...prev, newSlide]);
+    setCurrentSlideIndex(slides.length);
+    toast({
+      title: "Yangi slayd qo'shildi!",
+      description: `Slayd ${newSlideNum} muvaffaqiyatli qo'shildi. Matnlarni tahrirlashingiz mumkin.`,
+    });
+  };
+
+  // Delete current slide
+  const handleDeleteCurrentSlide = () => {
+    if (slides.length <= 1) {
+      toast({
+        title: "O'chirib bo'lmaydi",
+        description: "Prezentatsiyada kamida 1 ta slayd bo'lishi kerak.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSlides((prev) => {
+      const filtered = prev.filter((_, idx) => idx !== currentSlideIndex);
+      return filtered.map((s, idx) => ({ ...s, slideNumber: idx + 1 }));
+    });
+    setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
+    setIsEditing(false);
+    toast({
+      title: "Slayd o'chirildi",
+    });
+  };
+
+  // Start Editing Slide
+  const handleStartEdit = () => {
+    if (!currentSlide) return;
+    setEditTitle(currentSlide.title);
+    setEditSubtitle(currentSlide.subtitle || "");
+    setEditBulletPoints(currentSlide.bulletPoints.join("\n"));
+    setEditSpeakerNotes(currentSlide.speakerNotes || "");
+    setIsEditing(true);
+  };
+
+  // Save Edited Slide
+  const handleSaveEdit = () => {
+    if (!currentSlide) return;
+    const points = editBulletPoints
+      .split("\n")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+
+    setSlides((prev) =>
+      prev.map((s, idx) =>
+        idx === currentSlideIndex
+          ? {
+              ...s,
+              title: editTitle.trim() || s.title,
+              subtitle: editSubtitle.trim() || undefined,
+              bulletPoints: points.length > 0 ? points : s.bulletPoints,
+              speakerNotes: editSpeakerNotes.trim() || s.speakerNotes,
+            }
+          : s
+      )
+    );
+    setIsEditing(false);
+    toast({
+      title: "Slayd yangilandi!",
+      description: "O'zgarishlar muvaffaqiyatli saqlandi.",
+    });
   };
 
   // Export genuine PowerPoint (.pptx)
@@ -391,17 +537,17 @@ function PresentationContent() {
           <h1 className="text-foreground flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
             Prezentatsiya va Slaydlar Yaratuvchi
             <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
-              Himoya & Konferensiya
+              Istalgancha slayd
             </span>
           </h1>
           <p className="text-foreground-secondary mt-2 max-w-3xl text-sm sm:text-base">
-            Kurs ishi yoki diplom ishi mavzusingiz asosida 1-bosishda professional prezentatsiya,
-            har bir slayd uchun ilmiy tezislar va komissiya oldida so&apos;zlash uchun
-            ma&apos;ruzachi nutqini (Speaker Notes) tayyorlang.
+            Kurs ishi, diplom (BMI), referat yoki imtihonlar uchun o&apos;zingiz xohlagancha slayd
+            qo&apos;shing, har bir slayd uchun ilmiy tezislar va ma&apos;ruzachi nutqini (Speaker
+            Notes) 1-bosishda tayyorlang.
           </p>
         </div>
 
-        {/* Studio Grid: Left Form (or collapsed) & Right Deck */}
+        {/* Studio Grid: Left Form & Right Deck */}
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
           {/* LEFT: Parameters Form */}
           <div
@@ -409,6 +555,33 @@ function PresentationContent() {
           >
             <div className="border-border bg-surface-card rounded-2xl border p-5 shadow-sm sm:p-6">
               <form onSubmit={handleGenerate} className="space-y-5">
+                {/* 2-RASMDAGI BARCHA BO'LIMLAR TANLOVI */}
+                <div>
+                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                    Qaysi akademik bo&apos;lim uchun slaydlar tayyorlanmoqda?
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {ACADEMIC_MODULE_OPTIONS.map((mod) => (
+                      <button
+                        key={mod.id}
+                        type="button"
+                        onClick={() => {
+                          setPresentationType(mod.id);
+                          setSlidesCount(mod.defaultSlides);
+                        }}
+                        className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition-all ${
+                          presentationType === mod.id
+                            ? "border-primary bg-primary/10 text-primary ring-primary shadow-sm ring-1"
+                            : "border-border bg-background text-foreground-secondary hover:bg-surface-elevated"
+                        }`}
+                      >
+                        <mod.icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{mod.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Topic Input */}
                 <div>
                   <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
@@ -444,6 +617,83 @@ function PresentationContent() {
                   </div>
                 </div>
 
+                {/* SLAYDLAR SONI: FOYDALANUVCHI O'ZI XOHLAGANCHA QO'SHADI */}
+                <div className="border-primary/20 bg-primary/5 space-y-3 rounded-xl border p-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-foreground block text-xs font-bold">
+                        Slaydlar soni
+                      </label>
+                      <span className="text-foreground-muted text-[11px]">
+                        Istalgancha slayd belgilashingiz mumkin (1 dan 60 tagacha)
+                      </span>
+                    </div>
+                    <span className="text-primary bg-primary/10 border-primary/30 rounded-lg border px-3 py-1 text-sm font-extrabold">
+                      {slidesCount} ta slayd
+                    </span>
+                  </div>
+
+                  {/* Stepper & Direct Custom Number Input */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSlidesCount((prev) => Math.max(1, prev - 1))}
+                      className="border-border bg-background hover:bg-surface-elevated text-foreground flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-sm font-bold transition-all"
+                      title="1 ta kamaytirish"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={slidesCount}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val)) {
+                            setSlidesCount(Math.min(60, Math.max(1, val)));
+                          }
+                        }}
+                        className="border-border bg-background text-foreground focus:border-primary h-9 w-full rounded-lg border px-3 text-center text-sm font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSlidesCount((prev) => Math.min(60, prev + 1))}
+                      className="border-border bg-background hover:bg-surface-elevated text-foreground flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-sm font-bold transition-all"
+                      title="1 ta qo'shish"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Quick Preset Pills */}
+                  <div>
+                    <span className="text-foreground-muted mb-1.5 block text-[10px] font-bold tracking-wider uppercase">
+                      Tezkor parametrlar:
+                    </span>
+                    <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                      {[5, 8, 10, 12, 15, 20, 25, 30].map((cnt) => (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => setSlidesCount(cnt)}
+                          className={`cursor-pointer rounded-lg border py-1.5 text-xs font-semibold transition-all ${
+                            slidesCount === cnt
+                              ? "bg-primary border-primary text-white shadow-sm"
+                              : "bg-background border-border text-foreground hover:bg-surface-elevated"
+                          }`}
+                        >
+                          {cnt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Optional Raw Coursework Text Accordion */}
                 <div>
                   <button
@@ -454,8 +704,8 @@ function PresentationContent() {
                     <FileText className="h-3.5 w-3.5" />
                     <span>
                       {showSourceText
-                        ? "Kurs ishi matnini yashirish"
-                        : "+ Kurs ishi yoki tayyor ish matnini qo'shish (ixtiyoriy)"}
+                        ? "Kurs ishi yoki diplom matnini yashirish"
+                        : "+ Kurs ishi, diplom yoki referat matnini kiritish (ixtiyoriy)"}
                     </span>
                   </button>
 
@@ -465,37 +715,11 @@ function PresentationContent() {
                         rows={4}
                         value={sourceText}
                         onChange={(e) => setSourceText(e.target.value)}
-                        placeholder="Kurs ishingizning kirish, asosiy boblar yoki xulosasidan parcha nusxalang. AI slaydlar va tezislarni ushbu matnga to'liq asoslab beradi..."
+                        placeholder="Kurs ishingiz yoki referatingizdan parcha nusxalang. AI slaydlar va ma'ruzachi nutqini ushbu matnga to'liq asoslab beradi..."
                         className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
                       />
                     </div>
                   )}
-                </div>
-
-                {/* Number of Slides Selection */}
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label className="text-foreground-secondary text-xs font-semibold">
-                      Slaydlar soni
-                    </label>
-                    <span className="text-primary text-xs font-bold">{slidesCount} ta slayd</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[8, 10, 12, 15].map((cnt) => (
-                      <button
-                        key={cnt}
-                        type="button"
-                        onClick={() => setSlidesCount(cnt)}
-                        className={`cursor-pointer rounded-xl border py-2 text-xs font-semibold transition-all ${
-                          slidesCount === cnt
-                            ? "bg-primary border-primary text-white shadow-sm"
-                            : "bg-background border-border text-foreground hover:bg-surface-elevated"
-                        }`}
-                      >
-                        {cnt} slayd
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Design Style Selector */}
@@ -528,49 +752,31 @@ function PresentationContent() {
                   </div>
                 </div>
 
-                {/* Presentation Type & Language */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      Taqdimot maqsadi
-                    </label>
-                    <select
-                      value={presentationType}
-                      onChange={(e) => setPresentationType(e.target.value)}
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                    >
-                      <option value="defense">🎓 Kurs / Diplom ishi himoyasi</option>
-                      <option value="conference">🌍 Ilmiy anjuman / Konferensiya</option>
-                      <option value="lesson">📖 Seminar / Ochiq dars</option>
-                      <option value="pitch">🚀 Startap / Loyiha taqdimoti</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      Yozish tili
-                    </label>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { id: "uz" as const, label: "O'zbek", flag: "🇺🇿" },
-                        { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
-                        { id: "en" as const, label: "English", flag: "🇬🇧" },
-                      ].map((lang) => (
-                        <button
-                          key={lang.id}
-                          type="button"
-                          onClick={() => setLanguage(lang.id)}
-                          className={`flex cursor-pointer items-center justify-center gap-1 rounded-lg border py-2 text-xs font-semibold transition-all ${
-                            language === lang.id
-                              ? "bg-primary border-primary text-white"
-                              : "bg-background border-border text-foreground hover:bg-surface-elevated"
-                          }`}
-                        >
-                          <span className="text-xs">{lang.flag}</span>
-                          <span className="truncate">{lang.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                {/* Language Selection */}
+                <div>
+                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                    Yozish tili
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { id: "uz" as const, label: "O'zbek", flag: "🇺🇿" },
+                      { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
+                      { id: "en" as const, label: "English", flag: "🇬🇧" },
+                    ].map((lang) => (
+                      <button
+                        key={lang.id}
+                        type="button"
+                        onClick={() => setLanguage(lang.id)}
+                        className={`flex cursor-pointer items-center justify-center gap-1 rounded-lg border py-2 text-xs font-semibold transition-all ${
+                          language === lang.id
+                            ? "bg-primary border-primary text-white"
+                            : "bg-background border-border text-foreground hover:bg-surface-elevated"
+                        }`}
+                      >
+                        <span className="text-xs">{lang.flag}</span>
+                        <span className="truncate">{lang.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -584,7 +790,7 @@ function PresentationContent() {
                   <span>
                     {isGenerating
                       ? "Slaydlar yaratilmoqda..."
-                      : "Prezentatsiyani Generatsiya Qilish"}
+                      : `Prezentatsiyani Generatsiya Qilish (${slidesCount} ta slayd)`}
                   </span>
                 </button>
               </form>
@@ -605,7 +811,7 @@ function PresentationContent() {
                     Prezentatsiya va Ma&apos;ruzachi nutqi yaratilmoqda...
                   </h3>
                   <p className="text-foreground-secondary mt-1 text-xs">
-                    Google Gemini AI ilmiy slaydlar va har bir daqiqalik ma&apos;ruza matnini
+                    Google Gemini AI {slidesCount} ta slayd va har bir slayd uchun nutq matnini
                     tayyorlamoqda
                   </p>
                 </div>
@@ -648,8 +854,9 @@ function PresentationContent() {
                   Prezentatsiya maydoni bo&apos;sh
                 </h3>
                 <p className="text-foreground-secondary mx-auto max-w-sm text-xs leading-relaxed">
-                  Chap tomondagi maydonga mavzuni kiriting va kerakli slaydlar sonini tanlang. AI
-                  sizga PowerPoint (.pptx) formati va nutq matnini tayyorlab beradi.
+                  Chap tomondagi maydonga mavzuni kiriting va o&apos;zingiz xohlagancha slayd sonini
+                  belgilang (masalan: 8, 10, 15 yoki 30 ta). AI sizga PowerPoint (.pptx) formati va
+                  ma&apos;ruzachi nutqini tayyorlab beradi.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   <span className="bg-surface-elevated border-border text-foreground-secondary rounded-full border px-2.5 py-1 text-[11px]">
@@ -659,7 +866,7 @@ function PresentationContent() {
                     Speaker Notes (Nutq)
                   </span>
                   <span className="bg-surface-elevated border-border text-foreground-secondary rounded-full border px-2.5 py-1 text-[11px]">
-                    16:9 Widescreen
+                    Istalgancha slayd qo&apos;shish
                   </span>
                 </div>
               </div>
@@ -679,6 +886,43 @@ function PresentationContent() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* Add Slide Button */}
+                    <button
+                      type="button"
+                      onClick={handleAddNewSlide}
+                      className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all"
+                      title="Yangi slayd qo'shish"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>+ Slayd qo&apos;shish</span>
+                    </button>
+
+                    {/* Edit Slide Button */}
+                    <button
+                      type="button"
+                      onClick={() => (isEditing ? setIsEditing(false) : handleStartEdit())}
+                      className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                        isEditing
+                          ? "border-amber-500/40 bg-amber-500/20 text-amber-300"
+                          : "bg-surface-elevated border-border text-foreground-secondary"
+                      }`}
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      <span>{isEditing ? "Yopish" : "Tahrirlash"}</span>
+                    </button>
+
+                    {/* Delete Slide Button */}
+                    {slides.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteCurrentSlide}
+                        className="flex cursor-pointer items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-400 transition-all hover:bg-red-500/20"
+                        title="Ushbu slaydni o'chirish"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+
                     {/* Speaker Notes Toggle */}
                     <button
                       type="button"
@@ -704,7 +948,7 @@ function PresentationContent() {
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
-                      <span>{isCopied ? "Nusxalandi" : "Nusxalash"}</span>
+                      <span>{isCopied ? "Nusxalandi" : "Nusxa"}</span>
                     </button>
 
                     {/* Fullscreen Preview */}
@@ -715,7 +959,6 @@ function PresentationContent() {
                       title="To'liq ekranda ko'rish"
                     >
                       <Maximize2 className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">To&apos;liq ekran</span>
                     </button>
 
                     {/* Export PowerPoint (.pptx) */}
@@ -730,6 +973,85 @@ function PresentationContent() {
                     </button>
                   </div>
                 </div>
+
+                {/* INLINE SLIDE EDITOR (When Edit Mode is Active) */}
+                {isEditing && (
+                  <div className="border-primary/30 bg-surface-card space-y-3 rounded-2xl border p-4 shadow-lg">
+                    <div className="border-border flex items-center justify-between border-b pb-2">
+                      <span className="text-primary flex items-center gap-1.5 text-xs font-bold">
+                        <Edit3 className="h-3.5 w-3.5" />
+                        <span>Slayd #{currentSlide.slideNumber} matnini tahrirlash</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditing(false)}
+                          className="border-border hover:bg-surface-elevated text-foreground-secondary flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs"
+                        >
+                          <X className="h-3 w-3" />
+                          <span>Bekor qilish</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveEdit}
+                          className="bg-primary hover:bg-primary-hover flex cursor-pointer items-center gap-1 rounded-md px-3 py-1 text-xs font-bold text-white"
+                        >
+                          <Save className="h-3 w-3" />
+                          <span>Saqlash</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                          Slayd sarlavhasi
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-2.5 py-1.5 text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                          Kichik sarlavha (subtitle)
+                        </label>
+                        <input
+                          type="text"
+                          value={editSubtitle}
+                          onChange={(e) => setEditSubtitle(e.target.value)}
+                          className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-2.5 py-1.5 text-xs focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                        Asosiy tezislar (har bir qator alohida nuqta bo&apos;ladi)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editBulletPoints}
+                        onChange={(e) => setEditBulletPoints(e.target.value)}
+                        className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-2.5 py-1.5 text-xs focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                        Ma&apos;ruzachi nutqi (Speaker Notes)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={editSpeakerNotes}
+                        onChange={(e) => setEditSpeakerNotes(e.target.value)}
+                        className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-2.5 py-1.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio) */}
                 <div
@@ -852,18 +1174,32 @@ function PresentationContent() {
                   </div>
                 )}
 
-                {/* SLIDES THUMBNAIL CAROUSEL */}
+                {/* SLIDES THUMBNAIL CAROUSEL WITH DYNAMIC ADD BUTTON */}
                 <div className="space-y-2">
-                  <div className="text-foreground-secondary flex items-center gap-1.5 text-xs font-semibold">
-                    <Layers className="text-primary h-3.5 w-3.5" />
-                    <span>Barcha slaydlar lentasi (tanlash uchun bosing):</span>
+                  <div className="flex items-center justify-between">
+                    <div className="text-foreground-secondary flex items-center gap-1.5 text-xs font-semibold">
+                      <Layers className="text-primary h-3.5 w-3.5" />
+                      <span>Barcha slaydlar ({slides.length} ta):</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddNewSlide}
+                      className="text-primary flex cursor-pointer items-center gap-1 text-[11px] font-bold hover:underline"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>+ Slayd qo&apos;shish</span>
+                    </button>
                   </div>
+
                   <div className="grid grid-cols-4 gap-2 overflow-x-auto pb-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
                     {slides.map((s, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setCurrentSlideIndex(idx)}
+                        onClick={() => {
+                          setCurrentSlideIndex(idx);
+                          setIsEditing(false);
+                        }}
                         className={`relative cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
                           currentSlideIndex === idx
                             ? "border-primary bg-primary/20 ring-primary shadow-md ring-2"
@@ -881,6 +1217,17 @@ function PresentationContent() {
                         </div>
                       </button>
                     ))}
+
+                    {/* DYNAMIC "+ QO'SHISH" CARD AT THE END */}
+                    <button
+                      type="button"
+                      onClick={handleAddNewSlide}
+                      className="border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-2 transition-all"
+                      title="Yangi slayd qo'shish"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="text-[10px] font-bold">+ Qo&apos;shish</span>
+                    </button>
                   </div>
                 </div>
 
@@ -892,6 +1239,7 @@ function PresentationContent() {
                       setSlides([]);
                       setTopic("");
                       setSourceText("");
+                      setIsEditing(false);
                     }}
                     className="text-foreground-muted hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-xs font-semibold"
                   >

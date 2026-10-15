@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
   CheckSquare,
@@ -12,6 +13,9 @@ import {
   Printer,
   HelpCircle,
   BookOpen,
+  Presentation,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +32,7 @@ export default function AcademicExamPrepPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [slidesCount, setSlidesCount] = useState<number>(12);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -218,6 +223,75 @@ export default function AcademicExamPrepPage() {
                   </>
                 )}
               </button>
+
+              {/* IMTIHON SLAYDLARI: FOYDALANUVCHI O'ZI XOHLAGANCHA SLAYD QO'SHADI */}
+              <div className="mt-4 space-y-2.5 rounded-xl border border-purple-500/30 bg-purple-500/5 p-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Presentation className="h-4 w-4 text-purple-400" />
+                    <span className="text-foreground text-xs font-bold">
+                      Imtihon ko&apos;rgazmali slaydlari (PPTX)
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-purple-400">{slidesCount} ta slayd</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-foreground-secondary text-[11px]">Slayd soni:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSlidesCount((prev) => Math.max(1, prev - 1))}
+                    className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded border text-xs font-bold"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={slidesCount}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) setSlidesCount(Math.min(60, Math.max(1, val)));
+                    }}
+                    className="border-border bg-background text-foreground h-7 w-14 rounded border text-center text-xs font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSlidesCount((prev) => Math.min(60, prev + 1))}
+                    className="border-border bg-background hover:bg-surface-elevated flex h-7 w-7 cursor-pointer items-center justify-center rounded border text-xs font-bold"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+
+                  <div className="ml-auto flex items-center gap-1">
+                    {[8, 12, 16].map((cnt) => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => setSlidesCount(cnt)}
+                        className={`cursor-pointer rounded border px-2 py-0.5 text-[10px] ${
+                          slidesCount === cnt
+                            ? "border-purple-600 bg-purple-600 font-bold text-white"
+                            : "bg-background border-border text-foreground hover:bg-surface-elevated"
+                        }`}
+                      >
+                        {cnt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Link
+                  href={`/academic/presentation?topic=${encodeURIComponent(
+                    formData.topic || formData.subject || "Imtihon savollari"
+                  )}&slides=${slidesCount}&type=exam`}
+                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-600/20 px-3 py-2 text-xs font-bold text-purple-300 transition-all hover:bg-purple-600/30"
+                >
+                  <Presentation className="h-3.5 w-3.5" />
+                  <span>{slidesCount} ta slaydli imtihon ko&apos;rgazmasi yaratish →</span>
+                </Link>
+              </div>
             </form>
           </div>
 
@@ -225,6 +299,37 @@ export default function AcademicExamPrepPage() {
           <div className="flex flex-col lg:col-span-7">
             {result ? (
               <div className="space-y-4">
+                {/* Cross-Sell Slides Banner */}
+                <Link
+                  href={`/academic/presentation?topic=${encodeURIComponent(
+                    formData.topic || formData.subject
+                  )}&slides=${slidesCount}&type=exam`}
+                  className="group flex items-center justify-between rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-500/15 via-pink-500/10 to-transparent p-3.5 transition-all hover:border-purple-500/70"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-purple-500/20 p-2 text-purple-400">
+                      <Presentation className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
+                        <span>
+                          Biletlar va savollar bo&apos;yicha slaydlar (PPTX) tayyorlaysizmi?
+                        </span>
+                        <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
+                          {slidesCount} ta slayd
+                        </span>
+                      </div>
+                      <div className="text-foreground-secondary text-[11px]">
+                        Vizual xotira va taqdimot uchun savol-javobli slaydlar
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-bold text-purple-400 transition-transform group-hover:translate-x-1">
+                    <span>Slaydlar yaratish</span>
+                    <span>→</span>
+                  </div>
+                </Link>
+
                 <div className="border-border bg-surface flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
                   <div className="text-foreground text-xs font-semibold">
                     📄 Imtihon materiallari tayyor

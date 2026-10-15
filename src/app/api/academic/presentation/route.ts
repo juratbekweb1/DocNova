@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mavzu kiritilishi shart." }, { status: 400 });
     }
 
-    const count = Math.min(Math.max(Number(slidesCount) || 10, 6), 20);
+    const count = Math.min(Math.max(Number(slidesCount) || 10, 1), 60);
     const cleanTopic = topic.trim();
     const apiKey = process.env.GEMINI_API_KEY;
 

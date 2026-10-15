@@ -12,6 +12,7 @@ import {
   Zap,
   ShieldCheck,
   Languages,
+  Presentation,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -214,8 +215,38 @@ export default function MockTestHubPage() {
           ))}
         </div>
 
+        {/* Presentation Cross-Sell Banner */}
+        <div className="mt-10">
+          <Link
+            href="/academic/presentation?type=mock&slides=10"
+            className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent p-5 transition-all hover:border-cyan-500/60"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="shrink-0 rounded-xl bg-cyan-500/20 p-3 text-cyan-400">
+                <Presentation className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-foreground flex items-center gap-2 text-sm font-bold sm:text-base">
+                  <span>Til o&apos;rganish yoki taqdimotlar uchun slaydlar (PPTX) kerakmi?</span>
+                  <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+                    Istalgancha slayd
+                  </span>
+                </div>
+                <div className="text-foreground-secondary mt-0.5 text-xs">
+                  IELTS, CEFR yoki lingvistik mavzularda xohlagancha slaydlar va ma&apos;ruzachi
+                  nutqini tayyorlang
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 transition-transform group-hover:translate-x-1 sm:text-sm">
+              <span>Slaydlar yaratish</span>
+              <span>→</span>
+            </div>
+          </Link>
+        </div>
+
         {/* How It Works Box */}
-        <div className="border-border bg-surface mt-16 rounded-2xl border p-8">
+        <div className="border-border bg-surface mt-10 rounded-2xl border p-8">
           <h3 className="text-foreground mb-8 text-center text-lg font-bold">
             Mock Test qanday ishlaydi?
           </h3>
