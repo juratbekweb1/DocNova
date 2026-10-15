@@ -340,6 +340,66 @@ export default function CourseworkGenerator() {
     }
   };
 
+  function formatMarkdownToWordHTML(md: string): string {
+    const lines = md.split("\n");
+    const resultLines: string[] = [];
+    let inTable = false;
+    let tableRows: string[][] = [];
+
+    const flushTable = () => {
+      if (tableRows.length === 0) return;
+      let tableHtml =
+        "<table border='1' cellspacing='0' cellpadding='6' style='width:100%; border-collapse:collapse; margin-top:14pt; margin-bottom:14pt;'>";
+      tableRows.forEach((row, rowIdx) => {
+        tableHtml += "<tr>";
+        row.forEach((cell) => {
+          const tag = rowIdx === 0 ? "th" : "td";
+          const style =
+            rowIdx === 0
+              ? "style='background-color:#f1f5f9; font-weight:bold; text-align:center; border:1pt solid #000; padding:6pt; font-size:12pt;'"
+              : "style='text-align:left; border:1pt solid #000; padding:6pt; font-size:12pt;'";
+          tableHtml += `<${tag} ${style}>${cell}</${tag}>`;
+        });
+        tableHtml += "</tr>";
+      });
+      tableHtml += "</table>";
+      resultLines.push(tableHtml);
+      tableRows = [];
+      inTable = false;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith("|") && line.endsWith("|")) {
+        const isSeparator = /^\|[\s\-:|]+\|$/.test(line);
+        if (isSeparator) continue;
+        const cells = line
+          .slice(1, -1)
+          .split("|")
+          .map((c) => c.trim());
+        inTable = true;
+        tableRows.push(cells);
+      } else {
+        if (inTable) flushTable();
+        resultLines.push(lines[i]);
+      }
+    }
+    if (inTable) flushTable();
+
+    let html = resultLines.join("\n");
+    html = html
+      .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+      .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+      .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+      .replace(/\*(.*?)\*/g, "<i>$1</i>")
+      .replace(/^-\s+(.*$)/gim, "<li>$1</li>")
+      .replace(/\n\n/g, "</p><p>")
+      .replace(/\n/g, "<br/>");
+
+    return `<p>${html}</p>`;
+  }
+
   // Word (.doc / .docx compatible) generator with exact Word margins & typography
   const handleDownloadWord = () => {
     if (!result && pages.length === 0) return;
@@ -353,22 +413,13 @@ export default function CourseworkGenerator() {
             .map(
               (p, idx) => `
         <div class="page-container ${idx > 0 ? "page-break" : ""}">
-          ${p.content
-            .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-            .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-            .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-            .replace(/\n\n/g, "</p><p>")
-            .replace(/\n/g, "<br/>")}
+          ${formatMarkdownToWordHTML(p.content)}
           ${p.pageNumber > 1 ? `<div class="footer-page-num">${p.pageNumber}</div>` : ""}
         </div>
       `
             )
             .join("\n")
-        : (result || "")
-            .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-            .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-            .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-            .replace(/\n\n/g, "</p><p>");
+        : formatMarkdownToWordHTML(result || "");
 
     const wordDocHTML = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
