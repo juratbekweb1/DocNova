@@ -1,18 +1,28 @@
-import { GoogleGenerativeAI, GenerativeModel, UsageMetadata } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel, type UsageMetadata } from "@google/generative-ai";
 
 /**
  * Supported Gemini candidate models with automatic failover
  */
 export const CANDIDATE_MODELS: string[] = [
   process.env.GEMINI_MODEL,
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.8-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
   "gemini-1.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-pro",
-  "gemini-pro",
 ].filter(Boolean) as string[];
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-export const genAI = new GoogleGenerativeAI(apiKey);
+export function getGenAI(customApiKey?: string): GoogleGenerativeAI {
+  const key = (customApiKey || process.env.GEMINI_API_KEY || "").trim();
+  return new GoogleGenerativeAI(key);
+}
+
+export const genAI = {
+  getGenerativeModel: (options: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0]) => {
+    return getGenAI().getGenerativeModel(options);
+  },
+};
 
 export interface GeminiGenerateOptions {
   modelName?: string;
@@ -41,19 +51,30 @@ export interface GeminiGenerateResult {
  * Custom error types for Gemini operations
  */
 export class GeminiError extends Error {
+  code:
+    | "NO_API_KEY"
+    | "RATE_LIMITED"
+    | "TIMEOUT"
+    | "QUOTA_EXCEEDED"
+    | "PARSE_ERROR"
+    | "GENERATION_FAILED";
+  originalError?: unknown;
+
   constructor(
     message: string,
-    public code:
+    code:
       | "NO_API_KEY"
       | "RATE_LIMITED"
       | "TIMEOUT"
       | "QUOTA_EXCEEDED"
       | "PARSE_ERROR"
       | "GENERATION_FAILED",
-    public originalError?: unknown
+    originalError?: unknown
   ) {
     super(message);
     this.name = "GeminiError";
+    this.code = code;
+    this.originalError = originalError;
   }
 }
 
@@ -126,8 +147,8 @@ export async function generateGeminiContent(
   prompt: string,
   options: GeminiGenerateOptions = {}
 ): Promise<GeminiGenerateResult> {
-  const currentApiKey = process.env.GEMINI_API_KEY || "";
-  if (!currentApiKey || currentApiKey.trim().length === 0 || currentApiKey.startsWith("AQ")) {
+  const currentApiKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (!currentApiKey || currentApiKey.length < 10) {
     throw new GeminiError(
       "Valid GEMINI_API_KEY environment variable is not configured.",
       "NO_API_KEY"
@@ -150,13 +171,14 @@ export async function generateGeminiContent(
 
   const startTime = Date.now();
   let lastError: unknown = null;
+  const aiClient = getGenAI(currentApiKey);
 
   for (const modelCandidate of modelsToTry) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         await rateLimiter.acquire();
 
-        const model = genAI.getGenerativeModel({
+        const model = aiClient.getGenerativeModel({
           model: modelCandidate,
           systemInstruction: systemInstruction
             ? { role: "system", parts: [{ text: systemInstruction }] }
@@ -205,6 +227,14 @@ export async function generateGeminiContent(
       } catch (err: unknown) {
         lastError = err;
         const errMsg = err instanceof Error ? err.message : String(err);
+        const is503 = errMsg.includes("503") || errMsg.includes("high demand");
+        if (is503) {
+          console.warn(
+            `[GeminiSpike] Model ${modelCandidate} is in high demand (503). Switching to next candidate model.`
+          );
+          break;
+        }
+
         const isRateLimit = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED");
         const isTimeout = err instanceof GeminiError && err.code === "TIMEOUT";
 
@@ -255,11 +285,20 @@ export async function generateGeminiJson<T>(
   });
 
   const raw = result.text;
-  const cleanJson = raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
+  let cleanJson = raw.trim();
+
+  // 1. Try markdown code block extraction
+  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    cleanJson = codeBlockMatch[1].trim();
+  } else {
+    // 2. Try outermost curly braces extraction
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleanJson = raw.slice(firstBrace, lastBrace + 1).trim();
+    }
+  }
 
   try {
     const parsed = JSON.parse(cleanJson) as T;

@@ -270,10 +270,9 @@ export default function CourseworkGenerator() {
   const [selectedCategoryIdx, setSelectedCategoryIdx] = useState(0);
   const [formData, setFormData] = useState({
     subject: "Informatika va Axborot texnologiyalari",
-    topic:
-      "Sun'iy intellekt va mashinaviy o'rganish modellarining tibbiy diagnostikadagi amaliy samaradorligi",
+    topic: "",
     faculty: "Axborot texnologiyalari fakulteti",
-    university: "O'zbekiston Milliy Universiteti",
+    university: "",
     studentName: "",
     teacherName: "",
     year: new Date().getFullYear().toString(),
@@ -307,11 +306,19 @@ export default function CourseworkGenerator() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSelectTopicSuggestion = (topic: string) => {
-    setFormData((prev) => ({ ...prev, topic }));
+  const handleTopicChange = (newTopic: string) => {
+    setFormData((prev) => ({ ...prev, topic: newTopic }));
+    if (outline && outline.topic.trim().toLowerCase() !== newTopic.trim().toLowerCase()) {
+      setOutline(null);
+    }
+  };
+
+  const handleSelectTopicSuggestion = (selectedTopic: string) => {
+    setFormData((prev) => ({ ...prev, topic: selectedTopic }));
+    setOutline(null);
     toast({
       title: "Mavzu tanlandi",
-      description: topic,
+      description: selectedTopic,
     });
   };
 
@@ -323,7 +330,8 @@ export default function CourseworkGenerator() {
   // ------------------------------------------------------------------
   const handleOneClickGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!formData.topic.trim()) {
+    const cleanTopic = formData.topic.trim();
+    if (!cleanTopic) {
       toast({
         title: "Mavzuni kiriting",
         description: "Kurs ishi mavzusini kiritishingiz shart.",
@@ -332,9 +340,16 @@ export default function CourseworkGenerator() {
       return;
     }
 
+    const matchedOutline =
+      outline && outline.topic.trim().toLowerCase() === cleanTopic.toLowerCase()
+        ? outline
+        : undefined;
+
     const payload = {
       ...formData,
+      topic: cleanTopic,
       subject: formData.subject.trim() || activeCategory.subjects[0] || "Mutaxassislik fani",
+      outline: matchedOutline,
     };
 
     setIsFastGenerating(true);
@@ -416,7 +431,8 @@ export default function CourseworkGenerator() {
   // ------------------------------------------------------------------
   const handleProceedToOutline = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.topic.trim()) {
+    const cleanTopic = formData.topic.trim();
+    if (!cleanTopic) {
       toast({
         title: "Mavzuni kiriting",
         description: "Kurs ishi mavzusi kiritilishi shart.",
@@ -424,12 +440,8 @@ export default function CourseworkGenerator() {
       });
       return;
     }
-    if (!formData.subject.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        subject: activeCategory.subjects[0] || "Mutaxassislik fani",
-      }));
-    }
+    const cleanSubject =
+      formData.subject.trim() || activeCategory.subjects[0] || "Mutaxassislik fani";
 
     setIsOutlineLoading(true);
 
@@ -440,6 +452,8 @@ export default function CourseworkGenerator() {
         body: JSON.stringify({
           action: "outline",
           ...formData,
+          topic: cleanTopic,
+          subject: cleanSubject,
         }),
       });
 
@@ -536,6 +550,21 @@ export default function CourseworkGenerator() {
   // STEP 2 -> STEP 3: Full Coursework Generation
   // ------------------------------------------------------------------
   const handleStartFullGeneration = async () => {
+    const cleanTopic = formData.topic.trim();
+    if (!cleanTopic) {
+      toast({
+        title: "Mavzuni kiriting",
+        description: "Kurs ishi mavzusi kiritilishi shart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const matchedOutline =
+      outline && outline.topic.trim().toLowerCase() === cleanTopic.toLowerCase()
+        ? outline
+        : undefined;
+
     setCurrentStep(3);
     setLoading(true);
     setResult(null);
@@ -558,7 +587,8 @@ export default function CourseworkGenerator() {
         body: JSON.stringify({
           action: "generate",
           ...formData,
-          outline,
+          topic: cleanTopic,
+          outline: matchedOutline,
         }),
       });
 
@@ -933,7 +963,7 @@ export default function CourseworkGenerator() {
               <button
                 key={cnt}
                 type="button"
-                onClick={() => setFormData({ ...formData, pageCount: cnt })}
+                onClick={() => setFormData((prev) => ({ ...prev, pageCount: cnt }))}
                 className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
                   formData.pageCount === cnt
                     ? "bg-primary border-primary text-white shadow-sm"
@@ -949,7 +979,7 @@ export default function CourseworkGenerator() {
                 min={5}
                 max={100}
                 value={formData.pageCount}
-                onChange={(e) => setFormData({ ...formData, pageCount: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, pageCount: e.target.value }))}
                 placeholder="Boshqa"
                 className="border-border bg-background text-foreground h-7 w-16 rounded border text-center text-xs font-bold"
                 title="O'zingiz xohlagan sahifalar sonini kiriting (100 tagacha)"
@@ -1052,9 +1082,9 @@ export default function CourseworkGenerator() {
                     required
                     value={formData.topic}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      setFormData({ ...formData, topic: e.target.value })
+                      handleTopicChange(e.target.value)
                     }
-                    placeholder="Masalan: Tijorat banklarida kredit risklarini boshqarish tizimini takomillashtirish..."
+                    placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari..."
                     className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-xs leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
                   />
 
@@ -1066,10 +1096,10 @@ export default function CourseworkGenerator() {
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {[
-                        "Sun'iy intellektning bank sohasida qo'llanilishi",
-                        "Raqamli iqtisodiyotda kichik biznesni rivojlantirish",
+                        "Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari",
+                        "Tibbiy diagnostikada sun'iy intellekt va mashinali o'rganish texnologiyalarini qo'llash",
+                        "O'zbekiston iqtisodiyotida kichik biznes va xususiy tadbirkorlikni rivojlantirish yo'llari",
                         "Kiberxavfsizlik va axborot himoyasi tamoyillari",
-                        "Yashil energetika va ekologik barqarorlik",
                       ].map((item, i) => (
                         <button
                           key={i}
@@ -1147,7 +1177,7 @@ export default function CourseworkGenerator() {
                         <button
                           key={item.cnt}
                           type="button"
-                          onClick={() => setFormData({ ...formData, pageCount: item.cnt })}
+                          onClick={() => setFormData((prev) => ({ ...prev, pageCount: item.cnt }))}
                           className={`flex cursor-pointer items-center justify-center rounded-xl border py-2.5 text-xs font-bold transition-all ${
                             formData.pageCount === item.cnt
                               ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
@@ -1173,7 +1203,7 @@ export default function CourseworkGenerator() {
                         <button
                           key={lang.id}
                           type="button"
-                          onClick={() => setFormData({ ...formData, language: lang.id })}
+                          onClick={() => setFormData((prev) => ({ ...prev, language: lang.id }))}
                           className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all ${
                             formData.language === lang.id
                               ? "bg-primary border-primary text-white shadow-sm"
