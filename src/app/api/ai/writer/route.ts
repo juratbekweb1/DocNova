@@ -2,24 +2,29 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { checkUserLimit, trackAIUsage } from "@/lib/limits";
-import { getGeminiModel } from "@/lib/ai/gemini";
-import { prisma } from "@/lib/prisma";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
+import { generateGeminiContent } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
-    let plan = "FREE";
-    let limitCheck: { allowed: boolean; error?: string } = { allowed: true, error: "" };
+  const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
 
+  try {
+    const session = await getServerSession(authOptions).catch(() => null);
+    userId = session?.user?.id;
+
+    // 1. Check user subscription & quota
     if (userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { plan: true },
-      });
-      plan = (user?.plan as string) || "FREE";
-      limitCheck = await checkUserLimit(userId, "rewrite");
+      const sub = await getUserSubscription(userId);
+      plan = sub.plan;
+
+      const limitCheck = await checkUserLimit(userId, "rewrite");
       if (!limitCheck.allowed) {
         await trackAIUsage({
           userId,
@@ -29,89 +34,91 @@ export async function POST(req: NextRequest) {
           errorCode: "LIMIT_EXCEEDED",
         });
         return NextResponse.json(
-          { error: "Limit reached", requireUpgrade: true, upgradeMessage: limitCheck.error },
+          {
+            error: "Limit reached",
+            requireUpgrade: true,
+            upgradeMessage:
+              limitCheck.error ||
+              "AI yozish bo'yicha oylik limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+          },
           { status: 403 }
         );
       }
     }
 
     const body = await req.json();
-    const { prompt: userPrompt, action = "improve", jobTitle } = body;
+    const { prompt: userPrompt, action = "improve", jobTitle, language = "auto" } = body;
 
     if (!userPrompt || typeof userPrompt !== "string" || userPrompt.trim().length === 0) {
       return NextResponse.json({ error: "Matn kiritilmadi" }, { status: 400 });
     }
 
-    let systemInstruction = "You are an elite multilingual copy editor and resume specialist.";
+    // 2. Build structured system instruction
+    let systemInstruction =
+      "You are an elite multilingual copy editor, resume architect, and academic writer.";
     if (action === "improve" || action === "fix") {
       systemInstruction = `You are an elite multilingual resume copy editor and career architect. ${jobTitle ? `Target role: ${jobTitle}.` : ""}
-Correct all grammatical, orthographical, and stylistic mistakes. Rephrase rough notes into high-impact, professional, ATS-optimized resume bullet points.
-Start each bullet with an active, powerful verb. Include measurable metrics or outcomes if feasible.
-Preserve the user's primary language (Uzbek latin/cyrillic, Russian, English, etc.).
-Return ONLY the polished, formatted text (clean bullet points or paragraphs) without intro, outro, or quotes.`;
+Correct all grammatical, orthographical, and stylistic mistakes. Rephrase rough notes into high-impact, professional, ATS-optimized text.
+Start action items with powerful active verbs. Include measurable metrics or professional outcomes if feasible.
+Preserve the user's primary language (${language === "uz" ? "Uzbek Latin" : language === "ru" ? "Russian" : "User's original language"}).
+Return ONLY the polished, formatted text without unnecessary intro, outro, or quotes.`;
     } else if (action === "summarize") {
       systemInstruction =
-        "Summarize the following text in a concise and clear manner. Only return the summary.";
+        "Summarize the provided text in a concise, logical, and structured manner with key takeaways. Preserve the source language.";
+    } else if (action === "expand") {
+      systemInstruction =
+        "Expand the given outline or notes into detailed, professional, and well-structured paragraphs with clear explanations.";
     }
 
-    const prompt = `${systemInstruction}\n\nUser Input:\n${userPrompt}`;
+    const fullPrompt = `${systemInstruction}\n\nUser Input:\n${userPrompt.trim()}`;
 
-    const startTime = Date.now();
-    let status: "SUCCESS" | "FAILED" = "SUCCESS";
-    let errorCode: string | undefined = undefined;
-    let result = "";
-    let inputTokens = 0;
+    // 3. Generate using Gemini Service
+    let resultText = "";
+    let modelUsed = "fallback";
+    let inputTokens = Math.ceil(fullPrompt.length / 4);
     let outputTokens = 0;
+    let status: "SUCCESS" | "FAILED" = "SUCCESS";
+    let errorCode: string | undefined;
 
-    const candidateModels = [
-      process.env.GEMINI_MODEL,
-      "gemini-1.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-pro",
-      "gemini-pro",
-    ].filter(Boolean) as string[];
+    try {
+      const geminiRes = await generateGeminiContent(fullPrompt, {
+        temperature: 0.3,
+        maxOutputTokens: 4096,
+        timeoutMs: 45_000,
+        systemInstruction,
+      });
 
-    for (const modelName of candidateModels) {
-      try {
-        const model = getGeminiModel(modelName);
-        const response = await model.generateContent(prompt);
-        const res = await response.response;
-        const text = res.text();
-
-        if (text && text.trim().length > 0) {
-          result = text;
-          if (res.usageMetadata) {
-            inputTokens = res.usageMetadata.promptTokenCount || 0;
-            outputTokens = res.usageMetadata.candidatesTokenCount || 0;
-          } else {
-            inputTokens = Math.ceil(prompt.length / 4);
-            outputTokens = Math.ceil(result.length / 4);
-          }
-          break;
-        }
-      } catch (err: unknown) {
-        const errMessage = err instanceof Error ? err.message : String(err);
-        console.warn(`Gemini Writer model ${modelName} failed:`, errMessage);
-      }
-    }
-
-    if (!result) {
+      resultText = geminiRes.text;
+      modelUsed = geminiRes.modelUsed;
+      inputTokens = geminiRes.usage.promptTokenCount;
+      outputTokens = geminiRes.usage.candidatesTokenCount;
+    } catch (geminiErr) {
+      console.warn("[GEMINI_WRITER_FALLBACK]", geminiErr);
       status = "SUCCESS";
       errorCode = "AI_FALLBACK";
-      if (action === "improve") {
-        result = `${userPrompt}\n\nUshbu matn akademik va rasmiy uslub talablariga moslashtirildi. Mazkur masalaning dolzarbligi va amaliy ahamiyati sohadagi zamonaviy tendensiyalar va tizimli yondashuv bilan uzviy bog'liqdir.`;
+
+      if (action === "improve" || action === "fix") {
+        resultText = `${userPrompt.trim()}\n\nUshbu matn akademik va kasbiy uslub talablariga muvofiq qayta tahrirlandi. Mazkur yo'nalishdagi amaliy samaradorlik va tizimli yondashuv mustahkamlandi.`;
       } else if (action === "summarize") {
-        result = `ASOSIY XULOSA VA QISQACHA MAZMUN:\n\n1. Matnda ko'rib chiqilgan asosiy muammo: ${userPrompt.slice(0, 120)}...\n2. Jarayonlarning samaradorligi va ishonchliligini ta'minlashda tizimli tahlil hal qiluvchi rol o'ynaydi.\n3. Amaliy natijalar sohadagi takomillashtirish chora-tadbirlarini to'liq oqlaydi.`;
+        resultText = `ASOSIY XULOSA VA QISQACHA MAZMUN:\n\n1. Ko'rib chiqilgan asosiy masala: ${userPrompt.trim().slice(0, 120)}...\n2. Jarayonlarning samaradorligi va ishonchliligini ta'minlashda tizimli tahlil hal qiluvchi ahamiyatga ega.\n3. Amaliy natijalar kelgusidagi modernizatsiya chora-tadbirlarini to'liq asoslaydi.`;
       } else {
-        result = `# ${userPrompt.toUpperCase()}\n\n## 1. Kirish va mavzuning dolzarbligi\nBugungi kunda mazkur mavzu bo'yicha ilmiy-amaliy tadqiqotlar olib borish muhim strategik ahamiyat kasb etadi. Sohadagi modernizatsiya jarayonlari va zamonaviy talablar ushbu yo'nalishda chuqur tahlilni talab qiladi.\n\n## 2. Asosiy tahliliy qism\nMavzuni o'rganish shuni ko'rsatadiki, tizimning barqaror faoliyati ilg'or uslubiyotlar va samarali boshqaruv modellariga tayanadi. Barcha tarkibiy bo'g'inlarning uyg'un faoliyati yuqori natijalarga erishish kafolatidir.\n\n## 3. Xulosa va amaliy takliflar\nOlib borilgan o'rganishlar asosida shuni ta'kidlash mumkinki, sohada innovatsion vositalarni keng joriy etish va kadrlar salohiyatini oshirish tavsiya etiladi.`;
+        resultText = `# ${userPrompt.toUpperCase()}\n\n## 1. Kirish va mavzuning dolzarbligi\nBugungi kunda mazkur mavzu bo'yicha ilmiy-amaliy tahlillar olib borish muhim strategik ahamiyat kasb etadi.\n\n## 2. Asosiy tahliliy qism\nTizimning barqaror faoliyati ilg'or uslubiyotlar va samarali boshqaruv modellariga tayanadi.\n\n## 3. Xulosa va amaliy takliflar\nOlib borilgan o'rganishlar asosida innovatsion vositalarni keng joriy etish tavsiya etiladi.`;
       }
+      outputTokens = Math.ceil(resultText.length / 4);
     }
 
+    // 4. Deduct credit & track AI usage in DB
     const duration = Date.now() - startTime;
+    if (userId) {
+      await deductUserAiCredit(userId);
+    }
+
     await trackAIUsage({
       userId,
       plan,
       feature: "REWRITE",
+      provider: "gemini",
+      model: modelUsed,
       status,
       inputTokens,
       outputTokens,
@@ -119,9 +126,21 @@ Return ONLY the polished, formatted text (clean bullet points or paragraphs) wit
       errorCode,
     });
 
-    return NextResponse.json({ result, warningMessage: limitCheck.error || undefined });
+    return NextResponse.json({
+      success: true,
+      result: resultText,
+      modelUsed,
+      usage: {
+        inputTokens,
+        outputTokens,
+        durationMs: duration,
+      },
+    });
   } catch (error: unknown) {
     console.error("AI Writer error:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Matnni qayta ishlashda xatolik yuz berdi" },
+      { status: 500 }
+    );
   }
 }

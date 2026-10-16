@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { SubscriptionTier } from "@prisma/client";
 
-export type FeatureType = "chat" | "document_generation" | "resume_analysis" | "rewrite" | "mock_test" | "resume_export";
+export type FeatureType =
+  | "chat"
+  | "document_generation"
+  | "resume_analysis"
+  | "rewrite"
+  | "mock_test"
+  | "resume_export"
+  | "coursework"
+  | "presentation";
 
 export const PLAN_LIMITS = {
   FREE: {
@@ -10,6 +18,8 @@ export const PLAN_LIMITS = {
     resume_analysis: 1,
     rewrite: 5,
     mock_test: 1,
+    coursework: 3,
+    presentation: 3,
     resume_export: "basic",
   },
   PRO: {
@@ -18,6 +28,8 @@ export const PLAN_LIMITS = {
     resume_analysis: 10,
     rewrite: 50,
     mock_test: 10,
+    coursework: 30,
+    presentation: 30,
     resume_export: "all",
   },
   PREMIUM: {
@@ -26,6 +38,8 @@ export const PLAN_LIMITS = {
     resume_analysis: 30,
     rewrite: 150,
     mock_test: 30,
+    coursework: 100,
+    presentation: 100,
     resume_export: "all",
   },
 };
@@ -39,7 +53,10 @@ export interface LimitCheckResult {
   code?: string;
 }
 
-export async function checkUserLimit(userId: string, featureType: FeatureType): Promise<LimitCheckResult> {
+export async function checkUserLimit(
+  userId: string,
+  featureType: FeatureType
+): Promise<LimitCheckResult> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -58,13 +75,13 @@ export async function checkUserLimit(userId: string, featureType: FeatureType): 
 
   const now = new Date();
 
-  const dailyBudget = parseFloat(process.env.AI_DAILY_BUDGET_USD || '10.0');
+  const dailyBudget = parseFloat(process.env.AI_DAILY_BUDGET_USD || "10.0");
   const todayForBudget = new Date();
   todayForBudget.setHours(0, 0, 0, 0);
 
   const agg = await prisma.aIUsage.aggregate({
     where: { createdAt: { gte: todayForBudget } },
-    _sum: { estimatedCostUsd: true }
+    _sum: { estimatedCostUsd: true },
   });
   const currentDailyCost = agg._sum.estimatedCostUsd || 0;
 
@@ -74,12 +91,11 @@ export async function checkUserLimit(userId: string, featureType: FeatureType): 
       limitExceeded: true,
       remaining: 0,
       totalLimit: 0,
-      error: 'AI xizmati vaqtincha band (Global Budget Exceeded). Keyinroq urinib koring.',
-      code: 'GLOBAL_BUDGET_EXCEEDED'
+      error: "AI xizmati vaqtincha band (Global Budget Exceeded). Keyinroq urinib koring.",
+      code: "GLOBAL_BUDGET_EXCEEDED",
     };
   }
 
-  
   if (featureType === "resume_export") {
     return {
       allowed: true,
@@ -88,10 +104,11 @@ export async function checkUserLimit(userId: string, featureType: FeatureType): 
       totalLimit: 999,
     };
   }
-  
+
   if (featureType === "mock_test") {
     const lastReq = new Date(user.lastRequestDate);
-    const isSameMonth = now.getFullYear() === lastReq.getFullYear() && now.getMonth() === lastReq.getMonth();
+    const isSameMonth =
+      now.getFullYear() === lastReq.getFullYear() && now.getMonth() === lastReq.getMonth();
     const currentMockTestCount = isSameMonth ? user.mockTestCount : 0;
     const allowed = currentMockTestCount < limits.mock_test;
     return {
@@ -99,26 +116,26 @@ export async function checkUserLimit(userId: string, featureType: FeatureType): 
       limitExceeded: !allowed,
       remaining: Math.max(0, limits.mock_test - currentMockTestCount),
       totalLimit: limits.mock_test,
-      ...( !allowed && { error: "Monthly mock test limit exceeded", code: "LIMIT_EXCEEDED" } )
+      ...(!allowed && { error: "Monthly mock test limit exceeded", code: "LIMIT_EXCEEDED" }),
     };
   }
 
   // Monthly AI feature limits using AIUsage table
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const featureKey = featureType.toUpperCase();
-  
+
   const usageCount = await prisma.aIUsage.count({
     where: {
       userId,
       feature: featureKey,
       status: "SUCCESS",
       createdAt: {
-        gte: startOfMonth
-      }
-    }
+        gte: startOfMonth,
+      },
+    },
   });
 
-  const limit = (limits as any)[featureType];
+  const limit = (limits[featureType as keyof typeof limits] ?? 10) as number;
   const allowed = usageCount < limit;
 
   return {
@@ -126,7 +143,10 @@ export async function checkUserLimit(userId: string, featureType: FeatureType): 
     limitExceeded: !allowed,
     remaining: Math.max(0, limit - usageCount),
     totalLimit: limit,
-    ...(!allowed && { error: `Bugungi AI limitingiz tugadi. Pro tarifga o'tib ko'proq foydalanishingiz mumkin.`, code: "LIMIT_EXCEEDED" })
+    ...(!allowed && {
+      error: `Bugungi AI limitingiz tugadi. Pro tarifga o'tib ko'proq foydalanishingiz mumkin.`,
+      code: "LIMIT_EXCEEDED",
+    }),
   };
 }
 
@@ -141,7 +161,7 @@ export async function trackAIUsage({
   inputTokens = 0,
   outputTokens = 0,
   requestDurationMs = 0,
-  errorCode
+  errorCode,
 }: {
   userId?: string;
   organizationId?: string;
@@ -176,10 +196,73 @@ export async function trackAIUsage({
         totalTokens,
         estimatedCostUsd,
         requestDurationMs,
-        errorCode
-      }
+        errorCode,
+      },
     });
   } catch (err) {
     console.error("Failed to track AI usage", err);
+  }
+}
+
+/**
+ * Check user subscription status, expiration, and plan tier (FREE vs PRO/PREMIUM)
+ */
+export async function getUserSubscription(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      plan: true,
+      subscriptionEndDate: true,
+      aiUsageCount: true,
+      dailyAiCount: true,
+      lastRequestDate: true,
+    },
+  });
+
+  if (!user) {
+    return { plan: "FREE" as const, isProOrPremium: false, user: null };
+  }
+
+  const isExpired = user.subscriptionEndDate
+    ? new Date(user.subscriptionEndDate) < new Date()
+    : false;
+  const activePlan = isExpired ? "FREE" : user.plan || "FREE";
+
+  return {
+    plan: activePlan as "FREE" | "PRO" | "PREMIUM",
+    isProOrPremium: activePlan === "PRO" || activePlan === "PREMIUM",
+    user,
+  };
+}
+
+/**
+ * Deduct/increment AI generation credits and daily usage in the database
+ */
+export async function deductUserAiCredit(userId: string): Promise<void> {
+  try {
+    const now = new Date();
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastRequestDate: true, dailyAiCount: true },
+    });
+    if (!user) return;
+
+    const lastReq = user.lastRequestDate ? new Date(user.lastRequestDate) : new Date(0);
+    const isSameDay =
+      now.getFullYear() === lastReq.getFullYear() &&
+      now.getMonth() === lastReq.getMonth() &&
+      now.getDate() === lastReq.getDate();
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        aiUsageCount: { increment: 1 },
+        dailyAiCount: isSameDay ? { increment: 1 } : 1,
+        lastRequestDate: now,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to deduct user AI credit:", err);
   }
 }

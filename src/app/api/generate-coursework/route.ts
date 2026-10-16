@@ -1,6 +1,14 @@
 export const maxDuration = 60;
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
+import { generateGeminiJson } from "@/lib/gemini";
 
 export interface CourseworkOutlineChapter {
   number: number;
@@ -37,6 +45,14 @@ export interface CourseworkPage {
   type: string;
   title: string;
   content: string;
+}
+
+export interface CourseworkAiChapters {
+  kirishContent?: string;
+  chapter1Content?: string;
+  chapter2Content?: string;
+  chapter3Content?: string;
+  xulosaContent?: string;
 }
 
 export function buildDefaultOutline(
@@ -193,7 +209,10 @@ export function buildDefaultOutline(
   };
 }
 
-export function generateAcademicPages(data: CourseworkData): CourseworkPage[] {
+export function generateAcademicPages(
+  data: CourseworkData,
+  aiChapters?: CourseworkAiChapters
+): CourseworkPage[] {
   const {
     subject,
     topic,
@@ -526,6 +545,10 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
       }
     }
 
+    if (aiChapters?.kirishContent && isLast) {
+      content += `\n\n### Maxsus ilmiy tahlil va tadqiqot apparati\n${aiChapters.kirishContent}`;
+    }
+
     pages.push({
       pageNumber: curPage++,
       type: "intro",
@@ -544,12 +567,8 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
   for (let i = 0; i < ch1_1_pages; i++) {
     const isFirst = i === 0;
     const subTitle = ch1Info.subsections[0] || "1.1. Nazariy asoslar va tushunchalar";
-    pages.push({
-      pageNumber: curPage++,
-      type: "chapter1",
-      title: subTitle,
-      content: isRu
-        ? `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
+    let ch1_1_content = isRu
+      ? `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
 
 Фундаментальные принципы функционирования исследуемого направления базируются на следующих критериях:
 1. **Принцип системности:** гармоничное взаимодействие всех составных элементов для достижения синергетического эффекта;
@@ -557,14 +576,24 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
 3. **Принцип результативности:** максимизация практической отдачи при оптимизации используемых ресурсов.
 
 Изучение сущности позволяет сформировать понятийный каркас, необходимый для детального анализа практических аспектов.`
-        : `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
+      : `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
 
 Fundamental nazariyaga binoan, mazkur jarayon alohida texnik yoki boshqaruv funksiyasi bo'lmay, balki barcha tarkibiy bo'g'inlarni yagona maqsad atrofida birlashtiruvchi integrallashgan mexanizmdir.
 
 Nazariy tahlillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi fundamental qoidalarga tayanadi:
 1. **Tizimlilik tamoyili:** Barcha quyi elementlarning yaxlit umumiy maqsadga xizmat qilishi;
 2. **Moslashuvchanlik tamoyili:** Tashqi muhit o'zgarishlariga nisbatan barqarorlikni saqlab qolish;
-3. **Optimallik tamoyili:** Minimal resurs sarfi evaziga eng yuqori ilmiy va amaliy natijaga erishish.`,
+3. **Optimallik tamoyili:** Minimal resurs sarfi evaziga eng yuqori ilmiy va amaliy natijaga erishish.`;
+
+    if (aiChapters?.chapter1Content && isFirst) {
+      ch1_1_content += `\n\n### Chuqur nazariy-konseptual tahlil va ilmiy qarashlar\n${aiChapters.chapter1Content}`;
+    }
+
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter1",
+      title: subTitle,
+      content: ch1_1_content,
     });
   }
 
@@ -632,12 +661,8 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
   for (let i = 0; i < ch2_1_pages; i++) {
     const isFirst = i === 0;
     const subTitle = ch2Info.subsections[0] || "2.1. Hozirgi holat va statistik tahlil";
-    pages.push({
-      pageNumber: curPage++,
-      type: "chapter2",
-      title: subTitle,
-      content: isRu
-        ? `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Практическое исследование сферы "${topic}" в Республике Узбекистан демонстрирует устойчивую положительную динамику за последние 3 года. Регуляторные инициативы и модернизация инфраструктуры позволили достичь качественных сдвигов.
+    let ch2_1_content = isRu
+      ? `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Практическое исследование сферы "${topic}" в Республике Узбекистан демонстрирует устойчивую положительную динамику за последние 3 года. Регуляторные инициативы и модернизация инфраструктуры позволили достичь качественных сдвигов.
 
 Сравнительные показатели эффективности функционирования системы сведены в следующую аналитическую таблицу:
 
@@ -650,7 +675,7 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
 | 5 | Индекс удовлетворенности (CSI) | 64% | 81% | 96% |
 
 Данные таблицы подтверждают, что оптимизация процессов позволяет сократить временные затраты в 4-6 раз при существенном росте точности.`
-        : `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}Kurs ishining ushbu bo'limida O'zbekiston Respublikasida "${topic}" yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari empirik ma'lumotlar asosida atroflicha o'rganildi.
+      : `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}Kurs ishining ushbu bo'limida O'zbekiston Respublikasida "${topic}" yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari empirik ma'lumotlar asosida atroflicha o'rganildi.
 
 Tizimning joriy holati va optimallashtirishdan keyingi kutilayotgan ko'rsatkichlari qiyosiy parametrlar asosida quyidagi jadvalda umumlashtirildi:
 
@@ -662,7 +687,17 @@ Tizimning joriy holati va optimallashtirishdan keyingi kutilayotgan ko'rsatkichl
 | 4 | Xatoliklarni avtomatik diagnostika qilish | Mavjud emas | Qisman | To'liq integrallashgan |
 | 5 | Foydalanuvchilar qoniqish darajasi (CSI) | 62% | 79% | 96% |
 
-Jadval tahlilidan ko'rinib turibdiki, yangi ilmiy modellarni joriy etish orqali vaqt sarfini 5 barobarga qisqartirish, aniqlikni esa 98 foizga yetkazish mumkin.`,
+Jadval tahlilidan ko'rinib turibdiki, yangi ilmiy modellarni joriy etish orqali vaqt sarfini 5 barobarga qisqartirish, aniqlikni esa 98 foizga yetkazish mumkin.`;
+
+    if (aiChapters?.chapter2Content && isFirst) {
+      ch2_1_content += `\n\n### Empirik tahlillar va O'zbekistondagi amaliy natijalar\n${aiChapters.chapter2Content}`;
+    }
+
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter2",
+      title: subTitle,
+      content: ch2_1_content,
     });
   }
 
@@ -726,22 +761,28 @@ Aniqlangan tizimli muammolarni bartaraf etish uchun quyidagi amaliy takliflar is
   for (let i = 0; i < ch3_1_pages; i++) {
     const isFirst = i === 0;
     const subTitle = ch3Info.subsections[0] || "3.1. Rivojlantirishning «Yo'l xaritasi»";
-    pages.push({
-      pageNumber: curPage++,
-      type: "chapter3",
-      title: subTitle,
-      content: isRu
-        ? `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Поэтапное внедрение сформированных рекомендаций по теме "${topic}" предлагается осуществлять на базе трехэтапной «Дорожной карты»:
+    let ch3_1_content = isRu
+      ? `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Поэтапное внедрение сформированных рекомендаций по теме "${topic}" предлагается осуществлять на базе трехэтапной «Дорожной карты»:
 
 - **Этап 1 (Подготовительный, 1–6 мес.):** Аудит нормативной базы и развертывание пилотных площадок;
 - **Этап 2 (Основной, 6–18 мес.):** Масштабирование архитектуры и интеграция ключевых участников;
 - **Этап 3 (Финальный, 18–24 мес.):** Выход на проектную мощность и непрерывный интеллектуальный мониторинг.`
-        : `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" yo'nalishini uzoq muddatli istiqbolda rivojlantirish milliy innovatsion salohiyatni yuksaltirishning ustuvor yo'nalishidir.
+      : `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" yo'nalishini uzoq muddatli istiqbolda rivojlantirish milliy innovatsion salohiyatni yuksaltirishning ustuvor yo'nalishidir.
 
 Taklif etilayotgan «Yo'l xaritasi»:
 - **1-bosqich (Tayyorgarlik):** Texnik shartlarni ishlab chiqish va tajriba-sinov loyihasini yo'lga qo'yish;
 - **2-bosqich (Asosiy ijro):** Yagona tizimni to'liq joriy etish va kadrlar malakasini oshirish;
-- **3-bosqich (Xulosaviy):** Barqaror monitoring va xalqaro standartlarga to'liq integratsiya.`,
+- **3-bosqich (Xulosaviy):** Barqaror monitoring va xalqaro standartlarga to'liq integratsiya.`;
+
+    if (aiChapters?.chapter3Content && isFirst) {
+      ch3_1_content += `\n\n### Strategik amaliy mexanizmlar va takliflar\n${aiChapters.chapter3Content}`;
+    }
+
+    pages.push({
+      pageNumber: curPage++,
+      type: "chapter3",
+      title: subTitle,
+      content: ch3_1_content,
     });
   }
 
@@ -788,39 +829,45 @@ Tadqiqot natijalarini amaliyotga keng miqyosda tatbiq etish bo'yicha tavsiyalar 
   // ==========================================
   for (let i = 0; i < pConcPages; i++) {
     const isFirst = i === 0;
-    pages.push({
-      pageNumber: curPage++,
-      type: "conclusion",
-      title: isRu ? "ЗАКЛЮЧЕНИЕ" : "XULOSA",
-      content: isRu
-        ? isFirst
-          ? `# ЗАКЛЮЧЕНИЕ И ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ
+    let concContent = isRu
+      ? isFirst
+        ? `# ЗАКЛЮЧЕНИЕ И ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ
 
 На основе проведенного в рамках курсовой работы исследования по теме **"${topic}"** сформулированы следующие выводы:
 1. **Теоретическая база:** Тема представляет собой ключевое звено современного научного знания в области "${subject}".
 2. **Анализ состояния:** В Узбекистане сформированы базовые институциональные предпосылки для ускоренного развития сектора.
 3. **Эмпирические результаты:** Оптимизация процессов сокращает трудоемкость в несколько раз и повышает точность до 98%.
 4. **Практические рекомендации:** Предложенная дорожная карта обеспечивает сбалансированное и экономически окупаемое внедрение инноваций.`
-          : `# РЕКОМЕНДАЦИИ И ВЫВОДЫ (Продолжение)
+        : `# РЕКОМЕНДАЦИИ И ВЫВОДЫ (Продолжение)
 
 Сформированные прикладные рекомендации адресованы органам управления образованием, профильным ведомствам и исследовательским институтам:
 - Внедрение модульных практических кейсов в программы подготовки бакалавров;
 - Создание отраслевых акселераторов для апробации научно-технических инициатив;
 - Постоянный аудит качества и актуализация нормативных стандартов в соответствии с передовой международной практикой.`
-        : isFirst
-          ? `# XULOSA VA AMALIY TAVSIYALAR
+      : isFirst
+        ? `# XULOSA VA AMALIY TAVSIYALAR
 
 "${subject}" fani doirasida "${topic}" mavzusida olib borilgan mazkur keng qamrovli tadqiqot natijalari asosida quyidagi ilmiy va amaliy xulosalar shakllantirildi:
 1. **Nazariy umumlashma:** "${topic}" zamonaviy ilmiy-texnik taraqqiyotning ajralmas bo'g'ini bo'lib, uning tizimli tashkil etilishi barcha tarmoqlarda barqarorlik garovidir.
 2. **Amaliy holat bahosi:** O'zbekistonda amalga oshirilayotgan islohotlar tufayli sohada ijobiy o'sish dinamikasi mavjud bo'lsada, qator tizimli to'siqlar saqlanib qolmoqda.
 3. **Samaradorlik hisobi:** Taklif etilgan yangi modelni joriy etish orqali jarayonlar tezligini 5 barobarga oshirish va aniqlikni 98% ga yetkazish mumkin.
 4. **Tavsiyalar:** Ishlab chiqilgan «Yo'l xaritasi» sohani bosqichma-bosqich modernizatsiya qilishning mustahkam amaliy poydevoridir.`
-          : `# AMALIY TAVSIYALAR (Davomi)
+        : `# AMALIY TAVSIYALAR (Davomi)
 
 Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim etiladi:
 - O'quv dasturlariga mavzuga doir yangi laboratoriya va amaliy mashg'ulotlarni kiritish;
 - Yagona raqamli monitoring platformasini keng tatbiq etish;
-- Soha mutaxassislari uchun doimiy malaka oshirish kurslarini tashkil qilish.`,
+- Soha mutaxassislari uchun doimiy malaka oshirish kurslarini tashkil qilish.`;
+
+    if (aiChapters?.xulosaContent && isFirst) {
+      concContent += `\n\n### Umumlashtirilgan ilmiy xulosalar\n${aiChapters.xulosaContent}`;
+    }
+
+    pages.push({
+      pageNumber: curPage++,
+      type: "conclusion",
+      title: isRu ? "ЗАКЛЮЧЕНИЕ" : "XULOSA",
+      content: concContent,
     });
   }
 
@@ -904,7 +951,41 @@ Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi tavsiyalar taqdim 
 }
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
+
   try {
+    const session = await getServerSession(authOptions).catch(() => null);
+    userId = session?.user?.id;
+
+    // 1. Quota & Subscription Enforcement
+    if (userId) {
+      const sub = await getUserSubscription(userId);
+      plan = sub.plan;
+
+      const limitCheck = await checkUserLimit(userId, "coursework");
+      if (!limitCheck.allowed) {
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "COURSEWORK",
+          status: "QUOTA_EXCEEDED",
+          errorCode: "LIMIT_EXCEEDED",
+        });
+        return NextResponse.json(
+          {
+            error: "Limit reached",
+            requireUpgrade: true,
+            upgradeMessage:
+              limitCheck.error ||
+              "Kurs ishi yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await req.json();
     const {
       action,
@@ -932,19 +1013,15 @@ export async function POST(req: Request) {
     // ----------------------------------------------------
     if (action === "outline") {
       const baseOutline = buildDefaultOutline(topic.trim(), subject.trim(), faculty?.trim(), lang);
-      const apiKey = process.env.GEMINI_API_KEY;
 
-      if (apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("AQ")) {
-        try {
-          const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-          const prompt = `
-Quyidagi mavzu bo'yicha O'zbekiston OTM (MOVSO) standartlariga mos kurs ishi rejasini JSON formatida tuzib ber:
-Fan: "${subject}"
-Mavzu: "${topic}"
+      try {
+        const prompt = `
+Quyidagi mavzu bo'yicha O'zbekiston OTM (MOVSO RUz) standartlariga mos kurs ishi rejasini JSON formatida tuzib ber:
+Fan: "${subject.trim()}"
+Mavzu: "${topic.trim()}"
 Til: "${lang}"
 
-Javobing FAQAT va FAQAT yaroqli JSON bo'lsin (hech qanday markdown \`\`\`json tegisiz):
+Javobing FAQAT va FAQAT yaroqli JSON bo'lsin:
 {
   "chapters": [
     {
@@ -965,19 +1042,21 @@ Javobing FAQAT va FAQAT yaroqli JSON bo'lsin (hech qanday markdown \`\`\`json te
   ]
 }
 `;
-          const aiRes = await model.generateContent(prompt);
-          const rawText = aiRes.response.text().trim();
-          const jsonText = rawText
-            .replace(/```json/gi, "")
-            .replace(/```/g, "")
-            .trim();
-          const parsed = JSON.parse(jsonText);
-          if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length >= 3) {
-            baseOutline.chapters = parsed.chapters.slice(0, 3);
-          }
-        } catch {
-          // Fallback to baseOutline
+        const aiRes = await generateGeminiJson<{ chapters: CourseworkOutlineChapter[] }>(prompt, {
+          temperature: 0.3,
+          maxOutputTokens: 2048,
+          timeoutMs: 30_000,
+        });
+
+        if (aiRes.data && Array.isArray(aiRes.data.chapters) && aiRes.data.chapters.length >= 3) {
+          baseOutline.chapters = aiRes.data.chapters.slice(0, 3).map((ch, idx) => ({
+            number: idx + 1,
+            title: ch.title || `BOB ${idx + 1}`,
+            subsections: Array.isArray(ch.subsections) ? ch.subsections.slice(0, 3) : [],
+          }));
         }
+      } catch (err) {
+        console.warn("[GEMINI_OUTLINE_FALLBACK]", err);
       }
 
       return NextResponse.json({
@@ -1003,8 +1082,88 @@ Javobing FAQAT va FAQAT yaroqli JSON bo'lsin (hech qanday markdown \`\`\`json te
         clientOutline || buildDefaultOutline(topic.trim(), subject.trim(), faculty?.trim(), lang),
     };
 
-    const academicPages = generateAcademicPages(data);
+    let aiChapters: CourseworkAiChapters | undefined;
+    let modelUsed = "docnova-coursework-engine";
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let status: "SUCCESS" | "FAILED" = "SUCCESS";
+    let errorCode: string | undefined;
+
+    try {
+      const chapterPrompt = `
+Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga mos ilmiy kurs ishlari bo'yicha yetakchi ekspertsiz.
+Quyidagi parametrlar bo'yicha ilmiy kurs ishi uchun kirish va 3 ta bobning batafsil akademik matnini JSON formatida tayyorlang:
+Fan: "${data.subject}"
+Mavzu: "${data.topic}"
+Kafedra/Fakultet: "${data.faculty || "Tegishli soha"}"
+Reja:
+- Kirish
+${data.outline?.chapters.map((ch) => `- ${ch.title}:\n${ch.subsections.map((s) => `  * ${s}`).join("\n")}`).join("\n")}
+- Xulosa va amaliy tavsiyalar
+Til: "${lang}"
+
+Har bir bo'lim uchun talablar:
+1. kirishContent: Mavzuning dolzarbligi ("O'zbekiston - 2030" strategiyasi va Prezident farmonlari bilan bog'langan), o'rganilganlik darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologiyasi va ilmiy yangiligi.
+2. chapter1Content: I Bob bo'yicha nazariy-metodologik asoslar, fundamental tushunchalar va xalqaro tajriba tahlili.
+3. chapter2Content: II Bob bo'yicha O'zbekistondagi real holat, statistik tahlillar, empirik ma'lumotlar va aniqlangan tizimli muammolar tahlili.
+4. chapter3Content: III Bob bo'yicha innovatsion takliflar, amaliy mexanizmlar va yo'l xaritasi.
+5. xulosaContent: Kurs ishi bo'yicha yakuniy ilmiy xulosalar va amaliy tavsiyalar.
+
+Javobni FAQAT quyidagi JSON formatida qaytaring:
+{
+  "kirishContent": "...",
+  "chapter1Content": "...",
+  "chapter2Content": "...",
+  "chapter3Content": "...",
+  "xulosaContent": "..."
+}
+`;
+      const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+        timeoutMs: 55_000,
+        systemInstruction:
+          "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy kurs ishlari mutaxassisisiz. Faqat JSON formatida javob bering.",
+      });
+
+      if (geminiRes.data && (geminiRes.data.kirishContent || geminiRes.data.chapter1Content)) {
+        aiChapters = geminiRes.data;
+        modelUsed = geminiRes.modelUsed;
+        inputTokens = geminiRes.usage.promptTokenCount;
+        outputTokens = geminiRes.usage.candidatesTokenCount;
+      }
+    } catch (geminiErr) {
+      console.warn("[GEMINI_COURSEWORK_FALLBACK]", geminiErr);
+      status = "SUCCESS";
+      errorCode = "AI_FALLBACK";
+    }
+
+    const academicPages = generateAcademicPages(data, aiChapters);
     const fullAcademicMarkdown = academicPages.map((p) => p.content).join("\n\n---\n\n");
+
+    if (outputTokens === 0) {
+      outputTokens = Math.ceil(fullAcademicMarkdown.length / 4);
+      inputTokens = Math.ceil(JSON.stringify(data).length / 4);
+    }
+
+    // 4. Deduct user credits & track usage
+    const duration = Date.now() - startTime;
+    if (userId) {
+      await deductUserAiCredit(userId);
+    }
+
+    await trackAIUsage({
+      userId,
+      plan,
+      feature: "COURSEWORK",
+      provider: "gemini",
+      model: modelUsed,
+      status,
+      inputTokens,
+      outputTokens,
+      requestDurationMs: duration,
+      errorCode,
+    });
 
     return NextResponse.json({
       success: true,
@@ -1012,6 +1171,12 @@ Javobing FAQAT va FAQAT yaroqli JSON bo'lsin (hech qanday markdown \`\`\`json te
       pages: academicPages,
       totalPages: academicPages.length,
       outline: data.outline,
+      generatedWith: modelUsed,
+      usage: {
+        inputTokens,
+        outputTokens,
+        durationMs: duration,
+      },
     });
   } catch (error: unknown) {
     console.error("Coursework Generation Exception:", error);

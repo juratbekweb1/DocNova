@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
+import { generateGeminiJson } from "@/lib/gemini";
 
 export interface SlideItem {
   slideNumber: number;
@@ -29,12 +37,49 @@ export interface PresentationResponse {
   language: string;
   slides: SlideItem[];
   generatedWith: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    durationMs: number;
+  };
 }
 
-const GEMINI_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"];
-
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
+
   try {
+    const session = await getServerSession(authOptions).catch(() => null);
+    userId = session?.user?.id;
+
+    // 1. Quota & Subscription Enforcement
+    if (userId) {
+      const sub = await getUserSubscription(userId);
+      plan = sub.plan;
+
+      const limitCheck = await checkUserLimit(userId, "presentation");
+      if (!limitCheck.allowed) {
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "PRESENTATION",
+          status: "QUOTA_EXCEEDED",
+          errorCode: "LIMIT_EXCEEDED",
+        });
+        return NextResponse.json(
+          {
+            error: "Limit reached",
+            requireUpgrade: true,
+            upgradeMessage:
+              limitCheck.error ||
+              "Prezentatsiya yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await req.json();
     const {
       topic,
@@ -51,12 +96,8 @@ export async function POST(req: NextRequest) {
 
     const count = Math.min(Math.max(Number(slidesCount) || 10, 1), 100);
     const cleanTopic = topic.trim();
-    const apiKey = process.env.GEMINI_API_KEY;
 
-    if (apiKey) {
-      const genAI = new GoogleGenerativeAI(apiKey);
-
-      const prompt = `
+    const prompt = `
 Siz oliy ta'lim va ilmiy konferensiyalar uchun professional prezentatsiyalar (slaydlar) tayyorlovchi yetakchi ekspertsiz.
 Quyidagi parametrlarga asosan akademik taqdimot (PowerPoint) slaydlar to'plamini tuzing:
 
@@ -74,10 +115,10 @@ HAR BIR SLAYD UCHUN TALABLAR:
 4. "subtitle": Kichik yo'naltiruvchi sarlavha yoki modul nomi.
 5. "badge": Kichik toifa belgisi (masalan: "01 / Kirish", "Nazariy apparat", "Amaliy tahlil", "Tavsiyalar").
 6. "bulletPoints": Aniq 3 yoki 4 ta asosiy tezis (har bir tezis bitta qatorda, ixcham va tushunarli).
-7. "speakerNotes": Ma'ruzachi (talaba) ushbu slayd davomida komissiya oldida 1-1.5 daqiqa davomida so'zlaydigan to'liq, ravon nutq matni (Speaker Speech).
+7. "speakerNotes": Ma'ruzachi (talaba) ushbu slayd davomida komissiya oldida 1-1.5 daqiqa davomida so'zlaydigan to'liq, ravon nutq matni (Speaker Notes).
 8. "highlightMetric": Muhim statistik ko'rsatkich yoki ilmiy natija xulosasi (masalan: "+28% samaradorlik", "100% GOST moslik", "3 ta asosiy yechim").
 
-JAVOBNI FAQAT QUYIDAGI VALID JSON FORMATIDA BERING (boshqa hech qanday so'z yoki markdown fensingsiz):
+JAVOBNI FAQAT QUYIDAGI VALID JSON FORMATIDA BERING:
 {
   "slides": [
     {
@@ -98,72 +139,85 @@ JAVOBNI FAQAT QUYIDAGI VALID JSON FORMATIDA BERING (boshqa hech qanday so'z yoki
 }
 `;
 
-      for (const modelName of GEMINI_MODELS) {
-        try {
-          const model = genAI.getGenerativeModel({ model: modelName });
-          const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 8192,
-            },
-          });
+    let generatedSlides: SlideItem[] | null = null;
+    let modelUsed = "docnova-presentation-engine";
+    let inputTokens = Math.ceil(prompt.length / 4);
+    let outputTokens = 0;
+    let status: "SUCCESS" | "FAILED" = "SUCCESS";
+    let errorCode: string | undefined;
 
-          const rawText = result.response.text();
-          const cleanJson = rawText
-            .replace(/^```json\s*/i, "")
-            .replace(/^```\s*/i, "")
-            .replace(/\s*```$/i, "")
-            .trim();
+    try {
+      const res = await generateGeminiJson<{ slides: SlideItem[] }>(prompt, {
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+        timeoutMs: 55_000,
+        systemInstruction:
+          "Siz oliy ta'lim va ilmiy konferensiyalar uchun professional slaydlar va ma'ruzachi nutqi (Speaker Notes) yozuvchi professsiz. Faqat JSON formatida javob bering.",
+      });
 
-          const parsed = JSON.parse(cleanJson);
-          if (parsed && Array.isArray(parsed.slides) && parsed.slides.length > 0) {
-            const normalizedSlides: SlideItem[] = parsed.slides.map(
-              (s: Record<string, unknown>, idx: number) => ({
-                slideNumber: idx + 1,
-                type: (typeof s.type === "string" ? s.type : "content") as SlideItem["type"],
-                title: typeof s.title === "string" ? s.title : `Slayd ${idx + 1}`,
-                subtitle: typeof s.subtitle === "string" ? s.subtitle : undefined,
-                badge: typeof s.badge === "string" ? s.badge : `0${idx + 1} / Modul`,
-                bulletPoints: Array.isArray(s.bulletPoints)
-                  ? s.bulletPoints.map((b) => String(b))
-                  : ["Asosiy tezis va ilmiy asoslar"],
-                speakerNotes:
-                  typeof s.speakerNotes === "string"
-                    ? s.speakerNotes
-                    : "Ushbu slayd davomida asosiy e'tiborni tadqiqot natijalariga qaratish tavsiya etiladi.",
-                highlightMetric:
-                  typeof s.highlightMetric === "string" ? s.highlightMetric : undefined,
-              })
-            );
-
-            return NextResponse.json({
-              success: true,
-              topic: cleanTopic,
-              style,
-              slidesCount: normalizedSlides.length,
-              language,
-              slides: normalizedSlides,
-              generatedWith: modelName,
-            } satisfies PresentationResponse);
-          }
-        } catch (err) {
-          console.warn(`[GEMINI_PRESENTATION_WARN] Model ${modelName} failed:`, err);
-        }
+      if (res.data && Array.isArray(res.data.slides) && res.data.slides.length > 0) {
+        generatedSlides = res.data.slides.map((s, idx) => ({
+          slideNumber: idx + 1,
+          type: (typeof s.type === "string" ? s.type : "content") as SlideItem["type"],
+          title: typeof s.title === "string" ? s.title : `Slayd ${idx + 1}`,
+          subtitle: typeof s.subtitle === "string" ? s.subtitle : undefined,
+          badge: typeof s.badge === "string" ? s.badge : `0${idx + 1} / Modul`,
+          bulletPoints: Array.isArray(s.bulletPoints)
+            ? s.bulletPoints.map((b) => String(b))
+            : ["Asosiy tezis va ilmiy asoslar"],
+          speakerNotes:
+            typeof s.speakerNotes === "string" && s.speakerNotes.trim().length > 0
+              ? s.speakerNotes
+              : "Hurmatli komissiya a'zolari! Ushbu slaydda keltirilgan ilmiy xulosalar va tahliliy natijalar mavzuning dolzarbligini amaliy jihatdan tasdiqlaydi.",
+          highlightMetric: typeof s.highlightMetric === "string" ? s.highlightMetric : undefined,
+        }));
+        modelUsed = res.modelUsed;
+        inputTokens = res.usage.promptTokenCount;
+        outputTokens = res.usage.candidatesTokenCount;
       }
+    } catch (geminiErr) {
+      console.warn("[GEMINI_PRESENTATION_FALLBACK]", geminiErr);
+      status = "SUCCESS";
+      errorCode = "AI_FALLBACK";
     }
 
-    // High-grade fallback engine
-    const fallbackSlides = generateFallbackSlides(cleanTopic, count, language, style);
+    if (!generatedSlides || generatedSlides.length === 0) {
+      generatedSlides = generateFallbackSlides(cleanTopic, count, language, style);
+      outputTokens = Math.ceil(JSON.stringify(generatedSlides).length / 4);
+    }
+
+    // Deduct user credits & record usage
+    const duration = Date.now() - startTime;
+    if (userId) {
+      await deductUserAiCredit(userId);
+    }
+
+    await trackAIUsage({
+      userId,
+      plan,
+      feature: "PRESENTATION",
+      provider: "gemini",
+      model: modelUsed,
+      status,
+      inputTokens,
+      outputTokens,
+      requestDurationMs: duration,
+      errorCode,
+    });
 
     return NextResponse.json({
       success: true,
       topic: cleanTopic,
       style,
-      slidesCount: fallbackSlides.length,
+      slidesCount: generatedSlides.length,
       language,
-      slides: fallbackSlides,
-      generatedWith: "docnova-presentation-engine",
+      slides: generatedSlides,
+      generatedWith: modelUsed,
+      usage: {
+        inputTokens,
+        outputTokens,
+        durationMs: duration,
+      },
     } satisfies PresentationResponse);
   } catch (error) {
     console.error("[GENERATE_PRESENTATION_ERROR]", error);
