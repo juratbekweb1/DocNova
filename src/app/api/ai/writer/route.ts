@@ -68,6 +68,9 @@ Return ONLY the polished, formatted text without unnecessary intro, outro, or qu
     } else if (action === "expand") {
       systemInstruction =
         "Expand the given outline or notes into detailed, professional, and well-structured paragraphs with clear explanations.";
+    } else if (action === "write") {
+      systemInstruction =
+        "You are an elite academic essay writer and researcher. Write comprehensive, well-structured, rigorous academic essays with clear arguments, evidence-based analysis, and academic citations. Strictly adhere to the user's requested outline and language.";
     }
 
     const fullPrompt = `${systemInstruction}\n\nUser Input:\n${userPrompt.trim()}`;

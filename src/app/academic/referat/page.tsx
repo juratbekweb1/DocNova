@@ -20,6 +20,113 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 
+function formatInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+    .replace(/__(.*?)__/g, "<b>$1</b>")
+    .replace(/\*(.*?)\*/g, "<i>$1</i>")
+    .replace(/_(.*?)_/g, "<i>$1</i>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+function formatMarkdownToWordHTML(md: string): string {
+  const lines = md.split("\n");
+  const resultLines: string[] = [];
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  const flushTable = () => {
+    if (tableRows.length === 0) return;
+    let tableHtml =
+      "<table border='1' cellspacing='0' cellpadding='6' style='width:100%; border-collapse:collapse; margin-top:14pt; margin-bottom:14pt;'>";
+    tableRows.forEach((row, rowIdx) => {
+      tableHtml += "<tr>";
+      row.forEach((cell) => {
+        const tag = rowIdx === 0 ? "th" : "td";
+        const style =
+          rowIdx === 0
+            ? "style='background-color:#f1f5f9; font-weight:bold; text-align:center; border:1pt solid #000; padding:6pt; font-size:12pt;'"
+            : "style='text-align:left; border:1pt solid #000; padding:6pt; font-size:12pt;'";
+        tableHtml += `<${tag} ${style}>${cell}</${tag}>`;
+      });
+      tableHtml += "</tr>";
+    });
+    tableHtml += "</table>";
+    resultLines.push(tableHtml);
+    tableRows = [];
+    inTable = false;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      const cells = trimmed
+        .slice(1, -1)
+        .split("|")
+        .map((c) => c.trim());
+      if (cells.every((c) => /^:?-+:?$/.test(c))) {
+        continue;
+      }
+      inTable = true;
+      tableRows.push(cells);
+      continue;
+    } else if (inTable) {
+      flushTable();
+    }
+
+    if (!trimmed) {
+      continue;
+    }
+
+    if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
+      resultLines.push("<hr style='border:0; border-top:1pt solid #ccc; margin:16pt 0;'/>");
+      continue;
+    }
+
+    if (trimmed.startsWith("# ")) {
+      resultLines.push(`<h1>${formatInlineMarkdown(trimmed.slice(2))}</h1>`);
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      resultLines.push(`<h2>${formatInlineMarkdown(trimmed.slice(3))}</h2>`);
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      resultLines.push(`<h3>${formatInlineMarkdown(trimmed.slice(4))}</h3>`);
+      continue;
+    }
+    if (trimmed.startsWith("#### ")) {
+      resultLines.push(`<h4>${formatInlineMarkdown(trimmed.slice(5))}</h4>`);
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      resultLines.push(
+        `<p style='text-indent: 0.8cm; margin-bottom: 4pt;'>• ${formatInlineMarkdown(
+          trimmed.replace(/^[-*]\s+/, "")
+        )}</p>`
+      );
+      continue;
+    }
+    if (/^\d+\.\s+/.test(trimmed)) {
+      resultLines.push(
+        `<p style='text-indent: 0.8cm; margin-bottom: 4pt;'>${formatInlineMarkdown(trimmed)}</p>`
+      );
+      continue;
+    }
+
+    resultLines.push(`<p>${formatInlineMarkdown(trimmed)}</p>`);
+  }
+
+  if (inTable) {
+    flushTable();
+  }
+
+  return resultLines.join("\n");
+}
+
 export default function AcademicReferatPage() {
   const { toast } = useToast();
 
@@ -98,38 +205,129 @@ export default function AcademicReferatPage() {
   const handleDownloadDoc = () => {
     if (!result) return;
     const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Referat";
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>${formData.topic}</title>
-    <style>
-      body { font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.5; margin: 25mm 20mm 20mm 25mm; text-align: justify; }
-      h1 { font-size: 16pt; text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; }
-      h2 { font-size: 14pt; font-weight: bold; margin-top: 15px; }
-      p { margin-bottom: 12px; text-indent: 1.25cm; }
-    </style></head><body>`;
-    const footer = "</body></html>";
-    const formattedBody = result
-      .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-      .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-      .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-      .replace(/\n\n/g, "</p><p>");
+    const formattedHtml = formatMarkdownToWordHTML(result);
 
-    const blob = new Blob([header + "<p>" + formattedBody + "</p>" + footer], {
-      type: "application/msword",
-    });
+    const wordDocHTML = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>${formData.topic}</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          @page Section1 {
+            size: 210mm 297mm;
+            margin: 20mm 20mm 20mm 25mm; /* MOVSO GOST: chapdan 25mm, yuqori/o'ng/past 20mm */
+            mso-header-margin: 15mm;
+            mso-footer-margin: 15mm;
+          }
+          div.Section1 { page: Section1; }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 14pt;
+            line-height: 1.5;
+            color: #000000;
+            text-align: justify;
+          }
+          h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            margin-top: 20pt;
+            margin-bottom: 14pt;
+          }
+          h2 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 16pt;
+            margin-bottom: 8pt;
+          }
+          h3 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 12pt;
+            margin-bottom: 6pt;
+          }
+          p {
+            text-indent: 1.25cm;
+            margin-top: 0;
+            margin-bottom: 8pt;
+            line-height: 1.5;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12pt;
+            margin-bottom: 12pt;
+          }
+          th, td {
+            border: 1pt solid #000000;
+            padding: 6pt;
+            font-size: 12pt;
+          }
+          th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="Section1">
+          ${formattedHtml}
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([wordDocHTML], { type: "application/msword;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Referat_${cleanTopic}.doc`;
+    a.download = `${formData.workType.replace(/[^a-zA-Z0-9]/g, "_")}_${cleanTopic}.doc`;
     a.click();
     URL.revokeObjectURL(url);
+
+    toast({
+      title: "Word (.doc) yuklab olindi! 📄",
+      description: "Hujjat MOVSO GOST standartlariga to'liq mos holda saqlandi.",
+    });
+  };
+
+  const handlePrint = () => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 640 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
+    if (isMobile) {
+      toast({
+        title: "Mobil PDF eksport 📱",
+        description:
+          "Chop etish oynasida 'PDF sifatida saqlash' yoki 'Fayllarga saqlash'ni tanlang.",
+      });
+    }
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   return (
-    <div className="bg-background text-foreground min-h-screen pb-20">
-      <StudentSubNav activeTab="referat" />
+    <div className="bg-background text-foreground min-h-screen pb-20 print:bg-white print:pb-0">
+      <div className="print:hidden">
+        <StudentSubNav activeTab="referat" />
+      </div>
 
       {/* Top Banner */}
-      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8">
+      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
@@ -147,10 +345,10 @@ export default function AcademicReferatPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 print:p-0">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 print:block">
           {/* Left Form */}
-          <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm lg:col-span-5">
+          <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm lg:col-span-5 print:hidden">
             <h2 className="text-foreground mb-4 flex items-center gap-2 text-lg font-bold">
               <FileText className="h-5 w-5 text-emerald-400" />
               Ish ma&apos;lumotlari
@@ -355,7 +553,7 @@ export default function AcademicReferatPage() {
                   href={`/academic/presentation?topic=${encodeURIComponent(
                     formData.topic
                   )}&slides=${slidesCount}&type=referat`}
-                  className="group flex items-center justify-between rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent p-3.5 transition-all hover:border-emerald-500/70"
+                  className="group flex items-center justify-between rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent p-3.5 transition-all hover:border-emerald-500/70 print:hidden"
                 >
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
@@ -379,9 +577,16 @@ export default function AcademicReferatPage() {
                   </div>
                 </Link>
 
-                <div className="border-border bg-surface flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
-                  <div className="text-foreground text-xs font-semibold">
-                    📄 Referat / Mustaqil ish tayyor
+                <div className="border-border bg-surface flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 print:hidden">
+                  <div className="text-foreground flex items-center gap-2 text-xs font-semibold">
+                    <span>📄 {formData.workType} tayyor</span>
+                    <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
+                      {Math.max(
+                        1,
+                        Math.round((result.split(/\s+/).filter(Boolean).length || 0) / 280)
+                      )}{" "}
+                      bet ({result.split(/\s+/).filter(Boolean).length.toLocaleString()} so&apos;z)
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -400,26 +605,27 @@ export default function AcademicReferatPage() {
                       className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-500"
                     >
                       <FileDown className="h-3.5 w-3.5" />
-                      <span>Word (.doc) yuklash</span>
+                      <span>Word (.doc)</span>
                     </button>
                     <button
-                      onClick={() => window.print()}
+                      onClick={handlePrint}
                       className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                      title="Chop etish yoki PDF sifatida saqlash"
                     >
                       <Printer className="h-3.5 w-3.5" />
-                      <span>Chop etish</span>
+                      <span>Chop etish / PDF</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="border-border max-h-[800px] overflow-y-auto rounded-2xl border bg-white p-8 font-serif text-sm leading-relaxed text-slate-900 shadow-xl sm:p-12">
-                  <div className="prose prose-slate max-w-none text-slate-900">
+                <div className="border-border max-h-[800px] overflow-y-auto rounded-2xl border bg-white p-8 font-serif text-sm leading-relaxed text-slate-900 shadow-xl sm:p-12 print:m-0 print:max-h-none print:overflow-visible print:border-0 print:p-0 print:text-black print:shadow-none">
+                  <div className="prose prose-slate max-w-none text-slate-900 print:text-black">
                     <ReactMarkdown>{result}</ReactMarkdown>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="border-border bg-surface/40 flex min-h-[400px] flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed p-12 text-center">
+              <div className="border-border bg-surface/40 flex min-h-[400px] flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed p-12 text-center print:hidden">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
                   <Layers className="h-7 w-7" />
                 </div>
@@ -435,6 +641,23 @@ export default function AcademicReferatPage() {
           </div>
         </div>
       </div>
+
+      {/* Print Specific CSS */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20mm 20mm 20mm 25mm;
+          }
+          body {
+            background-color: white !important;
+            color: black !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -842,6 +842,24 @@ export default function CourseworkGenerator() {
   // ------------------------------------------------------------------
   const handleDownloadPDF = async () => {
     if (!documentRef.current && pages.length === 0 && !result) return;
+
+    // Mobile resilience: Mobile browsers crash or block massive 30-page html2canvas renders.
+    // Native print engine produces vector-crisp PDF instantly without memory exhaustion.
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 640 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
+    if (isMobile) {
+      toast({
+        title: "Mobil PDF eksport 📱",
+        description:
+          "Chop etish oynasida 'PDF sifatida saqlash' yoki 'Fayllarga saqlash'ni tanlang.",
+      });
+      handlePrint();
+      return;
+    }
+
     setDownloading(true);
     setDownloadProgress("Barcha sahifalar tayyorlanmoqda...");
 
@@ -886,12 +904,15 @@ export default function CourseworkGenerator() {
         description: `Barcha ${pages.length || formData.pageCount} sahifalik kurs ishi A4 formatida saqlandi.`,
       });
     } catch (err: unknown) {
-      console.error(err);
+      console.error("[PDF_EXPORT_ERROR]", err);
       toast({
-        title: "PDF yaratishda xatolik",
-        description: "Iltimos, 'Chop etish' tugmasi orqali 'PDF sifatida saqlash'ni tanlang.",
-        variant: "destructive",
+        title: "Chop etish orqali PDF saqlash",
+        description:
+          "Brauzerning chop etish oynasi ochilmoqda. Undan 'PDF sifatida saqlash'ni tanlang.",
       });
+      setTimeout(() => {
+        handlePrint();
+      }, 300);
     } finally {
       if (prevMode !== "continuous") {
         setViewMode(prevMode);

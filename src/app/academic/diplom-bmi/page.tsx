@@ -522,12 +522,32 @@ export default function DiplomBmiPage() {
     });
   };
 
+  const handlePrint = () => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 640 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
+    if (isMobile) {
+      toast({
+        title: "Mobil PDF eksport 📱",
+        description:
+          "Chop etish oynasida 'PDF sifatida saqlash' yoki 'Fayllarga saqlash'ni tanlang.",
+      });
+    }
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
   return (
-    <div className="bg-background text-foreground min-h-screen pb-20">
-      <StudentSubNav activeTab="diplom-bmi" />
+    <div className="bg-background text-foreground min-h-screen pb-20 print:bg-white print:pb-0">
+      <div className="print:hidden">
+        <StudentSubNav activeTab="diplom-bmi" />
+      </div>
 
       {/* Top Banner */}
-      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8">
+      <div className="border-border bg-surface/30 border-b px-4 py-8 sm:px-6 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400">
@@ -553,10 +573,10 @@ export default function DiplomBmiPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 print:p-0">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 print:block">
           {/* Left Form */}
-          <div className="border-border bg-surface sticky top-24 rounded-2xl border p-6 shadow-sm lg:col-span-5">
+          <div className="border-border bg-surface sticky top-24 rounded-2xl border p-6 shadow-sm lg:col-span-5 print:hidden">
             <div className="border-border mb-4 flex items-center justify-between border-b pb-3">
               <h2 className="text-foreground flex items-center gap-2 text-base font-bold">
                 <Sparkles className="h-4 w-4 text-amber-400" />
@@ -986,7 +1006,7 @@ export default function DiplomBmiPage() {
                       <span>Word (.doc)</span>
                     </button>
                     <button
-                      onClick={() => window.print()}
+                      onClick={handlePrint}
                       className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
                     >
                       <Printer className="h-3.5 w-3.5" />
@@ -999,7 +1019,7 @@ export default function DiplomBmiPage() {
                 <div className="flex w-full justify-center overflow-x-auto p-2 print:p-0">
                   <div
                     ref={documentRef}
-                    className="a4-document border-border prose prose-slate w-[210mm] max-w-full shrink-0 rounded-sm border bg-white p-8 font-serif text-sm leading-relaxed text-black shadow-2xl sm:p-12 print:border-0 print:shadow-none"
+                    className="a4-document border-border prose prose-slate w-[210mm] max-w-full shrink-0 rounded-sm border bg-white p-8 font-serif text-sm leading-relaxed text-black shadow-2xl sm:p-12 print:border-0 print:p-0 print:shadow-none"
                     style={{
                       boxSizing: "border-box",
                       padding: "20mm 20mm 20mm 25mm", // GOST: chap 25mm, yuqori/o'ng/past 20mm
@@ -1012,7 +1032,7 @@ export default function DiplomBmiPage() {
               </div>
             ) : (
               !loading && (
-                <div className="border-border bg-surface/40 flex min-h-[440px] flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed p-12 text-center">
+                <div className="border-border bg-surface/40 flex min-h-[440px] flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed p-12 text-center print:hidden">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400">
                     <BookOpen className="h-7 w-7" />
                   </div>
@@ -1030,6 +1050,23 @@ export default function DiplomBmiPage() {
           </div>
         </div>
       </div>
+
+      {/* Print Specific CSS */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20mm 20mm 20mm 25mm;
+          }
+          body {
+            background-color: white !important;
+            color: black !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

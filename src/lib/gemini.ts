@@ -6,9 +6,9 @@ import { GoogleGenerativeAI, GenerativeModel, type UsageMetadata } from "@google
 export const CANDIDATE_MODELS: string[] = [
   process.env.GEMINI_MODEL,
   "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
   "gemini-3.6-flash",
   "gemini-3.8-flash",
-  "gemini-3.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-1.5-flash",
 ].filter(Boolean) as string[];
@@ -236,7 +236,20 @@ export async function generateGeminiContent(
         }
 
         const isRateLimit = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED");
+        const isDailyQuotaExceeded =
+          isRateLimit &&
+          (errMsg.includes("PerDay") ||
+            errMsg.includes("free_tier_requests") ||
+            errMsg.includes("retryDelay") ||
+            errMsg.includes("quotaId"));
         const isTimeout = err instanceof GeminiError && err.code === "TIMEOUT";
+
+        if (isDailyQuotaExceeded) {
+          console.warn(
+            `[GeminiDailyQuota] Model ${modelCandidate} daily quota exhausted. Switching immediately to next candidate.`
+          );
+          break;
+        }
 
         if (isRateLimit && attempt < maxRetries) {
           const backoffDelay = (attempt + 1) * 1500 + Math.random() * 500;
