@@ -27,8 +27,12 @@ export const authOptions = {
         password: {},
       },
       async authorize(credentials) {
-        if (!credentials?.email || typeof credentials.email !== 'string' || !credentials.email.trim()) {
-          throw new Error('Email requirement failed: valid email string is required.');
+        if (
+          !credentials?.email ||
+          typeof credentials.email !== "string" ||
+          !credentials.email.trim()
+        ) {
+          throw new Error("Email requirement failed: valid email string is required.");
         }
 
         if (!credentials?.password) {
@@ -40,9 +44,15 @@ export const authOptions = {
         let lockoutResult;
         try {
           lockoutResult = await checkAccountLockout(email);
-        } catch (error: any) {
-          if (error.code === 'ECONNREFUSED' || (error.message && error.message.includes('invocation'))) {
-            throw new Error('Ma\'lumotlar bazasiga ulanib bo\'lmadi. Iltimos, PostgreSQL ishlayotganiga va DATABASE_URL to\'g\'riligiga ishonch hosil qiling.');
+        } catch (error: unknown) {
+          const err = error as { code?: string; message?: string };
+          if (
+            err?.code === "ECONNREFUSED" ||
+            (err?.message && err.message.includes("invocation"))
+          ) {
+            throw new Error(
+              "Ma'lumotlar bazasiga ulanib bo'lmadi. Iltimos, PostgreSQL ishlayotganiga va DATABASE_URL to'g'riligiga ishonch hosil qiling."
+            );
           }
           throw error;
         }
@@ -95,19 +105,19 @@ export const authOptions = {
           if (!totpCode) {
             throw new Error("2FA token required");
           }
-          
+
           const { decrypt } = await import("@/lib/security/encryption");
           const { authenticator } = await import("otplib");
-          
+
           const secret = decrypt(user.twoFactorSecret);
           const isValid = authenticator.verify({ token: totpCode, secret });
-          
+
           if (!isValid) {
             // Check if it's a backup code
             const backupCode = await prisma.backupRecoveryCode.findUnique({
               where: { code: totpCode },
             });
-            
+
             if (backupCode && !backupCode.used && backupCode.userId === user.id) {
               await prisma.backupRecoveryCode.update({
                 where: { id: backupCode.id },
@@ -139,4 +149,29 @@ export const authOptions = {
       },
     }),
   ],
+  events: {
+    async createUser({
+      user,
+    }: {
+      user: { id: string; name?: string | null; email?: string | null; image?: string | null };
+    }) {
+      try {
+        const emailPrefix = user.email
+          ? user.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "")
+          : `user_${Date.now()}`;
+        const uniqueUsername = `${emailPrefix}_${Math.floor(1000 + Math.random() * 9000)}`;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            username: uniqueUsername,
+            displayName: user.name || emailPrefix,
+            avatar: user.image,
+            plan: "FREE",
+          },
+        });
+      } catch (err) {
+        console.error("Failed to initialize OAuth profile in createUser event:", err);
+      }
+    },
+  },
 };

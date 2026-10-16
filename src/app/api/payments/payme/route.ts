@@ -11,6 +11,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: { code: -32504, message: "Insufficient privileges." } });
     }
 
+    if (process.env.PAYME_PASSWORD) {
+      try {
+        const credentials = Buffer.from(authHeader.replace("Basic ", "").trim(), "base64").toString(
+          "utf-8"
+        );
+        const parts = credentials.split(":");
+        const password = parts.length > 1 ? parts[1] : parts[0];
+        if (password !== process.env.PAYME_PASSWORD) {
+          return NextResponse.json({ error: { code: -32504, message: "Invalid credentials." } });
+        }
+      } catch {
+        return NextResponse.json({ error: { code: -32504, message: "Malformed credentials." } });
+      }
+    }
+
     const payload = await req.json();
     const { method, params, id } = payload;
 
@@ -48,6 +63,31 @@ export async function POST(req: Request) {
 
       case "PerformTransaction": {
         const transactionId = params.account?.transaction_id || params.id;
+
+        const existing = await prisma.transaction.findUnique({
+          where: { id: transactionId },
+        });
+
+        if (!existing) {
+          return NextResponse.json({
+            error: { code: -31050, message: "Transaction not found" },
+            id,
+          });
+        }
+
+        // Idempotency: if already paid, return state: 2 without repeating date updates
+        if (existing.status === "PAID" || existing.status === "COMPLETED") {
+          return NextResponse.json({
+            result: {
+              transaction: params.id,
+              perform_time: existing.createdAt
+                ? new Date(existing.createdAt).getTime()
+                : new Date().getTime(),
+              state: 2,
+            },
+            id,
+          });
+        }
 
         await prisma.$transaction(async (tx) => {
           const t = await tx.transaction.update({

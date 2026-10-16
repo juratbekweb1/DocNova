@@ -1,50 +1,49 @@
+export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const CANDIDATE_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"];
-
-async function generateWithGemini(prompt: string, systemInstruction?: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY || "";
-  if (!apiKey || apiKey.startsWith("AQ")) {
-    throw new Error("Valid Google AI Studio API key not configured");
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError: unknown = null;
-
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: systemInstruction
-          ? { role: "system", parts: [{ text: systemInstruction }] }
-          : undefined,
-      });
-
-      const response = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-
-      const text = response.response.text();
-      if (text && text.trim().length > 0) {
-        return text;
-      }
-    } catch (err) {
-      lastError = err;
-      continue;
-    }
-  }
-
-  throw lastError || new Error("All Gemini models failed");
-}
+import { generateGeminiContent } from "@/lib/gemini";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
+
   try {
     const session = await getServerSession(authOptions).catch(() => null);
-    // Session is optional for student academic generation
-    const _userId = session?.user?.id;
+    userId = session?.user?.id;
+
+    if (userId) {
+      const sub = await getUserSubscription(userId);
+      plan = sub.plan;
+
+      const limitCheck = await checkUserLimit(userId, "coursework");
+      if (!limitCheck.allowed) {
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "ACADEMIC_GENERATION",
+          status: "QUOTA_EXCEEDED",
+          errorCode: "LIMIT_EXCEEDED",
+        });
+        return NextResponse.json(
+          {
+            error: "Limit reached",
+            requireUpgrade: true,
+            upgradeMessage:
+              limitCheck.error ||
+              "Akademik hujjat yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const body = await req.json();
     const {
@@ -133,14 +132,36 @@ QAT'IY TALABLAR (O'zbekiston OTM standartlari va GOST bo'yicha):
 Matnni Markdown formatida, #, ##, ### sarlavhalar, qalin shrift va II Bobda statistik jadval bilan yozing.`;
 
       try {
-        const text = await generateWithGemini(
-          prompt,
-          isRu
+        const geminiRes = await generateGeminiContent(prompt, {
+          systemInstruction: isRu
             ? "Вы — ведущий профессор вузов Узбекистана, специалист по подготовке ВКР, докторских и магистерских диссертаций."
-            : "Siz O'zbekiston oliy ta'lim tizimi professori, dissertatsiya va BMI mutaxassisisiz."
-        );
-        if (text && text.trim().length > 500) {
-          return NextResponse.json({ success: true, result: text, generatedWith: "gemini" });
+            : "Siz O'zbekiston oliy ta'lim tizimi professori, dissertatsiya va BMI mutaxassisisiz.",
+          maxOutputTokens: 8192,
+          timeoutMs: 55_000,
+        });
+
+        if (geminiRes.text && geminiRes.text.trim().length > 500) {
+          if (userId) {
+            await deductUserAiCredit(userId);
+          }
+          await trackAIUsage({
+            userId,
+            plan,
+            feature: "BMI_DIPLOM",
+            provider: "gemini",
+            model: geminiRes.modelUsed,
+            status: "SUCCESS",
+            inputTokens: geminiRes.usage.promptTokenCount,
+            outputTokens: geminiRes.usage.candidatesTokenCount,
+            requestDurationMs: Date.now() - startTime,
+          });
+
+          return NextResponse.json({
+            success: true,
+            result: geminiRes.text,
+            generatedWith: geminiRes.modelUsed,
+            usage: geminiRes.usage,
+          });
         }
       } catch (geminiErr) {
         console.warn("Gemini generation failed, using MOVSO RUz standard fallback:", geminiErr);
@@ -515,6 +536,22 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
 28. ResearchGate — olimlar va tadqiqotchilar xalqaro tarmog'i — https://www.researchgate.net`;
       }
 
+      if (userId) {
+        await deductUserAiCredit(userId);
+      }
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "BMI_DIPLOM",
+        provider: "gemini",
+        model: "movso-standards-engine",
+        status: "SUCCESS",
+        inputTokens: Math.ceil(prompt.length / 4),
+        outputTokens: Math.ceil(fallbackBmi.length / 4),
+        requestDurationMs: Date.now() - startTime,
+        errorCode: "AI_FALLBACK",
+      });
+
       return NextResponse.json({
         success: true,
         result: fallbackBmi,
@@ -540,12 +577,36 @@ Tuzilishi:
 7. ADABIYOTLAR RO'YXATI (kamida 5-8 ta)`;
 
       try {
-        const text = await generateWithGemini(
-          prompt,
-          "Siz talabalar uchun professional akademik referat va mustaqil ish yozuvchi mutaxassissiz."
-        );
-        return NextResponse.json({ success: true, result: text });
-      } catch {
+        const geminiRes = await generateGeminiContent(prompt, {
+          systemInstruction:
+            "Siz talabalar uchun professional akademik referat va mustaqil ish yozuvchi mutaxassissiz.",
+          maxOutputTokens: 6144,
+          timeoutMs: 50_000,
+        });
+
+        if (userId) {
+          await deductUserAiCredit(userId);
+        }
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "REFERAT",
+          provider: "gemini",
+          model: geminiRes.modelUsed,
+          status: "SUCCESS",
+          inputTokens: geminiRes.usage.promptTokenCount,
+          outputTokens: geminiRes.usage.candidatesTokenCount,
+          requestDurationMs: Date.now() - startTime,
+        });
+
+        return NextResponse.json({
+          success: true,
+          result: geminiRes.text,
+          generatedWith: geminiRes.modelUsed,
+          usage: geminiRes.usage,
+        });
+      } catch (geminiErr) {
+        console.warn("Referat Gemini generation failed:", geminiErr);
         const fallbackReferat = `# REFERAT / MUSTAQIL ISH
 
 **Fan:** ${subject || "Mutaxassislikka kirish"}  
@@ -595,6 +656,22 @@ Referat doirasida olib borilgan o'rganishlar quyidagi xulosalarni chiqarish imko
 3. Yo'ldoshev J.G. Yangi pedagogik texnologiyalar yo'nalishlari. — Toshkent: Fan, 2021.
 4. Xalqaro ilmiy ma'lumotlar bazasi va elektron kutubxona materiallari.`;
 
+        if (userId) {
+          await deductUserAiCredit(userId);
+        }
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "REFERAT",
+          provider: "gemini",
+          model: "academic-fallback",
+          status: "SUCCESS",
+          inputTokens: Math.ceil(prompt.length / 4),
+          outputTokens: Math.ceil(fallbackReferat.length / 4),
+          requestDurationMs: Date.now() - startTime,
+          errorCode: "AI_FALLBACK",
+        });
+
         return NextResponse.json({ success: true, result: fallbackReferat });
       }
     }
@@ -606,12 +683,36 @@ Mavzu: "${topic}"
 Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test (har birida 4 ta variant A, B, C, D va to'g'ri javob izohi) hamda 3 ta asosiy imtihon bilet savolining mukammal yozma javobini tuzib ber.`;
 
       try {
-        const text = await generateWithGemini(
-          prompt,
-          "Siz oliy ta'lim imtihonlari va test sinovlari tuzuvchi tajribali professiz."
-        );
-        return NextResponse.json({ success: true, result: text });
-      } catch {
+        const geminiRes = await generateGeminiContent(prompt, {
+          systemInstruction:
+            "Siz oliy ta'lim imtihonlari va test sinovlari tuzuvchi tajribali professiz.",
+          maxOutputTokens: 6144,
+          timeoutMs: 50_000,
+        });
+
+        if (userId) {
+          await deductUserAiCredit(userId);
+        }
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "EXAM_PREP",
+          provider: "gemini",
+          model: geminiRes.modelUsed,
+          status: "SUCCESS",
+          inputTokens: geminiRes.usage.promptTokenCount,
+          outputTokens: geminiRes.usage.candidatesTokenCount,
+          requestDurationMs: Date.now() - startTime,
+        });
+
+        return NextResponse.json({
+          success: true,
+          result: geminiRes.text,
+          generatedWith: geminiRes.modelUsed,
+          usage: geminiRes.usage,
+        });
+      } catch (geminiErr) {
+        console.warn("Exam prep Gemini generation failed:", geminiErr);
         const fallbackExam = `# IMTIHON VA TESTLARGA TAYYORGARLIK MATERIALLARI
 
 **Fan:** ${subject || "Mutaxassislik fani"}  
@@ -653,6 +754,22 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
    - D) Tasodifiy tanlash
 
 *(To'liq 10 ta test savollari va yechimlari bilan o'zlashtirish tavsiya etiladi)*`;
+
+        if (userId) {
+          await deductUserAiCredit(userId);
+        }
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "EXAM_PREP",
+          provider: "gemini",
+          model: "academic-fallback",
+          status: "SUCCESS",
+          inputTokens: Math.ceil(prompt.length / 4),
+          outputTokens: Math.ceil(fallbackExam.length / 4),
+          requestDurationMs: Date.now() - startTime,
+          errorCode: "AI_FALLBACK",
+        });
 
         return NextResponse.json({ success: true, result: fallbackExam });
       }

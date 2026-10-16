@@ -54,6 +54,17 @@ export async function POST(req: Request) {
       });
     } else if (action === "1") {
       // COMPLETE
+      // Idempotency: if already paid, return success immediately
+      if (transaction.status === "PAID" || transaction.status === "COMPLETED") {
+        return NextResponse.json({
+          click_trans_id: clickTransId,
+          merchant_trans_id: merchantTransId,
+          merchant_confirm_id: transaction.id,
+          error: 0,
+          error_note: "Already paid",
+        });
+      }
+
       if (error === "0") {
         // Successful payment
         await prisma.$transaction(async (tx) => {

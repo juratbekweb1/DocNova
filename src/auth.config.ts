@@ -8,10 +8,12 @@ export const authConfig = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
     }),
     GithubProvider({
       clientId: process.env.GITHUB_ID || "",
       clientSecret: process.env.GITHUB_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   pages: {
@@ -42,11 +44,11 @@ export const authConfig = {
           token.role = directRole;
         }
 
-        token.username = u.username;
-        token.displayName = u.displayName;
-        token.avatar = u.avatar;
-        token.theme = u.theme;
-        token.language = u.language;
+        token.username = (u.username as string) || (user.email ? user.email.split("@")[0] : null);
+        token.displayName = (u.displayName as string) || user.name || null;
+        token.avatar = (u.avatar as string) || user.image || null;
+        token.theme = (u.theme as string) || "light";
+        token.language = (u.language as string) || "uz";
         token.sessionVersion = u.sessionVersion;
         token.twoFactorEnabled = u.twoFactorEnabled;
       }
@@ -73,7 +75,8 @@ export const authConfig = {
         if (session.theme) token.theme = session.theme;
         if (session.language) token.language = session.language;
         if (session.sessionVersion !== undefined) token.sessionVersion = session.sessionVersion;
-        if (session.twoFactorEnabled !== undefined) token.twoFactorEnabled = session.twoFactorEnabled;
+        if (session.twoFactorEnabled !== undefined)
+          token.twoFactorEnabled = session.twoFactorEnabled;
       }
 
       return token;

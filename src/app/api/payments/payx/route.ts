@@ -24,78 +24,96 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
+    // Idempotency: if transaction is already completed or paid, return success immediately
+    if (transaction.status === "COMPLETED" || transaction.status === "PAID") {
+      return NextResponse.json({ success: true, message: "Transaction already processed" });
+    }
+
     // Determine success (we'll check common success strings)
     const isSuccess = ["paid", "completed", "success", "approved"].includes(
       (status || "").toLowerCase()
     );
 
     if (isSuccess) {
-      // Update transaction status
-      await prisma.transaction.update({
-        where: { id: transaction.id },
-        data: { status: "COMPLETED" },
-      });
-
       // Grant subscription based on amount
       const planSlug = transaction.amount >= 60000 ? "premium" : "pro";
-
-      let orgUser = await prisma.organizationUser.findFirst({
-        where: { userId: transaction.userId, role: "OWNER" },
-      });
-
-      if (!orgUser) {
-        const org = await prisma.organization.create({
-          data: {
-            name: `Personal Workspace`,
-            slug: `personal-${Date.now()}`,
-          },
-        });
-        orgUser = await prisma.organizationUser.create({
-          data: {
-            organizationId: org.id,
-            userId: transaction.userId,
-            role: "OWNER",
-          },
-        });
-      }
-
-      let plan = await prisma.plan.findUnique({ where: { slug: planSlug } });
-      if (!plan) {
-        plan = await prisma.plan.create({
-          data: {
-            name: planSlug === "premium" ? "DocNova Premium" : "DocNova Pro",
-            slug: planSlug,
-            features: {
-              isPremium: true,
-            },
-          },
-        });
-      }
-
-      const existingSub = await prisma.subscription.findFirst({
-        where: { organizationId: orgUser.organizationId, status: "active" },
-      });
-
+      const planTier = transaction.amount >= 60000 ? "PREMIUM" : "PRO";
       const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      if (existingSub) {
-        await prisma.subscription.update({
-          where: { id: existingSub.id },
+      await prisma.$transaction(async (tx) => {
+        // 1. Update transaction status
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: "COMPLETED" },
+        });
+
+        // 2. CRITICAL: Activate user plan in User table
+        await tx.user.update({
+          where: { id: transaction.userId },
           data: {
-            planId: plan.id,
-            currentPeriodEnd: nextMonth,
+            plan: planTier,
+            paymentStatus: "PAID",
+            subscriptionEndDate: nextMonth,
           },
         });
-      } else {
-        await prisma.subscription.create({
-          data: {
-            organizationId: orgUser.organizationId,
-            planId: plan.id,
-            status: "active",
-            currentPeriodEnd: nextMonth,
-          },
+
+        // 3. Ensure organization and subscription records exist
+        let orgUser = await tx.organizationUser.findFirst({
+          where: { userId: transaction.userId, role: "OWNER" },
         });
-      }
+
+        if (!orgUser) {
+          const org = await tx.organization.create({
+            data: {
+              name: `Personal Workspace`,
+              slug: `personal-${Date.now()}`,
+            },
+          });
+          orgUser = await tx.organizationUser.create({
+            data: {
+              organizationId: org.id,
+              userId: transaction.userId,
+              role: "OWNER",
+            },
+          });
+        }
+
+        let plan = await tx.plan.findUnique({ where: { slug: planSlug } });
+        if (!plan) {
+          plan = await tx.plan.create({
+            data: {
+              name: planSlug === "premium" ? "DocNova Premium" : "DocNova Pro",
+              slug: planSlug,
+              features: {
+                isPremium: true,
+              },
+            },
+          });
+        }
+
+        const existingSub = await tx.subscription.findFirst({
+          where: { organizationId: orgUser.organizationId, status: "active" },
+        });
+
+        if (existingSub) {
+          await tx.subscription.update({
+            where: { id: existingSub.id },
+            data: {
+              planId: plan.id,
+              currentPeriodEnd: nextMonth,
+            },
+          });
+        } else {
+          await tx.subscription.create({
+            data: {
+              organizationId: orgUser.organizationId,
+              planId: plan.id,
+              status: "active",
+              currentPeriodEnd: nextMonth,
+            },
+          });
+        }
+      });
     } else if (status === "failed" || status === "cancelled") {
       await prisma.transaction.update({
         where: { id: transaction.id },

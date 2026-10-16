@@ -5,10 +5,11 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 // Check if Upstash Redis is configured
-const hasUpstashConfig = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+const hasUpstashConfig =
+  !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
 
 // Upstash rate limiters
-const upstashAuthRateLimit = hasUpstashConfig
+const _upstashAuthRateLimit = hasUpstashConfig
   ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(5, "1 m") })
   : null;
 
@@ -37,20 +38,25 @@ function memoryRateLimit(key: string, limit: number, windowMs: number) {
     record.count++;
   }
   memoryStore.set(key, record);
-  return { success: record.count <= limit, limit, remaining: Math.max(0, limit - record.count), reset: record.resetTime };
+  return {
+    success: record.count <= limit,
+    limit,
+    remaining: Math.max(0, limit - record.count),
+    reset: record.resetTime,
+  };
 }
 
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const path = request.nextUrl.pathname;
-  
+
   // 1. Rate limiting for API routes
   if (path.startsWith("/api/")) {
     const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
     let success = true;
 
     try {
-      if (path.startsWith("/api/auth/")) {
-        // Never block authentication / OAuth callbacks
+      if (path.startsWith("/api/auth/") || path.startsWith("/api/payments/")) {
+        // Never block authentication / OAuth callbacks or payment webhooks
         success = true;
       } else if (path.startsWith("/api/ai/")) {
         if (hasUpstashConfig) {
@@ -78,7 +84,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       event.waitUntil(
         fetch(logUrl, {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             "x-internal-secret": process.env.INTERNAL_SECRET || "fallback-secret-for-dev",
           },
@@ -87,12 +93,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
             ipAddress: ip,
             path: path,
             userAgent: request.headers.get("user-agent") || "Unknown",
-          })
-        }).catch(e => console.error("Logging failed", e))
+          }),
+        }).catch((e) => console.error("Logging failed", e))
       );
-      
+
       return new NextResponse(
-        JSON.stringify({ error: "Too Many Requests", message: "You have exceeded your rate limit." }),
+        JSON.stringify({
+          error: "Too Many Requests",
+          message: "You have exceeded your rate limit.",
+        }),
         { status: 429, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -101,19 +110,19 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // 2. Auth for protected routes
   if (path.startsWith("/admin") || path.startsWith("/super-admin")) {
     const token = await getToken({ req: request });
-    
+
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    
+
     const role = typeof token?.role === "string" ? token.role.trim().toUpperCase() : "USER";
     const isSuperAdmin = role === "SUPER_ADMIN";
     const isAdmin = role === "ADMIN" || isSuperAdmin;
-    
+
     if (path.startsWith("/super-admin") && !isSuperAdmin) {
       return NextResponse.redirect(new URL("/dashboard?error=access_denied", request.url));
     }
-    
+
     if (path.startsWith("/admin") && !isAdmin) {
       return NextResponse.redirect(new URL("/dashboard?error=access_denied", request.url));
     }
@@ -128,20 +137,20 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-  
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https: blob:",
+    "img-src 'self' data: https: blob: https://lh3.googleusercontent.com",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.stripe.com",
-    "frame-src 'self' https://js.stripe.com",
+    "connect-src 'self' https://api.stripe.com https://accounts.google.com https://my.click.uz https://checkout.paycom.uz https://backend.payx.uz",
+    "frame-src 'self' https://js.stripe.com https://accounts.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    "form-action 'self' https://accounts.google.com https://my.click.uz https://checkout.paycom.uz https://backend.payx.uz",
   ].join("; ");
-  
+
   response.headers.set("Content-Security-Policy", csp);
   response.headers.delete("X-Powered-By");
 
