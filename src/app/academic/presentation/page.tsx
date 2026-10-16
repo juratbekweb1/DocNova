@@ -32,6 +32,7 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { SlideItem } from "@/app/api/academic/presentation/route";
+import { UpgradeModal } from "@/components/modals/upgrade-modal";
 
 type PresentationStyle = "academic" | "modern" | "minimalist";
 
@@ -173,6 +174,10 @@ function PresentationContent() {
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPptx, setIsExportingPptx] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [presentationViewMode, setPresentationViewMode] = useState<"single" | "all">("single");
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeErrorMsg, setUpgradeErrorMsg] = useState("");
 
   // Slide inline editor state
   const [isEditing, setIsEditing] = useState(false);
@@ -182,6 +187,7 @@ function PresentationContent() {
   const [editSpeakerNotes, setEditSpeakerNotes] = useState("");
 
   const slideRef = useRef<HTMLDivElement>(null);
+  const deckExportRef = useRef<HTMLDivElement>(null);
 
   // Animated progress tracker
   useEffect(() => {
@@ -248,20 +254,38 @@ function PresentationContent() {
 
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Prezentatsiya yaratishda xatolik yuz berdi.");
+        if (response.status === 403 || data.requireUpgrade) {
+          const quotaMsg =
+            data.upgradeMessage ||
+            "Prezentatsiya yaratish bo'yicha bepul limitingiz tugadi. Pro yoki Premium tarifga o'ting.";
+          setUpgradeErrorMsg(quotaMsg);
+          setIsUpgradeModalOpen(true);
+          toast({
+            title: "AI limitingiz tugadi ⚡",
+            description: quotaMsg,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(
+          data.upgradeMessage || data.error || "Prezentatsiya yaratishda xatolik yuz berdi."
+        );
       }
 
       setSlides(data.slides);
       setCurrentSlideIndex(0);
       toast({
-        title: "Prezentatsiya tayyor!",
-        description: `${data.slides.length} ta slayd va ma'ruzachi nutqlari yaratildi.`,
+        title: "Prezentatsiya tayyor! 🎓",
+        description: `${data.slides.length} ta slayd va ma'ruzachi nutqlari muvaffaqiyatli yaratildi.`,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Xatolik yuz berdi";
       toast({
-        title: "Xatolik",
-        description: msg,
+        title: "Xatolik yuz berdi",
+        description:
+          msg.includes("fetch") || msg.includes("network")
+            ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
+            : msg,
         variant: "destructive",
       });
     } finally {
@@ -482,6 +506,65 @@ function PresentationContent() {
       });
     } finally {
       setIsExportingPptx(false);
+    }
+  };
+
+  // Export genuine Presentation PDF (All slides with speaker notes in A4 landscape)
+  const handleExportPdf = async () => {
+    if (slides.length === 0) return;
+    setIsExportingPdf(true);
+
+    const prevMode = presentationViewMode;
+    try {
+      if (prevMode !== "all") {
+        setPresentationViewMode("all");
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+
+      const element = deckExportRef.current;
+      if (!element) throw new Error("Slaydlar maydoni topilmadi");
+
+      element.classList.add("presentation-pdf-mode");
+
+      const cleanFilename = topic.replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 40) || "Prezentatsiya";
+
+      const opt = {
+        margin: 0,
+        filename: `Prezentatsiya_${cleanFilename}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+        },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "landscape" as const },
+        pagebreak: { mode: ["css", "legacy"], after: ".presentation-pdf-slide" },
+      };
+
+      await html2pdf().from(element).set(opt).save();
+
+      element.classList.remove("presentation-pdf-mode");
+
+      toast({
+        title: "PDF muvaffaqiyatli yuklab olindi! 📄",
+        description: `Barcha ${slides.length} ta slayd va ma'ruzachi nutqi A4 Landscape formatida saqlandi.`,
+      });
+    } catch (err: unknown) {
+      console.error("[PDF_EXPORT_ERROR]", err);
+      toast({
+        title: "PDF yaratishda xatolik",
+        description: "Prezentatsiya PDF faylini saqlashda muammo yuz berdi.",
+        variant: "destructive",
+      });
+    } finally {
+      if (prevMode !== "all") {
+        setPresentationViewMode(prevMode);
+      }
+      setIsExportingPdf(false);
     }
   };
 
@@ -875,14 +958,40 @@ function PresentationContent() {
             {!isGenerating && slides.length > 0 && currentSlide && (
               <div className="space-y-4">
                 {/* Actions Toolbar */}
-                <div className="border-border bg-surface-card flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3 shadow-sm">
-                  <div className="flex items-center gap-1.5">
+                <div className="border-border bg-surface-card flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-foreground text-xs font-semibold">
                       Slayd {currentSlideIndex + 1} / {slides.length}
                     </span>
                     <span className="text-foreground-muted text-xs">
                       • {activeStyleConfig.title}
                     </span>
+
+                    {/* View Mode Toggle */}
+                    <div className="border-border bg-surface-elevated/80 flex items-center rounded-lg border p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setPresentationViewMode("single")}
+                        className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                          presentationViewMode === "single"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground-secondary hover:text-foreground"
+                        }`}
+                      >
+                        Bitta slayd
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresentationViewMode("all")}
+                        className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                          presentationViewMode === "all"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground-secondary hover:text-foreground"
+                        }`}
+                      >
+                        Barcha slaydlar ({slides.length})
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -961,12 +1070,25 @@ function PresentationContent() {
                       <Maximize2 className="h-3.5 w-3.5" />
                     </button>
 
+                    {/* Export PDF */}
+                    <button
+                      type="button"
+                      onClick={handleExportPdf}
+                      disabled={isExportingPdf}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-red-500 disabled:opacity-50"
+                      title="Barcha slaydlarni PDF formatida yuklab olish"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>{isExportingPdf ? "PDF..." : "PDF (.pdf)"}</span>
+                    </button>
+
                     {/* Export PowerPoint (.pptx) */}
                     <button
                       type="button"
                       onClick={handleExportPptx}
                       disabled={isExportingPptx}
                       className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-500 disabled:opacity-50"
+                      title="PowerPoint faylini yuklab olish"
                     >
                       <Download className="h-3.5 w-3.5" />
                       <span>{isExportingPptx ? "Eksport..." : "PowerPoint (.pptx)"}</span>
@@ -1053,183 +1175,268 @@ function PresentationContent() {
                   </div>
                 )}
 
-                {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio) */}
-                <div
-                  ref={slideRef}
-                  className={`border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-2xl sm:p-10 ${activeStyleConfig.canvasBg}`}
-                >
-                  {/* Decorative backdrop shapes */}
-                  <div className="pointer-events-none absolute top-0 right-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-                  <div className="bg-primary/10 pointer-events-none absolute bottom-0 left-0 h-60 w-60 rounded-full blur-2xl" />
-
-                  {/* Top Bar of Slide */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-md border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase sm:text-xs ${activeStyleConfig.badgeClass}`}
-                      >
-                        {currentSlide.badge || `0${currentSlide.slideNumber} / Modul`}
-                      </span>
-                      {currentSlide.subtitle && (
-                        <span className="hidden text-[11px] font-medium text-slate-300/80 italic sm:inline sm:text-xs">
-                          • {currentSlide.subtitle}
-                        </span>
-                      )}
-                    </div>
-
-                    {currentSlide.highlightMetric && (
-                      <span
-                        className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
-                      >
-                        {currentSlide.highlightMetric}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Center Content */}
-                  <div className="relative z-10 my-auto py-2">
-                    <h2
-                      className={`text-lg font-extrabold tracking-tight sm:text-2xl md:text-3xl ${activeStyleConfig.textColor} mb-4 leading-tight`}
-                    >
-                      {currentSlide.title}
-                    </h2>
-
-                    {/* Bullet Points */}
-                    <div className="space-y-2.5">
-                      {currentSlide.bulletPoints.map((point, pIdx) => (
-                        <div key={pIdx} className="flex items-start gap-2.5">
-                          <span
-                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                              selectedStyle === "academic"
-                                ? "bg-amber-400"
-                                : selectedStyle === "modern"
-                                  ? "bg-cyan-400"
-                                  : "bg-emerald-400"
-                            }`}
-                          />
-                          <p className="text-xs leading-relaxed font-normal text-slate-200/95 sm:text-sm md:text-base">
-                            {point}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bottom Footer */}
-                  <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-3 text-[10px] text-slate-400 sm:text-xs">
-                    <span>DocNova Academic Studio</span>
-                    <span>
-                      Slayd {currentSlideIndex + 1} / {slides.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Navigation Arrows */}
-                <div className="flex items-center justify-between gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentSlideIndex((prev) => Math.max(0, prev - 1))}
-                    disabled={currentSlideIndex === 0}
-                    className="border-border bg-surface-card hover:bg-surface-elevated text-foreground flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span>Oldingi slayd</span>
-                  </button>
-
-                  <div className="text-foreground-muted px-2 text-xs font-bold">
-                    {currentSlideIndex + 1} / {slides.length}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentSlideIndex((prev) => Math.min(slides.length - 1, prev + 1))
-                    }
-                    disabled={currentSlideIndex === slides.length - 1}
-                    className="border-border bg-surface-card hover:bg-surface-elevated text-foreground flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all disabled:opacity-40"
-                  >
-                    <span>Keyingi slayd</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* SPEAKER NOTES SECTION (Ma'ruzachi Nutqi) */}
-                {showSpeakerNotes && currentSlide.speakerNotes && (
-                  <div className="space-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-                        <Volume2 className="h-4 w-4" />
-                        <span>
-                          Ma&apos;ruzachi nutqi (Speaker Speech) — Komissiya oldida so&apos;zlash
-                          uchun:
-                        </span>
-                      </div>
-                      <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-                        ~1.5 daqiqa
-                      </span>
-                    </div>
-                    <p className="text-foreground/90 border-l-2 border-amber-400 pl-3 text-xs leading-relaxed italic sm:text-sm">
-                      &quot;{currentSlide.speakerNotes}&quot;
-                    </p>
-                  </div>
-                )}
-
-                {/* SLIDES THUMBNAIL CAROUSEL WITH DYNAMIC ADD BUTTON */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-foreground-secondary flex items-center gap-1.5 text-xs font-semibold">
-                      <Layers className="text-primary h-3.5 w-3.5" />
-                      <span>Barcha slaydlar ({slides.length} ta):</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAddNewSlide}
-                      className="text-primary flex cursor-pointer items-center gap-1 text-[11px] font-bold hover:underline"
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>+ Slayd qo&apos;shish</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2 overflow-x-auto pb-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                {/* VIEW MODE: ALL SLIDES (Grid / Printable Stack with deckExportRef) */}
+                {presentationViewMode === "all" ? (
+                  <div ref={deckExportRef} className="presentation-pdf-deck space-y-6">
                     {slides.map((s, idx) => (
-                      <button
+                      <div
                         key={idx}
-                        type="button"
-                        onClick={() => {
-                          setCurrentSlideIndex(idx);
-                          setIsEditing(false);
-                        }}
-                        className={`relative cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
-                          currentSlideIndex === idx
-                            ? "border-primary bg-primary/20 ring-primary shadow-md ring-2"
-                            : "border-border bg-surface-card hover:bg-surface-elevated"
-                        }`}
+                        className={`presentation-pdf-slide border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-xl sm:p-8 ${activeStyleConfig.canvasBg}`}
+                        style={{ pageBreakAfter: "always", breakAfter: "page" }}
                       >
-                        <div className="text-foreground-secondary mb-1 flex items-center justify-between text-[10px] font-bold">
-                          <span>#{s.slideNumber}</span>
-                          <span className="text-foreground-muted max-w-[50%] truncate text-[9px] uppercase">
-                            {s.type}
+                        {/* Top Bar */}
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-md border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase sm:text-xs ${activeStyleConfig.badgeClass}`}
+                            >
+                              {s.badge || `0${s.slideNumber} / Modul`}
+                            </span>
+                            {s.subtitle && (
+                              <span className="text-[11px] font-medium text-slate-300/80 italic sm:text-xs">
+                                • {s.subtitle}
+                              </span>
+                            )}
+                          </div>
+
+                          {s.highlightMetric && (
+                            <span
+                              className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
+                            >
+                              {s.highlightMetric}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Slide Content */}
+                        <div className="relative z-10 my-auto py-3">
+                          <h2
+                            className={`text-lg font-extrabold tracking-tight sm:text-2xl ${activeStyleConfig.textColor} mb-3 leading-tight`}
+                          >
+                            {s.title}
+                          </h2>
+
+                          <div className="space-y-2">
+                            {s.bulletPoints.map((point, pIdx) => (
+                              <div key={pIdx} className="flex items-start gap-2.5">
+                                <span
+                                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                                    selectedStyle === "academic"
+                                      ? "bg-amber-400"
+                                      : selectedStyle === "modern"
+                                        ? "bg-cyan-400"
+                                        : "bg-emerald-400"
+                                  }`}
+                                />
+                                <p className="text-xs leading-relaxed font-normal text-slate-200/95 sm:text-sm">
+                                  {point}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Speaker Notes */}
+                        {showSpeakerNotes && s.speakerNotes && (
+                          <div className="relative z-10 mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200/90 italic">
+                            <span className="font-bold text-amber-300 not-italic">
+                              🎤 Nutq matni:{" "}
+                            </span>
+                            &quot;{s.speakerNotes}&quot;
+                          </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2.5 text-[10px] text-slate-400">
+                          <span>DocNova Academic Studio • {topic.slice(0, 45)}</span>
+                          <span>
+                            Slayd {s.slideNumber} / {slides.length}
                           </span>
                         </div>
-                        <div className="text-foreground truncate text-[10px] font-semibold">
-                          {s.title}
-                        </div>
-                      </button>
+                      </div>
                     ))}
-
-                    {/* DYNAMIC "+ QO'SHISH" CARD AT THE END */}
-                    <button
-                      type="button"
-                      onClick={handleAddNewSlide}
-                      className="border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-2 transition-all"
-                      title="Yangi slayd qo'shish"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="text-[10px] font-bold">+ Qo&apos;shish</span>
-                    </button>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio) */}
+                    <div
+                      ref={slideRef}
+                      className={`border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-2xl sm:p-10 ${activeStyleConfig.canvasBg}`}
+                    >
+                      {/* Decorative backdrop shapes */}
+                      <div className="pointer-events-none absolute top-0 right-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
+                      <div className="bg-primary/10 pointer-events-none absolute bottom-0 left-0 h-60 w-60 rounded-full blur-2xl" />
+
+                      {/* Top Bar of Slide */}
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-md border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase sm:text-xs ${activeStyleConfig.badgeClass}`}
+                          >
+                            {currentSlide.badge || `0${currentSlide.slideNumber} / Modul`}
+                          </span>
+                          {currentSlide.subtitle && (
+                            <span className="hidden text-[11px] font-medium text-slate-300/80 italic sm:inline sm:text-xs">
+                              • {currentSlide.subtitle}
+                            </span>
+                          )}
+                        </div>
+
+                        {currentSlide.highlightMetric && (
+                          <span
+                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
+                          >
+                            {currentSlide.highlightMetric}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Center Content */}
+                      <div className="relative z-10 my-auto py-2">
+                        <h2
+                          className={`text-lg font-extrabold tracking-tight sm:text-2xl md:text-3xl ${activeStyleConfig.textColor} mb-4 leading-tight`}
+                        >
+                          {currentSlide.title}
+                        </h2>
+
+                        {/* Bullet Points */}
+                        <div className="space-y-2.5">
+                          {currentSlide.bulletPoints.map((point, pIdx) => (
+                            <div key={pIdx} className="flex items-start gap-2.5">
+                              <span
+                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                                  selectedStyle === "academic"
+                                    ? "bg-amber-400"
+                                    : selectedStyle === "modern"
+                                      ? "bg-cyan-400"
+                                      : "bg-emerald-400"
+                                }`}
+                              />
+                              <p className="text-xs leading-relaxed font-normal text-slate-200/95 sm:text-sm md:text-base">
+                                {point}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Bottom Footer */}
+                      <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-3 text-[10px] text-slate-400 sm:text-xs">
+                        <span>DocNova Academic Studio</span>
+                        <span>
+                          Slayd {currentSlideIndex + 1} / {slides.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Navigation Arrows */}
+                    <div className="flex items-center justify-between gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentSlideIndex((prev) => Math.max(0, prev - 1))}
+                        disabled={currentSlideIndex === 0}
+                        className="border-border bg-surface-card hover:bg-surface-elevated text-foreground flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span>Oldingi slayd</span>
+                      </button>
+
+                      <div className="text-foreground-muted px-2 text-xs font-bold">
+                        {currentSlideIndex + 1} / {slides.length}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentSlideIndex((prev) => Math.min(slides.length - 1, prev + 1))
+                        }
+                        disabled={currentSlideIndex === slides.length - 1}
+                        className="border-border bg-surface-card hover:bg-surface-elevated text-foreground flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all disabled:opacity-40"
+                      >
+                        <span>Keyingi slayd</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* SPEAKER NOTES SECTION (Ma'ruzachi Nutqi) */}
+                    {showSpeakerNotes && currentSlide.speakerNotes && (
+                      <div className="space-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-sm sm:p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                            <Volume2 className="h-4 w-4" />
+                            <span>
+                              Ma&apos;ruzachi nutqi (Speaker Speech) — Komissiya oldida
+                              so&apos;zlash uchun:
+                            </span>
+                          </div>
+                          <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                            ~1.5 daqiqa
+                          </span>
+                        </div>
+                        <p className="text-foreground/90 border-l-2 border-amber-400 pl-3 text-xs leading-relaxed italic sm:text-sm">
+                          &quot;{currentSlide.speakerNotes}&quot;
+                        </p>
+                      </div>
+                    )}
+
+                    {/* SLIDES THUMBNAIL CAROUSEL WITH DYNAMIC ADD BUTTON */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-foreground-secondary flex items-center gap-1.5 text-xs font-semibold">
+                          <Layers className="text-primary h-3.5 w-3.5" />
+                          <span>Barcha slaydlar ({slides.length} ta):</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddNewSlide}
+                          className="text-primary flex cursor-pointer items-center gap-1 text-[11px] font-bold hover:underline"
+                        >
+                          <Plus className="h-3 w-3" />
+                          <span>+ Slayd qo&apos;shish</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 overflow-x-auto pb-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                        {slides.map((s, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setCurrentSlideIndex(idx);
+                              setIsEditing(false);
+                            }}
+                            className={`relative cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
+                              currentSlideIndex === idx
+                                ? "border-primary bg-primary/20 ring-primary shadow-md ring-2"
+                                : "border-border bg-surface-card hover:bg-surface-elevated"
+                            }`}
+                          >
+                            <div className="text-foreground-secondary mb-1 flex items-center justify-between text-[10px] font-bold">
+                              <span>#{s.slideNumber}</span>
+                              <span className="text-foreground-muted max-w-[50%] truncate text-[9px] uppercase">
+                                {s.type}
+                              </span>
+                            </div>
+                            <div className="text-foreground truncate text-[10px] font-semibold">
+                              {s.title}
+                            </div>
+                          </button>
+                        ))}
+
+                        {/* DYNAMIC "+ QO'SHISH" CARD AT THE END */}
+                        <button
+                          type="button"
+                          onClick={handleAddNewSlide}
+                          className="border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-2 transition-all"
+                          title="Yangi slayd qo'shish"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span className="text-[10px] font-bold">+ Qo&apos;shish</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Reset or New Presentation */}
                 <div className="pt-2 text-center">
@@ -1252,6 +1459,46 @@ function PresentationContent() {
           </div>
         </div>
       </div>
+
+      {/* Print & PDF Export Global CSS */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 0;
+          }
+          body {
+            background-color: #0b192c !important;
+            color: white !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .presentation-pdf-slide {
+            box-shadow: none !important;
+            border: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+        }
+        .presentation-pdf-mode .presentation-pdf-slide {
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          page-break-after: always !important;
+          break-after: page !important;
+        }
+      `}</style>
+
+      {/* Quota Exhaustion / Upgrade Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        customTitle="AI Limitingiz Tugadi"
+        customMessage={
+          upgradeErrorMsg ||
+          "Prezentatsiya yaratish bo'yicha bepul limitingiz tugadi. Cheksiz slaydlar va ma'ruzachi nutqlari uchun tarifingizni oshiring."
+        }
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import type { CourseworkOutline, CourseworkPage } from "@/app/api/generate-coursework/route";
+import { UpgradeModal } from "@/components/modals/upgrade-modal";
 
 const FACULTIES_AND_SUBJECTS: {
   category: string;
@@ -294,6 +295,8 @@ export default function CourseworkGenerator() {
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [viewMode, setViewMode] = useState<"pages" | "continuous">("pages");
   const [copied, setCopied] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeErrorMsg, setUpgradeErrorMsg] = useState("");
 
   const activeCategory = FACULTIES_AND_SUBJECTS[selectedCategoryIdx] || FACULTIES_AND_SUBJECTS[0];
 
@@ -337,7 +340,22 @@ export default function CourseworkGenerator() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Rejani shakllantirishda xatolik yuz berdi");
+        if (res.status === 403 || data.requireUpgrade) {
+          const quotaMsg =
+            data.upgradeMessage ||
+            "Kurs ishi yaratish bo'yicha bepul limitingiz tugadi. Pro yoki Premium tarifga o'ting.";
+          setUpgradeErrorMsg(quotaMsg);
+          setIsUpgradeModalOpen(true);
+          toast({
+            title: "AI limitingiz tugadi ⚡",
+            description: quotaMsg,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(
+          data.upgradeMessage || data.error || "Rejani shakllantirishda xatolik yuz berdi"
+        );
       }
 
       setOutline(data.outline);
@@ -443,7 +461,24 @@ export default function CourseworkGenerator() {
       clearInterval(stepInterval);
 
       if (!res.ok) {
-        throw new Error(data.error || "Kurs ishini generatsiya qilishda xatolik yuz berdi");
+        if (res.status === 403 || data.requireUpgrade) {
+          const quotaMsg =
+            data.upgradeMessage ||
+            "Kurs ishi yaratish bo'yicha bepul limitingiz tugadi. Pro yoki Premium tarifga o'ting.";
+          setUpgradeErrorMsg(quotaMsg);
+          setIsUpgradeModalOpen(true);
+          setLoading(false);
+          setCurrentStep(2);
+          toast({
+            title: "AI limitingiz tugadi ⚡",
+            description: quotaMsg,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(
+          data.upgradeMessage || data.error || "Kurs ishini generatsiya qilishda xatolik yuz berdi"
+        );
       }
 
       setProgressPercent(100);
@@ -468,7 +503,10 @@ export default function CourseworkGenerator() {
       const e = err as Error;
       toast({
         title: "Generatsiyada xatolik",
-        description: e.message || "Iltimos, qayta urinib ko'ring.",
+        description:
+          e.message?.includes("fetch") || e.message?.includes("network")
+            ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
+            : e.message || "Iltimos, qayta urinib ko'ring.",
         variant: "destructive",
       });
     }
@@ -524,6 +562,7 @@ export default function CourseworkGenerator() {
     if (inTable) flushTable();
 
     let html = resultLines.join("\n");
+    html = html.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n");
     html = html
       .replace(/^# (.*$)/gim, "<h1>$1</h1>")
       .replace(/^## (.*$)/gim, "<h2>$1</h2>")
@@ -664,34 +703,52 @@ export default function CourseworkGenerator() {
   };
 
   // ------------------------------------------------------------------
-  // PDF Export
+  // PDF Export (Full-Document: All 15-30 pages with MOVSO margins)
   // ------------------------------------------------------------------
   const handleDownloadPDF = async () => {
-    if (!documentRef.current) return;
+    if (!documentRef.current && pages.length === 0 && !result) return;
     setDownloading(true);
-    setDownloadProgress("PDF tayyorlanmoqda...");
+    setDownloadProgress("Barcha sahifalar tayyorlanmoqda...");
 
+    const prevMode = viewMode;
     try {
+      // Ensure all pages are rendered into the DOM before capturing
+      if (prevMode !== "continuous") {
+        setViewMode("continuous");
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default || html2pdfModule;
 
       const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Kurs_Ishi";
       const element = documentRef.current;
+      if (!element) throw new Error("Hujjat maydoni topilmadi");
+
+      element.classList.add("pdf-export-mode");
 
       const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
+        margin: 0,
         filename: `Kurs_Ishi_${cleanTopic}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+        },
         jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
-        pagebreak: { mode: ["css", "legacy"] },
+        pagebreak: { mode: ["css", "legacy"], after: ".coursework-page-card" },
       };
 
+      setDownloadProgress("PDF fayl yuklanmoqda...");
       await html2pdf().from(element).set(opt).save();
 
+      element.classList.remove("pdf-export-mode");
+
       toast({
-        title: "PDF yuklab olindi! 📄",
-        description: "Kurs ishi A4 formatida muvaffaqiyatli saqlandi.",
+        title: "PDF muvaffaqiyatli yuklab olindi! 📄",
+        description: `Barcha ${pages.length || formData.pageCount} sahifalik kurs ishi A4 formatida saqlandi.`,
       });
     } catch (err: unknown) {
       console.error(err);
@@ -701,8 +758,25 @@ export default function CourseworkGenerator() {
         variant: "destructive",
       });
     } finally {
+      if (prevMode !== "continuous") {
+        setViewMode(prevMode);
+      }
       setDownloading(false);
       setDownloadProgress(null);
+    }
+  };
+
+  // Browser Print handler that ensures full document is printed
+  const handlePrint = () => {
+    const prevMode = viewMode;
+    if (prevMode !== "continuous") {
+      setViewMode("continuous");
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => setViewMode(prevMode), 600);
+      }, 200);
+    } else {
+      window.print();
     }
   };
 
@@ -1386,7 +1460,7 @@ export default function CourseworkGenerator() {
 
                 {/* Print */}
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrint}
                   className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
                 >
                   <Printer className="h-3.5 w-3.5" />
@@ -1625,7 +1699,26 @@ export default function CourseworkGenerator() {
             break-after: page !important;
           }
         }
+        .pdf-export-mode .coursework-page-card {
+          box-shadow: none !important;
+          border: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          page-break-after: always !important;
+          break-after: page !important;
+        }
       `}</style>
+
+      {/* Quota Exhaustion / Upgrade Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        customTitle="AI Limitingiz Tugadi"
+        customMessage={
+          upgradeErrorMsg ||
+          "Kurs ishi yaratish bo'yicha bepul limitingiz tugadi. Cheksiz akademik generatsiya va yangi mavzular uchun tarifingizni oshiring."
+        }
+      />
     </div>
   );
 }
