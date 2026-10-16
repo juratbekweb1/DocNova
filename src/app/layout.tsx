@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/navbar";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { SubscriptionProvider } from "@/components/providers/subscription-provider";
@@ -27,12 +26,21 @@ export const metadata: Metadata = {
     default: "DocNova | AI yordamida Rezyume va Intervyu tayyorlash",
     template: "%s | DocNova",
   },
-  description: "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga (Mock Test) tayyorgarlik ko'ring. Uzb/Rus tillarida yordam beradi.",
-  keywords: ["rezyume builder", "AI resume", "ATS resume", "mock test", "intervyu tayyorgarlik", "karyera yordamchisi"],
+  description:
+    "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga (Mock Test) tayyorgarlik ko'ring. Uzb/Rus tillarida yordam beradi.",
+  keywords: [
+    "rezyume builder",
+    "AI resume",
+    "ATS resume",
+    "mock test",
+    "intervyu tayyorgarlik",
+    "karyera yordamchisi",
+  ],
   authors: [{ name: "DocNova Team" }],
   openGraph: {
     title: "DocNova | AI yordamida Rezyume va Intervyu",
-    description: "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga tayyorgarlik ko'ring.",
+    description:
+      "DocNova bilan aqlli rezyume yarating, ATS formatlash, va AI yordamida intervyularga tayyorgarlik ko'ring.",
     url: "https://docnova.uz",
     siteName: "DocNova",
     type: "website",
@@ -42,8 +50,8 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: "DocNova Platformasi",
-      }
-    ]
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -52,6 +60,16 @@ export const metadata: Metadata = {
     images: ["https://docnova.uz/og-image.jpg"],
   },
   alternates: { canonical: "https://docnova.uz" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
 };
 
 import { cookies } from "next/headers";
@@ -77,7 +95,7 @@ export default async function RootLayout({
     <html
       lang={initialLang}
       translate="no"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased overflow-x-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -97,11 +115,7 @@ export default async function RootLayout({
             `,
           }}
         />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeEnforcer />
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>
@@ -115,4 +129,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

@@ -108,13 +108,18 @@ DIZAYN USLUBI: ${style} (academic: qat'iy akademik, modern: zamonaviy texnologik
 TAQDIMOT TURI: ${presentationType} (Himoya / Diplom ishi / Konferensiya)
 TIL: ${language === "ru" ? "Rus tili" : language === "uz-cyrl" ? "O'zbek tili (kirill)" : language === "en" ? "Ingliz tili" : "O'zbek tili (lotin)"}
 
+QAT'IY TALAB VA CHEKLOV (MAVZUGA 100% QAT'IY MOSLIK):
+- Taqdimotdagi barcha ${count} ta slayd FAQAT VA FAQAT «${cleanTopic}» mavzusiga bag'ishlanishi shart!
+- Har bir slayd sarlavhasi, 3-4 ta asosiy tezisi va ma'ruzachi nutqi (Speaker Notes) bevosita «${cleanTopic}»ning chuqur ilmiy va amaliy tahliliga bag'ishlansin.
+- Hech qanday begona yoki mavzudan tashqari umumiy mavzularga chalg'ish qat'iyan man etiladi.
+
 HAR BIR SLAYD UCHUN TALABLAR:
 1. "slideNumber": 1 dan ${count} gacha ketma-ketlik.
 2. "type": "title" (1-slayd), "problem" (2-slayd), "goals", "methodology", "content", "comparison", "roadmap", "conclusion", "qa" (oxirgi savol-javob slaydi).
-3. "title": Qisqa va jarangdor ilmiy sarlavha (maksimal 7-9 so'z).
+3. "title": Qisqa va jarangdor ilmiy sarlavha (maksimal 7-9 so'z, «${cleanTopic}»ga bog'langan).
 4. "subtitle": Kichik yo'naltiruvchi sarlavha yoki modul nomi.
 5. "badge": Kichik toifa belgisi (masalan: "01 / Kirish", "Nazariy apparat", "Amaliy tahlil", "Tavsiyalar").
-6. "bulletPoints": Aniq 3 yoki 4 ta asosiy tezis (har bir tezis bitta qatorda, ixcham va tushunarli).
+6. "bulletPoints": Aniq 3 yoki 4 ta asosiy tezis (har bir tezis bitta qatorda, ixcham va tushunarli, aniq ilmiy atamalar bilan).
 7. "speakerNotes": Ma'ruzachi (talaba) ushbu slayd davomida komissiya oldida 1-1.5 daqiqa davomida so'zlaydigan to'liq, ravon nutq matni (Speaker Notes).
 8. "highlightMetric": Muhim statistik ko'rsatkich yoki ilmiy natija xulosasi (masalan: "+28% samaradorlik", "100% GOST moslik", "3 ta asosiy yechim").
 
@@ -148,11 +153,11 @@ JAVOBNI FAQAT QUYIDAGI VALID JSON FORMATIDA BERING:
 
     try {
       const res = await generateGeminiJson<{ slides: SlideItem[] }>(prompt, {
-        temperature: 0.3,
+        temperature: 0.2,
         maxOutputTokens: 8192,
         timeoutMs: 55_000,
         systemInstruction:
-          "Siz oliy ta'lim va ilmiy konferensiyalar uchun professional slaydlar va ma'ruzachi nutqi (Speaker Notes) yozuvchi professsiz. Faqat JSON formatida javob bering.",
+          "Siz oliy ta'lim va ilmiy konferensiyalar uchun professional slaydlar va ma'ruzachi nutqi (Speaker Notes) yozuvchi professsiz. Matn faqat berilgan mavzuga 100% qat'iy bog'langan bo'lsin. Faqat JSON formatida javob bering.",
       });
 
       if (res.data && Array.isArray(res.data.slides) && res.data.slides.length > 0) {

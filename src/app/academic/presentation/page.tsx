@@ -1258,10 +1258,10 @@ function PresentationContent() {
                   </div>
                 ) : (
                   <>
-                    {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio) */}
+                    {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio on desktop, adaptive on mobile) */}
                     <div
                       ref={slideRef}
-                      className={`border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-2xl sm:p-10 ${activeStyleConfig.canvasBg}`}
+                      className={`border-border/80 relative flex aspect-auto min-h-[290px] w-full flex-col justify-between overflow-hidden rounded-2xl border p-4 shadow-2xl sm:aspect-[16/9] sm:min-h-0 sm:p-8 md:p-10 ${activeStyleConfig.canvasBg}`}
                     >
                       {/* Decorative backdrop shapes */}
                       <div className="pointer-events-none absolute top-0 right-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
@@ -1396,7 +1396,7 @@ function PresentationContent() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-2 overflow-x-auto pb-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1.5">
                         {slides.map((s, idx) => (
                           <button
                             key={idx}
@@ -1405,7 +1405,7 @@ function PresentationContent() {
                               setCurrentSlideIndex(idx);
                               setIsEditing(false);
                             }}
-                            className={`relative cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
+                            className={`relative min-w-[110px] shrink-0 cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all sm:min-w-[130px] ${
                               currentSlideIndex === idx
                                 ? "border-primary bg-primary/20 ring-primary shadow-md ring-2"
                                 : "border-border bg-surface-card hover:bg-surface-elevated"
@@ -1427,7 +1427,7 @@ function PresentationContent() {
                         <button
                           type="button"
                           onClick={handleAddNewSlide}
-                          className="border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-2 transition-all"
+                          className="border-primary/40 bg-primary/5 hover:bg-primary/15 text-primary flex min-h-[58px] min-w-[90px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-2 transition-all"
                           title="Yangi slayd qo'shish"
                         >
                           <Plus className="h-4 w-4" />

@@ -21,6 +21,9 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Zap,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -312,18 +315,120 @@ export default function CourseworkGenerator() {
     });
   };
 
+  const [showTitleDetails, setShowTitleDetails] = useState(false);
+  const [isFastGenerating, setIsFastGenerating] = useState(false);
+
+  // ------------------------------------------------------------------
+  // STEP 1 FAST TRACK: One-Click Instant Full Coursework Generation
+  // ------------------------------------------------------------------
+  const handleOneClickGenerate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!formData.topic.trim()) {
+      toast({
+        title: "Mavzuni kiriting",
+        description: "Kurs ishi mavzusini kiritishingiz shart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      subject: formData.subject.trim() || activeCategory.subjects[0] || "Mutaxassislik fani",
+    };
+
+    setIsFastGenerating(true);
+    setCurrentStep(3);
+    setLoading(true);
+    setResult(null);
+    setPages([]);
+    setCurrentStepIdx(0);
+    setProgressPercent(10);
+
+    const stepInterval = setInterval(() => {
+      setCurrentStepIdx((prev) => {
+        const next = prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev;
+        setProgressPercent(Math.min(94, Math.round(((next + 1) / GENERATION_STEPS.length) * 94)));
+        return next;
+      });
+    }, 1300);
+
+    try {
+      const res = await fetch("/api/academic/coursework/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      clearInterval(stepInterval);
+
+      if (!res.ok) {
+        if (res.status === 403 || data.requireUpgrade) {
+          const quotaMsg =
+            data.upgradeMessage ||
+            "Kurs ishi yaratish bo'yicha bepul limitingiz tugadi. Pro yoki Premium tarifga o'ting.";
+          setUpgradeErrorMsg(quotaMsg);
+          setIsUpgradeModalOpen(true);
+          setCurrentStep(1);
+          setLoading(false);
+          setIsFastGenerating(false);
+          toast({
+            title: "AI limitingiz tugadi ⚡",
+            description: quotaMsg,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(data.error || "Kurs ishini yaratishda xatolik yuz berdi");
+      }
+
+      setProgressPercent(100);
+      setResult(data.result);
+      setPages(data.pages || []);
+      if (data.outline) setOutline(data.outline);
+      setCurrentStep(4);
+      toast({
+        title: "Kurs ishi to'liq tayyor! 🎓",
+        description: `Barcha ${data.totalPages || formData.pageCount} sahifalik akademik kurs ishi shakllantirildi.`,
+      });
+    } catch (err: unknown) {
+      clearInterval(stepInterval);
+      setLoading(false);
+      setIsFastGenerating(false);
+      setCurrentStep(1);
+      const e = err as Error;
+      toast({
+        title: "Generatsiyada xatolik",
+        description:
+          e.message?.includes("fetch") || e.message?.includes("network")
+            ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
+            : e.message || "Iltimos, qayta urinib ko'ring.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFastGenerating(false);
+    }
+  };
+
   // ------------------------------------------------------------------
   // STEP 1 -> STEP 2: Generate Outline Preview
   // ------------------------------------------------------------------
   const handleProceedToOutline = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.topic.trim() || !formData.subject.trim()) {
+    if (!formData.topic.trim()) {
       toast({
-        title: "Maydonlarni to'ldiring",
-        description: "Fan nomi va mavzu kiritilishi shart.",
+        title: "Mavzuni kiriting",
+        description: "Kurs ishi mavzusi kiritilishi shart.",
         variant: "destructive",
       });
       return;
+    }
+    if (!formData.subject.trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        subject: activeCategory.subjects[0] || "Mutaxassislik fani",
+      }));
     }
 
     setIsOutlineLoading(true);
@@ -902,7 +1007,7 @@ export default function CourseworkGenerator() {
                     {s.id}-bosqich: {s.label}
                   </span>
                 </button>
-                {idx < 3 && <div className="bg-border h-0.5 w-6 sm:w-16" />}
+                {idx < 3 && <div className="bg-border h-0.5 w-3 shrink-0 sm:w-16" />}
               </React.Fragment>
             );
           })}
@@ -911,81 +1016,36 @@ export default function CourseworkGenerator() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* ========================================================= */}
-        {/* STEP 1: PARAMETRLARNI KIRITISH */}
+        {/* STEP 1: ULTRA-SIMPLE STUDENT-FRIENDLY WIZARD */}
         {/* ========================================================= */}
         {currentStep === 1 && (
           <div className="mx-auto max-w-3xl">
-            <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm">
+            <div className="border-border bg-surface rounded-2xl border p-5 shadow-sm sm:p-7">
               <div className="border-border mb-6 flex items-center justify-between border-b pb-4">
                 <div>
-                  <h2 className="text-foreground flex items-center gap-2 text-lg font-bold">
+                  <h2 className="text-foreground flex items-center gap-2 text-lg font-bold sm:text-xl">
                     <Sparkles className="text-primary h-5 w-5" />
-                    <span>1-bosqich: Kurs ishi parametrlarini kiritish</span>
+                    <span>Kurs ishi generatori</span>
                   </h2>
-                  <p className="text-foreground-secondary mt-1 text-xs">
-                    Mavzu, fan va hajm tanlang. Keyingi bosqichda tizim kurs ishi rejasini
-                    shakllantiradi.
+                  <p className="text-foreground-secondary mt-0.5 text-xs sm:text-sm">
+                    Mavzuni kiriting va bir klikda OTM talablariga mos to&apos;liq kurs ishiga ega
+                    bo&apos;ling.
                   </p>
                 </div>
-                <span className="text-primary bg-primary/10 rounded-full px-3 py-1 text-xs font-bold">
-                  {formData.pageCount || "19"} sahifa
+                <span className="text-primary bg-primary/10 border-primary/20 rounded-full border px-3 py-1 text-xs font-bold">
+                  {formData.pageCount || "19"} bet
                 </span>
               </div>
 
-              <form onSubmit={handleProceedToOutline} className="space-y-5">
-                {/* Yo'nalish va Kafedra */}
+              <div className="space-y-5">
+                {/* 1. MAVZU (HERO INPUT) */}
                 <div>
-                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                    Yo&apos;nalish va Kafedra
+                  <label className="text-foreground mb-1.5 flex items-center justify-between text-xs font-bold sm:text-sm">
+                    <span>Kurs ishi mavzusi *</span>
+                    <span className="text-foreground-muted text-[11px] font-normal">
+                      Aniq va to&apos;liq yozing
+                    </span>
                   </label>
-                  <select
-                    value={selectedCategoryIdx}
-                    onChange={(e) => {
-                      const idx = parseInt(e.target.value, 10);
-                      setSelectedCategoryIdx(idx);
-                      const cat = FACULTIES_AND_SUBJECTS[idx];
-                      if (cat) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          subject: cat.subjects[0] || prev.subject,
-                          topic: cat.topics[0] || prev.topic,
-                          faculty: `${cat.category.split("(")[0].trim()} fakulteti`,
-                        }));
-                      }
-                    }}
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
-                  >
-                    {FACULTIES_AND_SUBJECTS.map((item, idx) => (
-                      <option key={idx} value={idx}>
-                        {item.category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Fan nomi */}
-                <div>
-                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                    Fan nomi *
-                  </label>
-                  <input
-                    type="text"
-                    name="subject"
-                    required
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="Masalan: Axborot texnologiyalari va dasturlash..."
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
-                  />
-                </div>
-
-                {/* Mavzu */}
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-foreground-secondary text-xs font-semibold">
-                      Kurs ishi mavzusi *
-                    </label>
-                  </div>
                   <textarea
                     rows={3}
                     name="topic"
@@ -994,167 +1054,266 @@ export default function CourseworkGenerator() {
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                       setFormData({ ...formData, topic: e.target.value })
                     }
-                    placeholder="Masalan: Sun'iy intellekt va mashinaviy o'rganish modellarining tibbiy diagnostikadagi amaliy samaradorligi..."
-                    className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs leading-snug focus:outline-none sm:text-sm"
+                    placeholder="Masalan: Tijorat banklarida kredit risklarini boshqarish tizimini takomillashtirish..."
+                    className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-xs leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
                   />
 
-                  {/* Smart topic suggestions */}
-                  <div className="mt-2.5 space-y-1.5">
-                    <span className="text-foreground-muted flex items-center gap-1 text-[11px] font-semibold">
+                  {/* QUICK TOPIC SUGGESTIONS */}
+                  <div className="mt-2.5">
+                    <span className="text-foreground-muted mb-1.5 flex items-center gap-1 text-[11px] font-semibold">
                       <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
-                      <span>Kafedra bo&apos;yicha tavsiya etilgan dolzarb mavzular:</span>
+                      <span>Ommabop mavzulardan tezkor tanlash:</span>
                     </span>
-                    <div className="space-y-1">
-                      {activeCategory.topics.slice(0, 3).map((item, i) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        "Sun'iy intellektning bank sohasida qo'llanilishi",
+                        "Raqamli iqtisodiyotda kichik biznesni rivojlantirish",
+                        "Kiberxavfsizlik va axborot himoyasi tamoyillari",
+                        "Yashil energetika va ekologik barqarorlik",
+                      ].map((item, i) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => handleSelectTopicSuggestion(item)}
-                          className="border-border/70 bg-surface-elevated/70 hover:bg-primary/10 hover:border-primary/40 text-foreground-secondary hover:text-foreground block w-full cursor-pointer truncate rounded-lg border px-3 py-1.5 text-left text-xs transition-all"
-                          title={item}
+                          className="border-border bg-surface-elevated hover:bg-primary/10 hover:border-primary/50 text-foreground-secondary hover:text-foreground cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all"
                         >
-                          → {item}
+                          ⚡ {item}
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Hajm tanlash */}
-                <div>
-                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                    Kutilayotgan hajm (sahifalar soni)
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {[
-                      { cnt: "15", label: "15 bet", desc: "Qisqa kurs ishi" },
-                      { cnt: "19", label: "19 bet", desc: "Standart hajm" },
-                      { cnt: "25", label: "25 bet", desc: "Kengaytirilgan" },
-                      { cnt: "30", label: "30 bet", desc: "To'liq akademik" },
-                    ].map((item) => (
-                      <button
-                        key={item.cnt}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, pageCount: item.cnt })}
-                        className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all ${
-                          formData.pageCount === item.cnt
-                            ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
-                            : "bg-surface-elevated border-border text-foreground hover:border-primary/50"
-                        }`}
-                      >
-                        <span className="text-xs font-bold">{item.label}</span>
-                        <span className="text-[10px] opacity-75">{item.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Til tanlash */}
-                <div>
-                  <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                    Yozish tili
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "uz" as const, label: "O'zbek (Lotin)", flag: "🇺🇿" },
-                      { id: "uz-cyrl" as const, label: "Ўзбек (Кирилл)", flag: "🇺🇿" },
-                      { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
-                    ].map((lang) => (
-                      <button
-                        key={lang.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, language: lang.id })}
-                        className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-semibold transition-all ${
-                          formData.language === lang.id
-                            ? "bg-primary border-primary text-white shadow-sm"
-                            : "bg-surface-elevated border-border text-foreground hover:bg-border/40"
-                        }`}
-                      >
-                        <span>{lang.flag}</span>
-                        <span className="truncate">{lang.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* OTM va Yil */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* 2. FAN NOMI (SUBJECT) */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      OTM nomi
+                    <label className="text-foreground mb-1.5 block text-xs font-bold">
+                      Fan nomi yoki Yo&apos;nalish *
                     </label>
                     <input
                       type="text"
-                      name="university"
-                      value={formData.university}
+                      name="subject"
+                      required
+                      value={formData.subject}
                       onChange={handleChange}
-                      placeholder="O'zbekiston Milliy Universiteti"
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
+                      placeholder="Masalan: Bank ishi, Informatika, Iqtisodiyot..."
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
                     />
                   </div>
+
                   <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      Yil
+                    <label className="text-foreground mb-1.5 block text-xs font-bold">
+                      Yo&apos;nalish (Kafedra)
                     </label>
-                    <input
-                      type="text"
-                      name="year"
-                      value={formData.year}
-                      onChange={handleChange}
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                    />
+                    <select
+                      value={selectedCategoryIdx}
+                      onChange={(e) => {
+                        const idx = parseInt(e.target.value, 10);
+                        setSelectedCategoryIdx(idx);
+                        const cat = FACULTIES_AND_SUBJECTS[idx];
+                        if (cat) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            subject: cat.subjects[0] || prev.subject,
+                            faculty: `${cat.category.split("(")[0].trim()} fakulteti`,
+                          }));
+                        }
+                      }}
+                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2.5 text-xs focus:outline-none sm:text-sm"
+                    >
+                      {FACULTIES_AND_SUBJECTS.map((item, idx) => (
+                        <option key={idx} value={idx}>
+                          {item.category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
-                {/* Talaba va Ilmiy rahbar */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* 3. HAJM VA TIL TANLASH */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* Hajm */}
                   <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      Talaba F.I.Sh. (Titul varaq uchun)
+                    <label className="text-foreground mb-1.5 block text-xs font-bold">
+                      Hajm (sahifalar soni)
                     </label>
-                    <input
-                      type="text"
-                      name="studentName"
-                      value={formData.studentName}
-                      onChange={handleChange}
-                      placeholder="Aliyev Vali G'aniyevich"
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                    />
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { cnt: "15", label: "15 bet" },
+                        { cnt: "19", label: "19 bet" },
+                        { cnt: "25", label: "25 bet" },
+                        { cnt: "30", label: "30 bet" },
+                      ].map((item) => (
+                        <button
+                          key={item.cnt}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, pageCount: item.cnt })}
+                          className={`flex cursor-pointer items-center justify-center rounded-xl border py-2.5 text-xs font-bold transition-all ${
+                            formData.pageCount === item.cnt
+                              ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
+                              : "bg-surface-elevated border-border text-foreground hover:border-primary/50"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Til */}
                   <div>
-                    <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                      Ilmiy rahbar (F.I.Sh., ilmiy daraja)
+                    <label className="text-foreground mb-1.5 block text-xs font-bold">
+                      Hujjat tili
                     </label>
-                    <input
-                      type="text"
-                      name="teacherName"
-                      value={formData.teacherName}
-                      onChange={handleChange}
-                      placeholder="dots. Karimov A.A."
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-xs focus:outline-none"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "uz" as const, label: "O'zbek (Lotin)", flag: "🇺🇿" },
+                        { id: "ru" as const, label: "Русский", flag: "🇷🇺" },
+                      ].map((lang) => (
+                        <button
+                          key={lang.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, language: lang.id })}
+                          className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all ${
+                            formData.language === lang.id
+                              ? "bg-primary border-primary text-white shadow-sm"
+                              : "bg-surface-elevated border-border text-foreground hover:bg-border/40"
+                          }`}
+                        >
+                          <span>{lang.flag}</span>
+                          <span>{lang.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Proceed Button */}
-                <button
-                  type="submit"
-                  disabled={isOutlineLoading}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20 mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-xs font-bold shadow-lg transition-all hover:scale-[1.01] disabled:opacity-50 sm:text-sm"
-                >
-                  {isOutlineLoading ? (
-                    <>
-                      <Sparkles className="h-4 w-4 animate-spin" />
-                      <span>Reja tuzilmoqda...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Rejani shakllantirish va tahrirlash (2-bosqich)</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </>
+                {/* 4. OPTIONAL TITUL DETAILS COLLAPSIBLE ACCORDION */}
+                <div className="border-border/80 bg-surface-elevated/40 rounded-xl border">
+                  <button
+                    type="button"
+                    onClick={() => setShowTitleDetails(!showTitleDetails)}
+                    className="text-foreground-secondary hover:text-foreground flex w-full cursor-pointer items-center justify-between p-3.5 text-xs font-bold transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>🏛️</span>
+                      <span>Titul varaq ma&apos;lumotlari (OTM, Talaba, Rahbar) — ixtiyoriy</span>
+                    </div>
+                    {showTitleDetails ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </button>
+
+                  {showTitleDetails && (
+                    <div className="border-border/60 space-y-3 border-t p-4 pt-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                            OTM nomi
+                          </label>
+                          <input
+                            type="text"
+                            name="university"
+                            value={formData.university}
+                            onChange={handleChange}
+                            placeholder="O'zbekiston Milliy Universiteti"
+                            className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2 text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                            Yil
+                          </label>
+                          <input
+                            type="text"
+                            name="year"
+                            value={formData.year}
+                            onChange={handleChange}
+                            className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2 text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                            Talaba F.I.Sh.
+                          </label>
+                          <input
+                            type="text"
+                            name="studentName"
+                            value={formData.studentName}
+                            onChange={handleChange}
+                            placeholder="Aliyev Vali G'aniyevich"
+                            className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2 text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-foreground-secondary mb-1 block text-[11px] font-semibold">
+                            Ilmiy rahbar
+                          </label>
+                          <input
+                            type="text"
+                            name="teacherName"
+                            value={formData.teacherName}
+                            onChange={handleChange}
+                            placeholder="dots. Karimov A.A."
+                            className="border-border bg-background text-foreground focus:border-primary w-full rounded-lg border px-3 py-2 text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </button>
-              </form>
+                </div>
+
+                {/* 5. ACTION BUTTONS: 1-CLICK FAST TRACK + OUTLINE EDIT */}
+                <div className="space-y-2.5 pt-2">
+                  {/* Primary 1-Click Fast Track Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleOneClickGenerate()}
+                    disabled={isFastGenerating || isOutlineLoading}
+                    className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 px-4 py-3.5 text-xs font-extrabold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.01] hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] disabled:opacity-50 sm:text-sm"
+                  >
+                    {isFastGenerating ? (
+                      <>
+                        <Sparkles className="h-4 w-4 animate-spin" />
+                        <span>Kurs ishi yaratilmoqda...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 text-amber-300 transition-transform group-hover:scale-110" />
+                        <span>
+                          Bir klikda Kurs Ishini Yaratish ({formData.pageCount || "19"} bet)
+                        </span>
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Secondary: Preview & Edit Outline First */}
+                  <button
+                    type="button"
+                    onClick={handleProceedToOutline}
+                    disabled={isOutlineLoading || isFastGenerating}
+                    className="border-border hover:bg-surface-elevated text-foreground-secondary hover:text-foreground flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all disabled:opacity-50"
+                  >
+                    {isOutlineLoading ? (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 animate-spin" />
+                        <span>Reja tuzilmoqda...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="text-primary h-3.5 w-3.5" />
+                        <span>Rejani oldindan ko&apos;rish va tahrirlash (2-bosqich)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1566,23 +1725,24 @@ export default function CourseworkGenerator() {
             )}
 
             {/* Document Render Container */}
-            <div className="flex w-full justify-center overflow-x-auto pb-10">
+            <div className="flex w-full justify-center overflow-x-auto px-0 pb-10 sm:px-4">
               <div
                 ref={documentRef}
                 id="coursework-document"
-                className="coursework-document flex w-[210mm] shrink-0 flex-col items-center print:block print:w-full"
+                className="coursework-document flex w-full max-w-[210mm] flex-col items-center print:block print:w-full"
               >
                 {pages.length > 0 ? (
                   viewMode === "pages" ? (
                     // Single Page View with pagination controls
                     <div
                       key={activePage.pageNumber}
-                      className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
+                      className="coursework-page-card mb-6 w-full max-w-[210mm] overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
                     >
                       <div
                         className="coursework-page relative flex flex-col justify-between bg-white font-serif text-black"
                         style={{
-                          width: "210mm",
+                          width: "100%",
+                          maxWidth: "210mm",
                           minHeight: "297mm",
                           boxSizing: "border-box",
                           paddingTop: "20mm",
@@ -1608,12 +1768,13 @@ export default function CourseworkGenerator() {
                     pages.map((p) => (
                       <div
                         key={p.pageNumber}
-                        className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
+                        className="coursework-page-card mb-6 w-full max-w-[210mm] overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none"
                       >
                         <div
                           className="coursework-page relative flex flex-col justify-between bg-white font-serif text-black"
                           style={{
-                            width: "210mm",
+                            width: "100%",
+                            maxWidth: "210mm",
                             minHeight: "297mm",
                             boxSizing: "border-box",
                             paddingTop: "20mm",
@@ -1638,11 +1799,12 @@ export default function CourseworkGenerator() {
                   )
                 ) : (
                   // Fallback continuous markdown view
-                  <div className="coursework-page-card mb-6 overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none">
+                  <div className="coursework-page-card mb-6 w-full max-w-[210mm] overflow-hidden rounded-sm border border-slate-200/90 bg-white shadow-2xl print:m-0 print:mb-0 print:border-0 print:shadow-none">
                     <div
                       className="coursework-page relative flex flex-col justify-between bg-white font-serif text-black"
                       style={{
-                        width: "210mm",
+                        width: "100%",
+                        maxWidth: "210mm",
                         minHeight: "297mm",
                         boxSizing: "border-box",
                         paddingTop: "20mm",

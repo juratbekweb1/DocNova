@@ -562,7 +562,7 @@ function CvBuilderContent() {
 
       <div className="bg-background flex h-[calc(100vh-80px)] overflow-hidden">
         {/* Left Sidebar: Tabs for Templates & Editor */}
-        <div className="border-border bg-surface z-10 flex h-full w-[430px] min-w-[360px] flex-col border-r shadow-lg">
+        <div className="border-border bg-surface z-10 flex h-full w-full max-w-full flex-col border-r shadow-lg sm:w-[430px] sm:min-w-[360px]">
           {/* Header */}
           <div className="border-border bg-surface/90 flex items-center justify-between border-b p-4 backdrop-blur">
             <div>

@@ -1016,10 +1016,17 @@ export async function POST(req: Request) {
 
       try {
         const prompt = `
-Quyidagi mavzu bo'yicha O'zbekiston OTM (MOVSO RUz) standartlariga mos kurs ishi rejasini JSON formatida tuzib ber:
+Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlari bo'yicha ilmiy kurs ishlari rejasini tuzuvchi professsiz.
+Quyidagi mavzu bo'yicha 3 ta bobdan va har bir bob kamida 3 ta paragrafdan iborat bo'lgan ilmiy-akademik reja tuzing:
 Fan: "${subject.trim()}"
 Mavzu: "${topic.trim()}"
 Til: "${lang}"
+
+QAT'IY TALAB VA CHEKLOV (MAVZUGA 100% MOSLIK):
+1. Rejadagi barcha bob va fasl sarlavhalari FAQAT VA FAQAT «${topic.trim()}» mavzusiga bevosita mos bo'lishi shart! Begona yoki umumiy mavzularga chalg'ish qat'iyan man etiladi.
+2. I BOB: «${topic.trim()}»ning nazariy-metodologik asoslari va xalqaro tajriba qiyosiy tahlili.
+3. II BOB: O'zbekistonda «${topic.trim()}»ning amaliy holati, empirik tahlillar va statistik ko'rsatkichlar.
+4. III BOB: «${topic.trim()}» sohasida aniqlangan muammolarni bartaraf etishning innovatsion yo'llari, «Yo'l xaritasi» va amaliy tavsiyalar.
 
 Javobing FAQAT va FAQAT yaroqli JSON bo'lsin:
 {
@@ -1043,7 +1050,7 @@ Javobing FAQAT va FAQAT yaroqli JSON bo'lsin:
 }
 `;
         const aiRes = await generateGeminiJson<{ chapters: CourseworkOutlineChapter[] }>(prompt, {
-          temperature: 0.3,
+          temperature: 0.2,
           maxOutputTokens: 2048,
           timeoutMs: 30_000,
         });
@@ -1091,8 +1098,8 @@ Javobing FAQAT va FAQAT yaroqli JSON bo'lsin:
 
     try {
       const chapterPrompt = `
-Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga mos ilmiy kurs ishlari bo'yicha yetakchi ekspertsiz.
-Quyidagi parametrlar bo'yicha ilmiy kurs ishi uchun kirish va 3 ta bobning batafsil akademik matnini JSON formatida tayyorlang:
+Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga mos ilmiy kurs ishlari bo'yicha yetakchi professsiz.
+Quyidagi parametrlar bo'yicha ilmiy kurs ishi uchun kirish, 3 ta bob va xulosaning to'liq, professional akademik matnini JSON formatida tayyorlang:
 Fan: "${data.subject}"
 Mavzu: "${data.topic}"
 Kafedra/Fakultet: "${data.faculty || "Tegishli soha"}"
@@ -1102,12 +1109,14 @@ ${data.outline?.chapters.map((ch) => `- ${ch.title}:\n${ch.subsections.map((s) =
 - Xulosa va amaliy tavsiyalar
 Til: "${lang}"
 
-Har bir bo'lim uchun talablar:
-1. kirishContent: Mavzuning dolzarbligi ("O'zbekiston - 2030" strategiyasi va Prezident farmonlari bilan bog'langan), o'rganilganlik darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologiyasi va ilmiy yangiligi.
-2. chapter1Content: I Bob bo'yicha nazariy-metodologik asoslar, fundamental tushunchalar va xalqaro tajriba tahlili.
-3. chapter2Content: II Bob bo'yicha O'zbekistondagi real holat, statistik tahlillar, empirik ma'lumotlar va aniqlangan tizimli muammolar tahlili.
-4. chapter3Content: III Bob bo'yicha innovatsion takliflar, amaliy mexanizmlar va yo'l xaritasi.
-5. xulosaContent: Kurs ishi bo'yicha yakuniy ilmiy xulosalar va amaliy tavsiyalar.
+QAT'IY AKADEMIK TALABLAR VA CHEKLOV (MAVZUGA 100% MOSLIK):
+1. Siz FAQAT VA FAQAT «${data.topic}» mavzusi bo'yicha yozasiz. Boshqa umumiy yoki begona mavzularga chalg'ish qat'iyan taqiqlanadi!
+2. Har bir bo'limda «${data.topic}» tushunchasi chuqur ilmiy atamalar, aniq mezonlar va faktlar asosida tahlil qilinsin.
+3. kirishContent: «${data.topic}» mavzusining dolzarbligi ("O'zbekiston - 2030" strategiyasi va Prezident farmonlari bilan bog'langan holda), muammoning o'rganilganlik darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologiyasi va ilmiy yangiligi.
+4. chapter1Content: I Bob bo'yicha «${data.topic}»ning fundamental nazariy asoslari, konseptual modellari va rivojlangan xorijiy davlatlar (AQSH, Germaniya, Yaponiya) ilg'or tajribasi.
+5. chapter2Content: II Bob bo'yicha O'zbekistonda «${data.topic}»ning joriy holati tahlili, 2023-2025 yillardagi empirik va statistik ma'lumotlar, taqqoslash jadvali va sohadagi dolzarb tizimli muammolar tahlili.
+6. chapter3Content: III Bob bo'yicha «${data.topic}»ni rivojlantirish bo'yicha 5 ta aniq ilmiy-amaliy taklif, bosqichma-bosqich «Yo'l xaritasi» va kutilayotgan iqtisodiy/ijtimoiy samaradorlik.
+7. xulosaContent: «${data.topic}» tadqiqoti bo'yicha 5-6 ta tizimli ilmiy xulosa va amaliy tavsiyalar.
 
 Javobni FAQAT quyidagi JSON formatida qaytaring:
 {
@@ -1119,11 +1128,11 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
 }
 `;
       const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
-        temperature: 0.3,
+        temperature: 0.2,
         maxOutputTokens: 8192,
         timeoutMs: 55_000,
         systemInstruction:
-          "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy kurs ishlari mutaxassisisiz. Faqat JSON formatida javob bering.",
+          "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy kurs ishlari mutaxassisisiz. Matnni faqat berilgan mavzuga 100% bog'langan holda, akademik tilda va faqat JSON formatida qaytaring.",
       });
 
       if (geminiRes.data && (geminiRes.data.kirishContent || geminiRes.data.chapter1Content)) {

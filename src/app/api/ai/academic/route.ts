@@ -129,13 +129,18 @@ QAT'IY TALABLAR (O'zbekiston OTM standartlari va GOST bo'yicha):
 7. XULOSA VA AMALIY TAVSIYALAR: Barcha boblar bo'yicha mukammal umumlashtirilgan ilmiy xulosalar.
 8. FOYDALANILGAN ADABIYOTLAR RO'YXATI: QAT'IY 25–30 TA DOLZARB VA REAL GOST MANBALARI (Konstitutsiya, O'zR Qonunlari, Prezident Farmonlari, darsliklar, Scopus / Web of Science ilmiy maqolalari, lex.uz, edu.uz).
 
+QAT'IY QOIDA VA CHEKLOV (MAVZUGA 100% MOSLIK):
+- Siz FAQAT VA FAQAT «${topic}» mavzusi bo'yicha yozasiz.
+- Barcha boblar, fasllar, empirik jadvallar va xulosalar aynan «${topic}» mavzusiga 100% bog'langan bo'lishi shart! Begona yoki umumiy mavzularga chalg'ish qat'iyan man etiladi.
+
 Matnni Markdown formatida, #, ##, ### sarlavhalar, qalin shrift va II Bobda statistik jadval bilan yozing.`;
 
       try {
         const geminiRes = await generateGeminiContent(prompt, {
           systemInstruction: isRu
-            ? "Вы — ведущий профессор вузов Узбекистана, специалист по подготовке ВКР, докторских и магистерских диссертаций."
-            : "Siz O'zbekiston oliy ta'lim tizimi professori, dissertatsiya va BMI mutaxassisisiz.",
+            ? "Вы — ведущий профессор вузов Узбекистана, специалист по подготовке ВКР, докторских и магистерских диссертаций. Строго следуйте указанной теме исследования."
+            : "Siz O'zbekiston oliy ta'lim tizimi professori, dissertatsiya va BMI mutaxassisisiz. Faqat kiritilgan mavzu doirasida yozing.",
+          temperature: 0.2,
           maxOutputTokens: 8192,
           timeoutMs: 55_000,
         });
@@ -567,6 +572,9 @@ Mavzu: "${topic}"
 Talaba: "${studentName || "Talaba"}"
 Hajm: "${length || "5-8 bet"}"
 
+QAT'IY TALAB VA CHEKLOV:
+Referatdagi har bir reja bandi va barcha matnlar FAQAT VA FAQAT «${topic}» mavzusiga bag'ishlansin. Begona mavzular qat'iyan taqiqlanadi.
+
 Tuzilishi:
 1. Titul ma'lumotlari
 2. REJA (Kirish, 2 ta asosiy savol, Xulosa, Foydalanilgan adabiyotlar)
@@ -579,7 +587,8 @@ Tuzilishi:
       try {
         const geminiRes = await generateGeminiContent(prompt, {
           systemInstruction:
-            "Siz talabalar uchun professional akademik referat va mustaqil ish yozuvchi mutaxassissiz.",
+            "Siz talabalar uchun professional akademik referat va mustaqil ish yozuvchi mutaxassissiz. Faqat berilgan mavzuga qat'iy bog'langan holda yozing.",
+          temperature: 0.2,
           maxOutputTokens: 6144,
           timeoutMs: 50_000,
         });
@@ -680,12 +689,15 @@ Referat doirasida olib borilgan o'rganishlar quyidagi xulosalarni chiqarish imko
     if (action === "generate-exam-prep") {
       const prompt = `Fan: "${subject || "Umumta'lim"}"
 Mavzu: "${topic}"
+
+QAT'IY TALAB: Barcha 10 ta test va 3 ta bilet savollari FAQAT VA FAQAT «${topic}» mavzusiga tegishli bo'lishi shart!
 Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test (har birida 4 ta variant A, B, C, D va to'g'ri javob izohi) hamda 3 ta asosiy imtihon bilet savolining mukammal yozma javobini tuzib ber.`;
 
       try {
         const geminiRes = await generateGeminiContent(prompt, {
           systemInstruction:
-            "Siz oliy ta'lim imtihonlari va test sinovlari tuzuvchi tajribali professiz.",
+            "Siz oliy ta'lim imtihonlari va test sinovlari tuzuvchi tajribali professiz. Savollarni faqat ko'rsatilgan mavzuga mos ravishda tuzing.",
+          temperature: 0.2,
           maxOutputTokens: 6144,
           timeoutMs: 50_000,
         });
