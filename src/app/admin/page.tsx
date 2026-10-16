@@ -12,7 +12,7 @@ export default async function AdminDashboardPage() {
   monthStart.setHours(0, 0, 0, 0);
 
   const transactions = await prisma.transaction.findMany({
-    where: { status: "success", createdAt: { gte: monthStart } },
+    where: { status: { in: ["PAID", "COMPLETED", "success"] }, createdAt: { gte: monthStart } },
     orderBy: { createdAt: "desc" },
   });
   const mrr = transactions.reduce((acc, t) => acc + t.amount, 0);

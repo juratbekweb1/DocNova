@@ -56,10 +56,10 @@ export function UpgradeModal({ isOpen, onClose, customTitle, customMessage }: Up
 
               <div className="mb-8 space-y-3">
                 {[
-                  "Unlimited AI Generations",
-                  "Advanced CV Analytics",
-                  "Priority Support",
-                  "Premium Templates",
+                  "Barcha 15-30 betlik kurs ishlari va taqdimotlar",
+                  "Cheksiz AI generatsiyalari va tahrirlash",
+                  "Word (.doc) va PDF to'liq yuklab olish",
+                  "24/7 ustuvor yordam va tezkor generatsiya",
                 ].map((feature, idx) => (
                   <div key={idx} className="text-foreground flex items-center gap-3 text-sm">
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
@@ -72,14 +72,14 @@ export function UpgradeModal({ isOpen, onClose, customTitle, customMessage }: Up
 
               <Link href="/pricing" className="block w-full" onClick={onClose}>
                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full rounded-xl py-6 text-base font-bold shadow-[0_0_20px_-5px_rgba(56,189,248,0.4)]">
-                  View PRO Plans <ArrowRight className="ml-2 h-5 w-5" />
+                  Pro va Premium Tariflarni Ko&apos;rish <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <button
                 onClick={onClose}
-                className="text-foreground-muted hover:text-foreground mt-4 w-full text-sm font-medium transition-colors"
+                className="text-foreground-muted hover:text-foreground mt-4 w-full cursor-pointer text-sm font-medium transition-colors"
               >
-                Maybe later
+                Keyinroq
               </button>
             </div>
           </motion.div>
