@@ -591,9 +591,152 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
         isRu ? "ru" : "uz"
       );
 
-      const targetWordCount = isExtended ? "2500-3500" : isMedium ? "1800-2400" : "1000-1400";
+      const targetWordCount = isExtended ? "2800-3800" : isMedium ? "1600-2200" : "900-1400";
       const targetPages = isExtended ? "10-15" : isMedium ? "5-8" : "3-5";
 
+      // 2A. PARALLEL TWO-STAGE GENERATION FOR EXTENDED 10-15 PAGES
+      if (isExtended) {
+        const promptPart1 = isRu
+          ? `Вы — профессор вузов Узбекистана по стандартам МОВСО РУз.
+Подготовьте ЧАСТЬ 1 расширенной самостоятельной работы / реферата (10-15 страниц):
+- Тема: "${topic}"
+- Дисциплина: "${subject || "Профильная дисциплина"}"
+- Студент: "${studentName || "[Студент: Ф.И.Ш.]"}"
+- Преподаватель: "${teacherName || "[Научный руководитель, доцент]"}"
+
+ЧАСТЬ 1 ДОЛЖНА СОДЕРЖАТЬ:
+1. ТИТУЛЬНЫЙ ЛИСТ (Министерство высшего образования, науки и инноваций РУз, ВУЗ, Кафедра, Тема, Исполнитель, Руководитель, Ташкент - ${currentYear}).
+2. СОДЕРЖАНИЕ (РЕЖА) с номерами страниц для всех разделов.
+3. ВВЕДЕНИЕ (Не менее 450-500 слов! Актуальность в увязке со Стратегией «Узбекистан — 2030», степень изученности, объект, предмет, главная цель, 4 задачи, научная новизна, методология).
+4. ГЛАВА I. ТЕОРЕТИКО-МЕТОДОЛОГИЧЕСКИЕ ОСНОВЫ (Не менее 1100-1300 слов!):
+   - 1.1. Сущность, понятийный аппарат и теоретические аспекты (не менее 350-450 слов);
+   - 1.2. Концептуальные модели и классификация подходов (не менее 350-450 слов);
+   - 1.3. Международный опыт и современные тенденции развития (не менее 350-450 слов).
+Пишите развернуто, академическим стилем, в чистом Markdown.`
+          : `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga to'liq javob beradigan yetakchi professorsiz.
+Kengaytirilgan (10-15 betlik, 2800-3800 so'zlik) mustaqil ish / referatning 1-QISMINI tayyorlang:
+- Fan: "${subject || "Umumta'lim fani"}"
+- Mavzu: "${topic}"
+- Bajaruvchi talaba: "${studentName || "[Talaba: Ism Familiya]"}"
+- Qabul qiluvchi o'qituvchi: "${teacherName || "[O'qituvchi: F.I.Sh., dotsent]"}"
+
+1-QISMDA QUYIDAGILAR TO'LIQ YOZILISHI SHART:
+1. TITUL VARAG'I: O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi, OTM, Kafedra, Fan nomi, Ish turi (${workType || "Mustaqil ish"}), Mavzu, Bajaruvchi, Qabul qildi, Toshkent - ${currentYear}.
+2. MUNDARIJA (REJA) sahifalari bilan (Kirish - 3, I Bob: 1.1 - 5, 1.2 - 7, 1.3 - 9, II Bob: 2.1 - 11, 2.2 - 13, 2.3 - 15, III Bob: 3.1 - 17, 3.2 - 19, 3.3 - 21, Xulosa - 23, Adabiyotlar - 25).
+3. KIRISH (Kamida 450-500 so'z! Mavzuning dolzarbligi, "O'zbekiston - 2030" strategiyasi bilan bog'liqligi, o'rganilganlik darajasi, obyekti, predmeti, maqsadi, 4 ta ilmiy vazifasi, ilmiy yangiligi va metodologiyasi).
+4. I BOB. TADQIQOTNING NAZARIY-METODOLOGIK ASOSLARI (Jami kamida 1100-1300 so'z!):
+   - 1.1. Mavzuning nazariy-konseptual mohiyati va fundamental tushunchalari (kamida 350-450 so'z).
+   - 1.2. Ilmiy qarashlar evolyutsiyasi va nazariy modellar tasnifi (kamida 350-450 so'z).
+   - 1.3. Xorijiy ilg'or tajriba va zamonaviy xalqaro tendensiyalar tahlili (kamida 350-450 so'z).
+Faqat Markdown formatida, chuqur tahliliy tilda yozing.`;
+
+        const promptPart2 = isRu
+          ? `Вы — профессор вузов Узбекистана по стандартам МОВСО РУз.
+Подготовьте ЧАСТЬ 2 расширенной самостоятельной работы / реферата (продолжение работы):
+- Тема: "${topic}"
+- Дисциплина: "${subject || "Профильная дисциплина"}"
+
+ЧАСТЬ 2 ДОЛЖНА СОДЕРЖАТЬ:
+## ГЛАВА II. ПРАКТИЧЕСКИЙ АНАЛИЗ И СТАТИСТИЧЕСКАЯ ОЦЕНКА (Не менее 1100-1300 слов!):
+### 2.1. Анализ текущего состояния и эмпирические показатели в Узбекистане (не менее 350 слов);
+### 2.2. Системные проблемы, институциональные барьеры и риски (не менее 350 слов);
+### 2.3. Сравнительная аналитическая таблица и оценка показателей (не менее 300 слов анализа и подробная таблица в Markdown).
+
+## ГЛАВА III. ПЕРСПЕКТИВНЫЕ НАПРАВЛЕНИЯ И ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ (Не менее 800-1000 слов!):
+### 3.1. Инновационные механизмы и прикладные решения (не менее 300 слов);
+### 3.2. Поэтапная «Дорожная карта» внедрения рекомендаций (не менее 300 слов);
+### 3.3. Оценка социально-экономической эффективности и перспектив (не менее 250 слов).
+
+## ЗАКЛЮЧЕНИЕ (Не менее 350-450 слов, 6-7 четких научных выводов и прикладных рекомендаций).
+
+## СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ (12-16 реальных источников по ГОСТу: законы РУз, указы, darsliklar, lex.uz, edu.uz).
+Пишите развернуто, академическим стилем, в чистом Markdown.`
+          : `Siz O'zbekiston Respublikasi Oliy ta'lim vazirligi professorsiz.
+Kengaytirilgan (10-15 betlik) mustaqil ish / referatning 2-QISMINI (davomini) yozib bering:
+- Mavzu: "${topic}"
+- Fan: "${subject || "Umumta'lim fani"}"
+
+2-QISMDA QUYIDAGILAR TO'LIQ YOZILISHI SHART:
+## II BOB. AMALIY TADQIQOT VA STATISTIK TAHLIL (Jami kamida 1100-1300 so'z!):
+### 2.1. O'zbekistonda sohaning joriy holati va amaliy ko'rsatkichlari (kamida 350-400 so'z).
+### 2.2. Sohadagi tizimli muammolar, institutsional to'siqlar va xatarlar tahlili (kamida 350-400 so'z).
+### 2.3. Qiyosiy tahliliy jadval va ko'rsatkichlar monitoringi (kamida 300 so'z va kamida 5 qatorli aniq Markdown statistik jadval).
+
+## III BOB. SOHANI RIVOJLANTIRISHNING ISTIQBOLLARI VA AMALIY TAKLIFLAR (Jami kamida 800-1000 so'z!):
+### 3.1. Innovatsion mexanizmlar va raqamli yechimlar majmuasi (kamida 300 so'z).
+### 3.2. Taklif etilayotgan yechimlarni joriy etishning «Yo'l xaritasi» (kamida 300 so'z).
+### 3.3. Kutilayotgan ijtimoiy-iqtisodiy samaradorlik tahlili (kamida 250 so'z).
+
+## XULOSA VA AMALIY TAVSIYALAR (Kamida 350-450 so'z, 6-7 ta tizimli ilmiy xulosa va amaliyotga tatbiq etish tavsiyalari).
+
+## FOYDALANILGAN ADABIYOTLAR RO'YXATI (12-16 ta real manba: O'zbekiston Respublikasi Qonunlari, Prezident farmonlari, darsliklar, lex.uz, edu.uz).
+Faqat Markdown formatida, chuqur tahliliy tilda yozing.`;
+
+        try {
+          const [geminiRes1, geminiRes2] = await Promise.all([
+            generateGeminiContent(promptPart1, {
+              systemInstruction: isRu
+                ? "Вы — ведущий профессор вузов Узбекистана. Строго соблюдайте научный стиль и тему исследования."
+                : "Siz O'zbekiston oliy ta'lim tizimi professori, mustaqil ish va referatlar bo'yicha yetakchi ekspertsiz. Juda batafsil, to'liq hajmli, chuqur tahliliy va faqat kiritilgan mavzuga bag'ishlangan akademik matn yozing.",
+              temperature: 0.25,
+              maxOutputTokens: 6000,
+              timeoutMs: 50_000,
+            }),
+            generateGeminiContent(promptPart2, {
+              systemInstruction: isRu
+                ? "Вы — ведущий профессор вузов Узбекистана. Строго соблюдайте научный стиль и тему исследования."
+                : "Siz O'zbekiston oliy ta'lim tizimi professori. 2-qismni juda batafsil, to'liq hajmda va ilmiy tilda yozing.",
+              temperature: 0.25,
+              maxOutputTokens: 6000,
+              timeoutMs: 50_000,
+            }),
+          ]);
+
+          if (geminiRes1.text && geminiRes2.text) {
+            const combinedText = geminiRes1.text.trim() + "\n\n---\n\n" + geminiRes2.text.trim();
+            const totalWords = combinedText.split(/\s+/).filter(Boolean).length;
+            if (totalWords >= 2600) {
+              if (userId) {
+                await deductUserAiCredit(userId);
+              }
+              await trackAIUsage({
+                userId,
+                plan,
+                feature: "REFERAT_EXTENDED",
+                provider: "gemini",
+                model: `${geminiRes1.modelUsed}+${geminiRes2.modelUsed}`,
+                status: "SUCCESS",
+                inputTokens: geminiRes1.usage.promptTokenCount + geminiRes2.usage.promptTokenCount,
+                outputTokens:
+                  geminiRes1.usage.candidatesTokenCount + geminiRes2.usage.candidatesTokenCount,
+                requestDurationMs: Date.now() - startTime,
+              });
+
+              return NextResponse.json({
+                success: true,
+                result: combinedText,
+                generatedWith: `${geminiRes1.modelUsed}+${geminiRes2.modelUsed}`,
+                usage: {
+                  promptTokenCount:
+                    geminiRes1.usage.promptTokenCount + geminiRes2.usage.promptTokenCount,
+                  candidatesTokenCount:
+                    geminiRes1.usage.candidatesTokenCount + geminiRes2.usage.candidatesTokenCount,
+                  totalTokenCount:
+                    geminiRes1.usage.totalTokenCount + geminiRes2.usage.totalTokenCount,
+                  durationMs: Date.now() - startTime,
+                },
+              });
+            }
+          }
+        } catch (parallelErr) {
+          console.warn(
+            "Parallel generation failed, falling back to single or MOVSO fallback:",
+            parallelErr
+          );
+        }
+      }
+
+      // 2B. SINGLE CALL FOR 3-5 OR 5-8 PAGES (OR EXTENDED FALLBACK)
       const prompt = isRu
         ? `Вы — профессор вузов Узбекистана и ведущий академический специалист по стандартам МОВСО РУз.
 Подготовьте развернутую, глубокую и качественную академическую работу (${workType || "Реферат / Самостоятельная работа"}) строго по следующим параметрам:

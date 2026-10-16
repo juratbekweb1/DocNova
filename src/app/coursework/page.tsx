@@ -852,9 +852,9 @@ export default function CourseworkGenerator() {
 
     if (isMobile) {
       toast({
-        title: "Mobil PDF eksport 📱",
+        title: "PDFni saqlash / chop etish 📱",
         description:
-          "Chop etish oynasida 'PDF sifatida saqlash' yoki 'Fayllarga saqlash'ni tanlang.",
+          "Chop etish oynasida printerni 'PDF sifatida saqlash' (Save as PDF) ga o'zgartiring va Saqlash tugmasini bosing.",
       });
       handlePrint();
       return;
@@ -1672,9 +1672,10 @@ export default function CourseworkGenerator() {
                 <button
                   onClick={handlePrint}
                   className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                  title="Chop etish yoki PDF sifatida saqlash"
                 >
                   <Printer className="h-3.5 w-3.5" />
-                  <span>Chop etish</span>
+                  <span>PDFni chop etish / saqlash</span>
                 </button>
 
                 {/* Copy */}
@@ -1887,6 +1888,9 @@ export default function CourseworkGenerator() {
             background-color: white !important;
             color: black !important;
           }
+          header,
+          nav,
+          footer,
           .print\\:hidden {
             display: none !important;
           }

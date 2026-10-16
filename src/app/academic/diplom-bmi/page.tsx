@@ -530,9 +530,9 @@ export default function DiplomBmiPage() {
 
     if (isMobile) {
       toast({
-        title: "Mobil PDF eksport 📱",
+        title: "PDFni saqlash / chop etish 📱",
         description:
-          "Chop etish oynasida 'PDF sifatida saqlash' yoki 'Fayllarga saqlash'ni tanlang.",
+          "Chop etish oynasida printerni 'PDF sifatida saqlash' (Save as PDF) ga o'zgartiring va Saqlash tugmasini bosing.",
       });
     }
     setTimeout(() => {
@@ -983,8 +983,16 @@ export default function DiplomBmiPage() {
 
                 {/* Actions bar */}
                 <div className="border-border bg-surface flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
-                  <div className="text-foreground text-xs font-semibold sm:text-sm">
-                    📄 BMI hujjati tayyor (MOVSO RUz)
+                  <div className="text-foreground flex items-center gap-2 text-xs font-semibold sm:text-sm">
+                    <span>📄 BMI hujjati tayyor (MOVSO RUz)</span>
+                    <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+                      Taxminiy hajm: ~
+                      {Math.max(
+                        1,
+                        Math.round((result.split(/\s+/).filter(Boolean).length || 0) / 270)
+                      )}{" "}
+                      bet ({result.split(/\s+/).filter(Boolean).length.toLocaleString()} so&apos;z)
+                    </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -1008,9 +1016,10 @@ export default function DiplomBmiPage() {
                     <button
                       onClick={handlePrint}
                       className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                      title="Chop etish yoki PDF sifatida saqlash"
                     >
                       <Printer className="h-3.5 w-3.5" />
-                      <span>Chop etish / PDF</span>
+                      <span>PDFni chop etish / saqlash</span>
                     </button>
                   </div>
                 </div>
@@ -1062,6 +1071,9 @@ export default function DiplomBmiPage() {
             background-color: white !important;
             color: black !important;
           }
+          header,
+          nav,
+          footer,
           .print\\:hidden {
             display: none !important;
           }
