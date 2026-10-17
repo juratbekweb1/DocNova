@@ -102,7 +102,8 @@ export async function createTelegramLinkToken(
     },
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.docnova.uz";
+  const rawUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  const baseUrl = rawUrl.includes("localhost") ? "http://localhost:3000" : "https://www.docnova.uz";
   return `${baseUrl}/telegram/connect?token=${token}&tg_id=${telegramId}${username ? `&username=${encodeURIComponent(username)}` : ""}`;
 }
 

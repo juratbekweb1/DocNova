@@ -72,6 +72,15 @@ function TelegramConnectInner() {
     );
   }
 
+  const getCanonicalCallbackUrl = () => {
+    if (typeof window === "undefined") return "https://www.docnova.uz/academic";
+    const pathAndQuery = `${window.location.pathname}${window.location.search}`;
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return pathAndQuery;
+    }
+    return `https://www.docnova.uz${pathAndQuery}`;
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4 text-white">
       <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl backdrop-blur-md sm:p-8">
@@ -111,7 +120,7 @@ function TelegramConnectInner() {
             </div>
 
             <button
-              onClick={() => signIn("google", { callbackUrl: window.location.href })}
+              onClick={() => signIn("google", { callbackUrl: getCanonicalCallbackUrl() })}
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 font-semibold text-slate-900 shadow-lg transition hover:bg-slate-100"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -136,7 +145,7 @@ function TelegramConnectInner() {
             </button>
 
             <Link
-              href={`/login?callbackUrl=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "/academic")}`}
+              href={`/login?callbackUrl=${encodeURIComponent(getCanonicalCallbackUrl())}`}
               className="block py-1 text-center text-xs text-slate-400 transition hover:text-white"
             >
               Email va parol orqali kirish
