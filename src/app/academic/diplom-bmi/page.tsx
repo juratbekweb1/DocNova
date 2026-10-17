@@ -387,6 +387,25 @@ export default function DiplomBmiPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401 || data.requireLogin) {
+          toast({
+            title: "Tizimga kirish zarur 🔒",
+            description:
+              "BMI / Diplom ishi tayyorlash uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+            variant: "destructive",
+          });
+          window.location.href = `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        if (res.status === 403 || data.requireUpgrade) {
+          toast({
+            title: "Oylik limitingiz tugadi ⚠️",
+            description:
+              data.upgradeMessage || "Ko'proq foydalanish uchun Pro yoki Premium tarifga o'ting.",
+            variant: "destructive",
+          });
+          return;
+        }
         throw new Error(data.error || "Generatsiyada xatolik yuz berdi");
       }
 

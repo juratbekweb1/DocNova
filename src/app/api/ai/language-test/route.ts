@@ -1,50 +1,56 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const CANDIDATE_MODELS = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"];
-
-async function evaluateWithGemini(prompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY || "";
-  if (!apiKey || apiKey.startsWith("AQ")) {
-    throw new Error("Valid Google AI Studio API key not configured");
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError: unknown = null;
-
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: { responseMimeType: "application/json" },
-      });
-
-      const response = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-
-      const text = response.response.text();
-      if (text && text.trim().length > 0) {
-        return text;
-      }
-    } catch (err) {
-      lastError = err;
-      continue;
-    }
-  }
-
-  throw lastError || new Error("All Gemini models failed");
-}
+import { generateGeminiJson } from "@/lib/gemini";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
+
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    userId = session?.user?.id;
 
     if (!userId) {
-      return NextResponse.json({ error: "Avtorizatsiya talab etiladi" }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: "Avtorizatsiya talab etiladi",
+          requireLogin: true,
+          message: "Mock test topshirish va AI bahosini olish uchun tizimga kiring.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const sub = await getUserSubscription(userId);
+    plan = sub.plan;
+
+    const limitCheck = await checkUserLimit(userId, "mock_test");
+    if (!limitCheck.allowed) {
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "MOCK_TEST",
+        status: "QUOTA_EXCEEDED",
+        errorCode: "LIMIT_EXCEEDED",
+      });
+      return NextResponse.json(
+        {
+          error: "Limit reached",
+          requireUpgrade: true,
+          upgradeMessage:
+            limitCheck.error ||
+            "Mock Test topshirish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -97,90 +103,126 @@ Evaluate this student strictly and return ONLY a valid JSON object matching this
 }`;
 
     try {
-      const rawJson = await evaluateWithGemini(prompt);
-      const cleanJson = rawJson
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-      const parsed = JSON.parse(cleanJson);
-      return NextResponse.json(parsed);
-    } catch {
-      // Deterministic intelligent fallback based on answers and writing
-      const basePercentage = Math.round((correctCount / Math.max(totalQuestions, 1)) * 60);
-      const hasWriting = (writtenText || "").trim().length > 30;
-      const writingBonus = hasWriting
-        ? Math.min(35, Math.round(writtenText.trim().length / 6))
-        : 10;
-      const totalScore = Math.min(98, Math.max(45, basePercentage + writingBonus));
+      const geminiRes = await generateGeminiJson<{ bandScore?: string; [key: string]: unknown }>(
+        prompt,
+        {
+          temperature: 0.2,
+          maxOutputTokens: 2048,
+          timeoutMs: 35_000,
+          systemInstruction:
+            "You are a certified senior linguistic examiner. Return ONLY a valid JSON object strictly matching the schema with Uzbek feedback.",
+        }
+      );
 
-      let band = "CEFR B2";
-      let cefr = "B2";
+      if (geminiRes.data && geminiRes.data.bandScore) {
+        await deductUserAiCredit(userId);
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "MOCK_TEST",
+          provider: "gemini",
+          model: geminiRes.modelUsed,
+          status: "SUCCESS",
+          inputTokens: geminiRes.usage.promptTokenCount,
+          outputTokens: geminiRes.usage.candidatesTokenCount,
+          requestDurationMs: Date.now() - startTime,
+        });
 
-      if (langCode === "EN") {
-        if (totalScore >= 88) {
-          band = "IELTS 7.5 • CEFR C1";
-          cefr = "C1";
-        } else if (totalScore >= 75) {
-          band = "IELTS 6.5 • CEFR B2";
-          cefr = "B2";
-        } else if (totalScore >= 60) {
-          band = "IELTS 6.0 • CEFR B1+";
-          cefr = "B1";
-        } else {
-          band = "IELTS 5.0 • CEFR A2/B1";
-          cefr = "A2";
-        }
-      } else if (langCode === "RU") {
-        if (totalScore >= 85) {
-          band = "ТРКИ-2 (Высокий уровень, B2/C1)";
-          cefr = "C1";
-        } else if (totalScore >= 70) {
-          band = "ТРКИ-1 (Средний уровень, B1/B2)";
-          cefr = "B2";
-        } else {
-          band = "Базовый уровень (A2)";
-          cefr = "A2";
-        }
-      } else {
-        if (totalScore >= 85) {
-          band = "TÖMER Yüksek (C1)";
-          cefr = "C1";
-        } else if (totalScore >= 70) {
-          band = "TÖMER Orta (B2)";
-          cefr = "B2";
-        } else {
-          band = "TÖMER Temel (B1)";
-          cefr = "B1";
-        }
+        return NextResponse.json(geminiRes.data);
       }
+    } catch (geminiErr) {
+      console.warn("[LANGUAGE_TEST_GEMINI_FALLBACK]", geminiErr);
+    }
 
-      return NextResponse.json({
-        overallScore: totalScore,
-        bandScore: band,
-        cefrLevel: cefr,
-        grammarScore: Math.min(100, totalScore + 2),
-        vocabularyScore: Math.min(100, totalScore - 3),
-        readingScore: Math.min(100, Math.round((correctCount / totalQuestions) * 100)),
-        writingScore: hasWriting ? Math.min(95, 60 + writingBonus) : 55,
-        strengths: [
-          `Test savollarida ${correctCount}/${totalQuestions} to'g'ri natija ko'rsatildi va bazaviy struktura yaxshi shakllangan.`,
-          "Mavzuni tushunish va kontekstdan to'g'ri xulosa chiqarish qobiliyati yuqori.",
-          hasWriting
-            ? "Yozma topshiriqda fikrni izchil bayon etishga harakat qilingan."
-            : "Savollarga javob berishda tezkor fikrlash ko'zga tashlandi.",
-        ],
-        weaknesses: [
-          "Murakkab grammatik strukturalarda (passiv shakllar va bog'lovchilar) kichik noaniqliklar mavjud.",
-          "Akademik va kasbiy leksika doirasini yanada boyitish tavsiya etiladi.",
-        ],
-        recommendations: [
-          "Har kuni 15-20 daqiqa tanlangan tilda ilmiy va ommabop maqolalar mutolaa qiling.",
-          "Lug'at boyligini oshirish uchun yangi so'zlarni kontekstli jumlalar bilan birga yod oling.",
-          "Haftada kamida 2 marta qisqa insho yoki referat yozib, grammatik aniqlikni mustahkamlang.",
-        ],
-        summary: `Sizning joriy natijangiz ${band} standartlariga mos keladi. Muntazam amaliy mashg'ulotlar orqali keyingi darajaga o'tish imkoniyatingiz yuqori!`,
+    // Deterministic intelligent fallback based on answers and writing
+    const basePercentage = Math.round((correctCount / Math.max(totalQuestions, 1)) * 60);
+    const hasWriting = (writtenText || "").trim().length > 30;
+    const writingBonus = hasWriting ? Math.min(35, Math.round(writtenText.trim().length / 6)) : 10;
+    const totalScore = Math.min(98, Math.max(45, basePercentage + writingBonus));
+
+    let band = "CEFR B2";
+    let cefr = "B2";
+
+    if (langCode === "EN") {
+      if (totalScore >= 88) {
+        band = "IELTS 7.5 • CEFR C1";
+        cefr = "C1";
+      } else if (totalScore >= 75) {
+        band = "IELTS 6.5 • CEFR B2";
+        cefr = "B2";
+      } else if (totalScore >= 60) {
+        band = "IELTS 6.0 • CEFR B1+";
+        cefr = "B1";
+      } else {
+        band = "IELTS 5.0 • CEFR A2/B1";
+        cefr = "A2";
+      }
+    } else if (langCode === "RU") {
+      if (totalScore >= 85) {
+        band = "ТРКИ-2 (Высокий уровень, B2/C1)";
+        cefr = "C1";
+      } else if (totalScore >= 70) {
+        band = "ТРКИ-1 (Средний уровень, B1/B2)";
+        cefr = "B2";
+      } else {
+        band = "Базовый уровень (A2)";
+        cefr = "A2";
+      }
+    } else {
+      if (totalScore >= 85) {
+        band = "TÖMER Yüksek (C1)";
+        cefr = "C1";
+      } else if (totalScore >= 70) {
+        band = "TÖMER Orta (B2)";
+        cefr = "B2";
+      } else {
+        band = "TÖMER Temel (B1)";
+        cefr = "B1";
+      }
+    }
+
+    if (userId) {
+      await deductUserAiCredit(userId);
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "MOCK_TEST",
+        provider: "fallback",
+        model: "rubric-scoring",
+        status: "SUCCESS",
+        inputTokens: 500,
+        outputTokens: 400,
+        requestDurationMs: Date.now() - startTime,
+        errorCode: "AI_FALLBACK",
       });
     }
+
+    return NextResponse.json({
+      overallScore: totalScore,
+      bandScore: band,
+      cefrLevel: cefr,
+      grammarScore: Math.min(100, totalScore + 2),
+      vocabularyScore: Math.min(100, totalScore - 3),
+      readingScore: Math.min(100, Math.round((correctCount / totalQuestions) * 100)),
+      writingScore: hasWriting ? Math.min(95, 60 + writingBonus) : 55,
+      strengths: [
+        `Test savollarida ${correctCount}/${totalQuestions} to'g'ri natija ko'rsatildi va bazaviy struktura yaxshi shakllangan.`,
+        "Mavzuni tushunish va kontekstdan to'g'ri xulosa chiqarish qobiliyati yuqori.",
+        hasWriting
+          ? "Yozma topshiriqda fikrni izchil bayon etishga harakat qilingan."
+          : "Savollarga javob berishda tezkor fikrlash ko'zga tashlandi.",
+      ],
+      weaknesses: [
+        "Murakkab grammatik strukturalarda (passiv shakllar va bog'lovchilar) kichik noaniqliklar mavjud.",
+        "Akademik va kasbiy leksika doirasini yanada boyitish tavsiya etiladi.",
+      ],
+      recommendations: [
+        "Har kuni 15-20 daqiqa tanlangan tilda ilmiy va ommabop maqolalar mutolaa qiling.",
+        "Lug'at boyligini oshirish uchun yangi so'zlarni kontekstli jumlalar bilan birga yod oling.",
+        "Haftada kamida 2 marta qisqa insho yoki referat yozib, grammatik aniqlikni mustahkamlang.",
+      ],
+      summary: `Sizning joriy natijangiz ${band} standartlariga mos keladi. Muntazam amaliy mashg'ulotlar orqali keyingi darajaga o'tish imkoniyatingiz yuqori!`,
+    });
   } catch (err: unknown) {
     const error = err as Error;
     console.error("Language test API Error:", error);

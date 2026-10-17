@@ -20,30 +20,40 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions).catch(() => null);
     userId = session?.user?.id;
 
-    if (userId) {
-      const sub = await getUserSubscription(userId);
-      plan = sub.plan;
+    if (!userId) {
+      return NextResponse.json(
+        {
+          error: "Avtorizatsiya talab etiladi",
+          requireLogin: true,
+          message:
+            "Akademik generatorlardan foydalanish uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+        },
+        { status: 401 }
+      );
+    }
 
-      const limitCheck = await checkUserLimit(userId, "coursework");
-      if (!limitCheck.allowed) {
-        await trackAIUsage({
-          userId,
-          plan,
-          feature: "ACADEMIC_GENERATION",
-          status: "QUOTA_EXCEEDED",
-          errorCode: "LIMIT_EXCEEDED",
-        });
-        return NextResponse.json(
-          {
-            error: "Limit reached",
-            requireUpgrade: true,
-            upgradeMessage:
-              limitCheck.error ||
-              "Akademik hujjat yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
-          },
-          { status: 403 }
-        );
-      }
+    const sub = await getUserSubscription(userId);
+    plan = sub.plan;
+
+    const limitCheck = await checkUserLimit(userId, "coursework");
+    if (!limitCheck.allowed) {
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "ACADEMIC_GENERATION",
+        status: "QUOTA_EXCEEDED",
+        errorCode: "LIMIT_EXCEEDED",
+      });
+      return NextResponse.json(
+        {
+          error: "Limit reached",
+          requireUpgrade: true,
+          upgradeMessage:
+            limitCheck.error ||
+            "Akademik hujjat yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

@@ -21,6 +21,7 @@ import {
   Key,
   Search,
   GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ export function Sidebar() {
 
   const adminNavigation = [
     { name: t.adminNavTelemetry || "Telemetry", href: "/admin", icon: LayoutDashboard },
+    { name: "AI Tokenlar & Hisobot", href: "/admin/ai-analytics", icon: Sparkles },
     { name: t.adminNavPricing || "Pricing Engine", href: "/admin/pricing", icon: CreditCard },
     { name: t.adminNavPromo || "Promo Codes", href: "/admin/promo", icon: Tag },
     { name: t.adminNavUsers || "Users (CRM)", href: "/admin/users", icon: Users },
@@ -53,6 +55,7 @@ export function Sidebar() {
 
   const superAdminNavigation = [
     { name: t.sidebarDashboard || "Overview", href: "/super-admin", icon: LayoutDashboard },
+    { name: "AI Tokenlar & Hisobot", href: "/admin/ai-analytics", icon: Sparkles },
     { name: "Role Management", href: "/super-admin/roles", icon: ShieldAlert },
     { name: "API Keys", href: "/super-admin/api-keys", icon: Key },
     { name: t.sidebarSettings || "Global Settings", href: "/super-admin/settings", icon: Settings },

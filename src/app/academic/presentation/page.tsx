@@ -254,6 +254,17 @@ function PresentationContent() {
 
       const data = await response.json();
       if (!response.ok || !data.success) {
+        if (response.status === 401 || data.requireLogin) {
+          toast({
+            title: "Tizimga kirish zarur 🔒",
+            description:
+              "Prezentatsiya yaratish uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+            variant: "destructive",
+          });
+          window.location.href = `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+
         if (response.status === 403 || data.requireUpgrade) {
           const quotaMsg =
             data.upgradeMessage ||

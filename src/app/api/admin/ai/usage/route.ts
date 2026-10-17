@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { getDetailedAiReport } from "@/lib/telegram-ai-report";
 
 export async function GET(req: Request) {
   try {
@@ -20,25 +21,45 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const range = searchParams.get("range") || "30d"; // e.g. 7d, 30d, 90d
+    const range = searchParams.get("range") || "30d";
 
-    let dateGte = new Date();
+    const dateGte = new Date();
     if (range === "7d") dateGte.setDate(dateGte.getDate() - 7);
     else if (range === "90d") dateGte.setDate(dateGte.getDate() - 90);
     else dateGte.setDate(dateGte.getDate() - 30);
 
-    const usages = await prisma.aIUsage.findMany({
-      where: {
-        createdAt: {
-          gte: dateGte,
+    const [usages, detailedSummary] = await Promise.all([
+      prisma.aIUsage.findMany({
+        where: {
+          createdAt: {
+            gte: dateGte,
+          },
         },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              plan: true,
+              role: true,
+              avatar: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      getDetailedAiReport(),
+    ]);
 
-    return NextResponse.json({ success: true, usages });
-  } catch (error) {
-    console.error("AI Usage API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      usages,
+      summary: detailedSummary,
+    });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("AI Usage API Error:", err);
+    return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }
 }

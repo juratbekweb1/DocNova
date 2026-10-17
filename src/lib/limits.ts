@@ -105,29 +105,32 @@ export async function checkUserLimit(
     };
   }
 
-  if (featureType === "mock_test") {
-    const lastReq = new Date(user.lastRequestDate);
-    const isSameMonth =
-      now.getFullYear() === lastReq.getFullYear() && now.getMonth() === lastReq.getMonth();
-    const currentMockTestCount = isSameMonth ? user.mockTestCount : 0;
-    const allowed = currentMockTestCount < limits.mock_test;
-    return {
-      allowed,
-      limitExceeded: !allowed,
-      remaining: Math.max(0, limits.mock_test - currentMockTestCount),
-      totalLimit: limits.mock_test,
-      ...(!allowed && { error: "Monthly mock test limit exceeded", code: "LIMIT_EXCEEDED" }),
-    };
-  }
-
   // Monthly AI feature limits using AIUsage table
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const featureKey = featureType.toUpperCase();
 
+  const featureKeysToCount =
+    featureType === "coursework"
+      ? [
+          "COURSEWORK",
+          "REFERAT",
+          "REFERAT_EXTENDED",
+          "BMI_DIPLOM",
+          "EXAM_PREP",
+          "ACADEMIC_GENERATION",
+        ]
+      : featureType === "mock_test"
+        ? ["MOCK_TEST"]
+        : featureType === "presentation"
+          ? ["PRESENTATION"]
+          : featureType === "rewrite"
+            ? ["REWRITE"]
+            : [featureKey];
+
   const usageCount = await prisma.aIUsage.count({
     where: {
       userId,
-      feature: featureKey,
+      feature: { in: featureKeysToCount },
       status: "SUCCESS",
       createdAt: {
         gte: startOfMonth,
@@ -144,7 +147,7 @@ export async function checkUserLimit(
     remaining: Math.max(0, limit - usageCount),
     totalLimit: limit,
     ...(!allowed && {
-      error: `Bugungi AI limitingiz tugadi. Pro tarifga o'tib ko'proq foydalanishingiz mumkin.`,
+      error: `Ushbu oy uchun ${featureType === "coursework" ? "akademik hujjatlar (Kurs ishi, Referat, BMI)" : featureType} limitingiz tugadi. Pro yoki Premium tarifga o'tib ko'proq foydalanishingiz mumkin.`,
       code: "LIMIT_EXCEEDED",
     }),
   };

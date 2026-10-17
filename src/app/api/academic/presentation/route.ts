@@ -53,31 +53,41 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions).catch(() => null);
     userId = session?.user?.id;
 
-    // 1. Quota & Subscription Enforcement
-    if (userId) {
-      const sub = await getUserSubscription(userId);
-      plan = sub.plan;
+    // 1. Authentication & Quota Enforcement
+    if (!userId) {
+      return NextResponse.json(
+        {
+          error: "Avtorizatsiya talab etiladi",
+          requireLogin: true,
+          message:
+            "Prezentatsiya va slaydlar generatoridan foydalanish uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+        },
+        { status: 401 }
+      );
+    }
 
-      const limitCheck = await checkUserLimit(userId, "presentation");
-      if (!limitCheck.allowed) {
-        await trackAIUsage({
-          userId,
-          plan,
-          feature: "PRESENTATION",
-          status: "QUOTA_EXCEEDED",
-          errorCode: "LIMIT_EXCEEDED",
-        });
-        return NextResponse.json(
-          {
-            error: "Limit reached",
-            requireUpgrade: true,
-            upgradeMessage:
-              limitCheck.error ||
-              "Prezentatsiya yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
-          },
-          { status: 403 }
-        );
-      }
+    const sub = await getUserSubscription(userId);
+    plan = sub.plan;
+
+    const limitCheck = await checkUserLimit(userId, "presentation");
+    if (!limitCheck.allowed) {
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "PRESENTATION",
+        status: "QUOTA_EXCEEDED",
+        errorCode: "LIMIT_EXCEEDED",
+      });
+      return NextResponse.json(
+        {
+          error: "Limit reached",
+          requireUpgrade: true,
+          upgradeMessage:
+            limitCheck.error ||
+            "Prezentatsiya yaratish bo'yicha limitingiz tugadi. Pro yoki Premium tarifga o'ting.",
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

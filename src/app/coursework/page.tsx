@@ -379,6 +379,16 @@ export default function CourseworkGenerator() {
       clearInterval(stepInterval);
 
       if (!res.ok) {
+        if (res.status === 401 || data.requireLogin) {
+          toast({
+            title: "Tizimga kirish zarur 🔒",
+            description: "Kurs ishi yaratish uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+            variant: "destructive",
+          });
+          window.location.href = `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+
         if (res.status === 403 || data.requireUpgrade) {
           const quotaMsg =
             data.upgradeMessage ||
@@ -459,6 +469,16 @@ export default function CourseworkGenerator() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401 || data.requireLogin) {
+          toast({
+            title: "Tizimga kirish zarur 🔒",
+            description: "Kurs ishi rejasini shakllantirish uchun profilingizga kiring.",
+            variant: "destructive",
+          });
+          window.location.href = `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+
         if (res.status === 403 || data.requireUpgrade) {
           const quotaMsg =
             data.upgradeMessage ||
