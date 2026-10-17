@@ -4,8 +4,15 @@ import fs from "node:fs";
 console.log("=== STARTING DOCNOVA AI BOT INTEGRATION AUDIT ===");
 
 // 1. Verify Bot Token & Identity via Telegram Bot API
-const token = "8626153164:AAFtB1tUq_Shc5UTlrw2TU74Qr_r0Q5C-fY";
+let token = process.env.DOCNOVA_AI_BOT_TOKEN;
+if (!token && fs.existsSync(".env")) {
+  const envContent = fs.readFileSync(".env", "utf-8");
+  const match = envContent.match(/DOCNOVA_AI_BOT_TOKEN=["']?([^"'\r\n]+)/);
+  if (match) token = match[1];
+}
+
 try {
+  assert.ok(token, "DOCNOVA_AI_BOT_TOKEN must be defined");
   const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
   const data = await res.json();
   assert.strictEqual(data.ok, true, "getMe should be ok");
@@ -55,7 +62,6 @@ function markdownToWordHtml(markdown) {
 }
 
 function generateWordDocumentBuffer(params) {
-  const currentYear = params.year || new Date().getFullYear();
   const formattedHtml = markdownToWordHtml(params.bodyContent);
 
   const wordDocHTML = `

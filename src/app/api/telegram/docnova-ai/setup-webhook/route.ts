@@ -1,19 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { docnovaAiBot } from "@/lib/telegram-docnova-ai";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // 1. Strict Authentication: Must be SUPER_ADMIN / ADMIN or present the secure admin key
+    const url = new URL(req.url);
+    const adminKey = req.headers.get("x-admin-key") || url.searchParams.get("adminKey");
+    const isSecretAuthorized = Boolean(
+      process.env.DOCNOVA_AI_BOT_SECRET && adminKey === process.env.DOCNOVA_AI_BOT_SECRET
+    );
+
     const session = await getServerSession(authOptions).catch(() => null);
-    // Allow SUPER_ADMIN or check for internal call
-    if (
-      session &&
-      session.user &&
-      session.user.role !== "SUPER_ADMIN" &&
-      session.user.role !== "ADMIN"
-    ) {
-      return NextResponse.json({ error: "Ruxsat berilmagan" }, { status: 403 });
+    const isSessionAdmin = session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "ADMIN";
+
+    if (!isSessionAdmin && !isSecretAuthorized) {
+      return NextResponse.json(
+        {
+          error:
+            "Ruxsat berilmagan: Faqat tizim administratori (SUPER_ADMIN/ADMIN) yoki maxfiy adminKey bilan chaqirish mumkin.",
+        },
+        { status: 403 }
+      );
     }
 
     if (!docnovaAiBot) {

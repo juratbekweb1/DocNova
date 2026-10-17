@@ -38,12 +38,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (new Date(verificationRecord.expires) < new Date()) {
-      await prisma.verificationToken.deleteMany({ where: { token } });
+    // 1. Atomically consume token (protects against concurrent replay attacks)
+    const consumeResult = await prisma.verificationToken.deleteMany({
+      where: {
+        token,
+        expires: { gte: new Date() },
+      },
+    });
+
+    if (consumeResult.count === 0) {
       return NextResponse.json(
         {
           error:
-            "Bog'lanish havolasining amal qilish muddati (15 daqiqa) tugagan. Yangisini oling.",
+            "Bog'lanish tokeni allaqachon ishlatilgan yoki eskirgan. Telegram botda /start buyrug'ini qaytadan bosing.",
         },
         { status: 400 }
       );
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Telegram identifikatori aniqlanmadi" }, { status: 400 });
     }
 
-    // 1. Unlink any previous user associated with this telegramId
+    // 2. Unlink any previous user associated with this telegramId
     await prisma.user.updateMany({
       where: { telegramId },
       data: {
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 2. Link current authenticated user
+    // 3. Link current authenticated user
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
@@ -79,9 +86,6 @@ export async function POST(req: NextRequest) {
         plan: true,
       },
     });
-
-    // 3. Consume token
-    await prisma.verificationToken.deleteMany({ where: { token } });
 
     // 4. Send instant confirmation push into Telegram chat
     if (docnovaAiBot) {

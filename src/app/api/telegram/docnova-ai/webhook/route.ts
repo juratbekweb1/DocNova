@@ -699,8 +699,14 @@ if (docnovaAiBot) {
   });
 }
 
-export const POST = docnovaAiBot
-  ? webhookCallback(docnovaAiBot, "std/http", {
-      secretToken: process.env.DOCNOVA_AI_BOT_SECRET,
-    })
-  : async () => new Response("DocNova AI Bot not configured", { status: 500 });
+const webhookSecret = process.env.DOCNOVA_AI_BOT_SECRET;
+
+export const POST =
+  docnovaAiBot && webhookSecret
+    ? webhookCallback(docnovaAiBot, "std/http", {
+        secretToken: webhookSecret,
+      })
+    : async () =>
+        new Response("DocNova AI Bot or Webhook Secret is not configured securely.", {
+          status: 500,
+        });
