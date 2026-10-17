@@ -11,6 +11,8 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
     TELEGRAM_WEBHOOK_SECRET: z.string().min(1).optional(),
     TELEGRAM_ADMIN_CHAT_ID: z.string().min(1).optional(),
+    DOCNOVA_AI_BOT_TOKEN: z.string().min(1).optional(),
+    DOCNOVA_AI_BOT_SECRET: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
