@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
 
     if (user.passwordHash) {
       if (!password) {
-        return NextResponse.json({ error: "Password is required to delete account" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Password is required to delete account" },
+          { status: 400 }
+        );
       }
       const bcrypt = await import("bcryptjs");
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -35,9 +38,9 @@ export async function POST(req: NextRequest) {
     // Soft delete implementation
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { 
+      data: {
         deletedAt: new Date(),
-        sessionVersion: { increment: 1 } // Logout from all devices
+        sessionVersion: { increment: 1 }, // Logout from all devices
       },
     });
 

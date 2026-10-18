@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import crypto from "crypto";
@@ -12,7 +12,7 @@ const changeEmailSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
     const parsedData = changeEmailSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Invalid data", details: parsedData.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid data", details: parsedData.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
 
     const { newEmail, password } = parsedData.data;
@@ -70,11 +73,11 @@ export async function POST(req: NextRequest) {
     // In a real application, you would send an email here with a link like:
     // /api/auth/verify-email?token=${token}&email=${newEmail}
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Verification email sent to new address (Simulated for now).",
       // Returning token only for testing purposes since we don't have an email provider setup
-      testToken: token
+      testToken: token,
     });
   } catch (error) {
     console.error("Change Email Error:", error);

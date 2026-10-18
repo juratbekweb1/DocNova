@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 import { webhookCallback, InlineKeyboard, InputFile, Context } from "grammy";
 import {
   docnovaAiBot,

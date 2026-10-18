@@ -1872,6 +1872,13 @@ export function LanguageProvider({
           setLangState(saved);
         }
         document.cookie = `NEXT_LOCALE=${saved}; path=/; max-age=31536000; SameSite=Lax`;
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = saved;
+        }
+      } else {
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = lang;
+        }
       }
     } catch (e) {
       console.error(e);
@@ -1882,14 +1889,21 @@ export function LanguageProvider({
   const setLang = (l: Lang) => {
     setLangState(l);
     try {
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = l;
+      }
       localStorage.setItem("DocNova-lang", l);
       document.cookie = `NEXT_LOCALE=${l}; path=/; max-age=31536000; SameSite=Lax`;
     } catch (e) {
       console.error(e);
     }
     // Instant reload so all server and client components immediately switch language!
-    if (typeof window !== "undefined") {
-      window.location.reload();
+    if (typeof window !== "undefined" && typeof window.location?.reload === "function") {
+      try {
+        window.location.reload();
+      } catch {
+        // Safe fallback in test environments
+      }
     }
   };
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
@@ -8,7 +8,7 @@ import { encrypt } from "@/lib/security/encryption";
 
 export async function POST(_req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

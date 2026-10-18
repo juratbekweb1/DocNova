@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { auth } from "@/auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // Type assertion for session
@@ -14,8 +14,8 @@ type Session = {
 
 export async function GET() {
   try {
-    const session = (await getServerSession(auth)) as Session;
-    
+    const session = (await getServerSession(authOptions)) as Session;
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -36,7 +36,7 @@ export async function GET() {
     }
 
     // Get user's organization IDs
-    const _organizationIds = user.organizations.map(org => org.organizationId);
+    const _organizationIds = user.organizations.map((org) => org.organizationId);
 
     // Fetch user-specific document stats
     const [totalResumes, drafts, published] = await Promise.all([
@@ -58,12 +58,14 @@ export async function GET() {
       take: 4,
     });
 
-    const formattedResumes = recentResumes.map((doc: { id: string; title: string; updatedAt: Date; status: string }) => ({
-      id: doc.id,
-      title: doc.title || "Untitled Document",
-      updated: formatTimeAgo(doc.updatedAt),
-      status: doc.status.toLowerCase(),
-    }));
+    const formattedResumes = recentResumes.map(
+      (doc: { id: string; title: string; updatedAt: Date; status: string }) => ({
+        id: doc.id,
+        title: doc.title || "Untitled Document",
+        updated: formatTimeAgo(doc.updatedAt),
+        status: doc.status.toLowerCase(),
+      })
+    );
 
     return NextResponse.json({
       stats: {
@@ -75,10 +77,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch dashboard stats" }, { status: 500 });
   }
 }
 

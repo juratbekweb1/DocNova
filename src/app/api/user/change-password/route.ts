@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ const changePasswordSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     const parsedData = changePasswordSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Invalid data", details: parsedData.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid data", details: parsedData.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
 
     const { currentPassword, newPassword } = parsedData.data;
@@ -35,7 +38,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user.passwordHash) {
-      return NextResponse.json({ error: "Cannot change password for OAuth accounts directly" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot change password for OAuth accounts directly" },
+        { status: 400 }
+      );
     }
 
     const bcrypt = await import("bcryptjs");
@@ -49,9 +55,9 @@ export async function POST(req: NextRequest) {
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { 
+      data: {
         passwordHash: newPasswordHash,
-        sessionVersion: { increment: 1 } // Logout from all other devices on password change
+        sessionVersion: { increment: 1 }, // Logout from all other devices on password change
       },
     });
 

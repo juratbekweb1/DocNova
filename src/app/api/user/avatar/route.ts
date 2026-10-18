@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { storage } from "@/lib/storage";
 import { prisma } from "@/lib/prisma";
 
@@ -12,7 +12,7 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -29,7 +29,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "Unsupported file type (JPEG, PNG, WEBP only)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Unsupported file type (JPEG, PNG, WEBP only)" },
+        { status: 400 }
+      );
     }
 
     // Check if user already has an avatar and delete it from storage

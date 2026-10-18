@@ -74,7 +74,7 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
       systemInstruction:
         "Siz O'zbekiston OTMlarining yetakchi ilmiy professori va metodistisiz. Kurs ishlarini MOVSO RUz standartida benuqson yozasiz.",
       temperature: 0.25,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 4500,
     });
 
     const content = res.text.trim();
@@ -178,7 +178,7 @@ Matnni Markdown formatida yozing.`;
       systemInstruction:
         "Siz referat va mustaqil ishlar bo'yicha ilmiy ekspertsiz. Belgilangan hajm va mavzuga qat'iy rioya qiling.",
       temperature: 0.25,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 4000,
     });
 
     const content = res.text.trim();

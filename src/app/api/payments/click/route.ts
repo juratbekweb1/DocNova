@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
-// Click secret key from environment
-const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY || "YOUR_CLICK_SECRET";
-
 export async function POST(req: Request) {
   try {
+    const clickSecretKey = process.env.CLICK_SECRET_KEY;
+
+    // 1. Fail-closed: Ensure Click secret is configured and not default dummy value
+    if (!clickSecretKey || clickSecretKey === "YOUR_CLICK_SECRET") {
+      console.error("[CLICK_AUTH_ERROR] CLICK_SECRET_KEY is not configured on server.");
+      return NextResponse.json(
+        { error: "-8", error_note: "Click merchant secret is not configured on server" },
+        { status: 503 }
+      );
+    }
+
     const formData = await req.formData();
     const body = Object.fromEntries(formData.entries());
 
@@ -21,15 +29,21 @@ export async function POST(req: Request) {
     const signTime = body.sign_time as string;
     const signString = body.sign_string as string;
 
-    // Validate Signature
-    const mySignString = `${clickTransId}${serviceId}${CLICK_SECRET_KEY}${merchantTransId}${amount}${action}${signTime}`;
+    // 2. Validate Click Service ID if configured
+    const configuredServiceId = process.env.CLICK_SERVICE_ID;
+    if (configuredServiceId && serviceId !== configuredServiceId) {
+      return NextResponse.json({ error: "-3", error_note: "Service ID does not match" });
+    }
+
+    // 3. Validate Digital Signature (MD5 hash according to Click specification)
+    const mySignString = `${clickTransId}${serviceId}${clickSecretKey}${merchantTransId}${amount}${action}${signTime}`;
     const generatedSign = crypto.createHash("md5").update(mySignString).digest("hex");
 
     if (generatedSign !== signString) {
       return NextResponse.json({ error: "-1", error_note: "SIGN CHECK FAILED" });
     }
 
-    // Find Transaction
+    // 4. Find Transaction in Database
     const transaction = await prisma.transaction.findUnique({
       where: { id: merchantTransId },
       include: { user: true },
@@ -39,6 +53,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "-5", error_note: "Transaction does not exist" });
     }
 
+    // 5. Amount check
     if (parseFloat(amount) !== transaction.amount) {
       return NextResponse.json({ error: "-2", error_note: "Incorrect amount" });
     }
@@ -54,7 +69,7 @@ export async function POST(req: Request) {
       });
     } else if (action === "1") {
       // COMPLETE
-      // Idempotency: if already paid, return success immediately
+      // Idempotency: if already paid or completed, return success immediately without re-granting
       if (transaction.status === "PAID" || transaction.status === "COMPLETED") {
         return NextResponse.json({
           click_trans_id: clickTransId,
@@ -106,7 +121,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "-3", error_note: "Action not found" });
   } catch (err) {
-    console.error("Click Webhook Error:", err);
+    console.error("[CLICK_WEBHOOK_ERR]", err);
     return NextResponse.json(
       { error: "-8", error_note: "Error in request from click" },
       { status: 500 }

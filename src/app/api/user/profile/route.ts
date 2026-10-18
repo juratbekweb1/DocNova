@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ const updateProfileSchema = z.object({
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -26,7 +26,10 @@ export async function PUT(req: NextRequest) {
     const parsedData = updateProfileSchema.safeParse(body);
 
     if (!parsedData.success) {
-      return NextResponse.json({ error: "Invalid data", details: parsedData.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid data", details: parsedData.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
 
     const data = parsedData.data;

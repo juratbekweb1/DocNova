@@ -1,38 +1,73 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// In production, verify Payme Merchant Password from Basic Auth Header
-const _PAYME_PASSWORD = process.env.PAYME_PASSWORD || "YOUR_PAYME_PASSWORD";
-
 export async function POST(req: Request) {
   try {
+    const paymePassword = process.env.PAYME_PASSWORD;
+
+    // 1. Fail-closed: If Payme merchant credentials are not configured, reject
+    if (!paymePassword) {
+      console.error("[PAYME_AUTH_ERROR] PAYME_PASSWORD is not configured on server.");
+      return NextResponse.json(
+        {
+          error: {
+            code: -32504,
+            message: "Payme merchant credentials are not configured on server.",
+          },
+        },
+        { status: 503 }
+      );
+    }
+
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Basic ")) {
-      return NextResponse.json({ error: { code: -32504, message: "Insufficient privileges." } });
+      return NextResponse.json(
+        { error: { code: -32504, message: "Insufficient privileges." } },
+        { status: 401 }
+      );
     }
 
-    if (process.env.PAYME_PASSWORD) {
-      try {
-        const credentials = Buffer.from(authHeader.replace("Basic ", "").trim(), "base64").toString(
-          "utf-8"
+    try {
+      const credentials = Buffer.from(authHeader.replace("Basic ", "").trim(), "base64").toString(
+        "utf-8"
+      );
+      const parts = credentials.split(":");
+      const password = parts.length > 1 ? parts[1] : parts[0];
+      if (password !== paymePassword) {
+        return NextResponse.json(
+          { error: { code: -32504, message: "Invalid credentials." } },
+          { status: 401 }
         );
-        const parts = credentials.split(":");
-        const password = parts.length > 1 ? parts[1] : parts[0];
-        if (password !== process.env.PAYME_PASSWORD) {
-          return NextResponse.json({ error: { code: -32504, message: "Invalid credentials." } });
-        }
-      } catch {
-        return NextResponse.json({ error: { code: -32504, message: "Malformed credentials." } });
       }
+    } catch {
+      return NextResponse.json(
+        { error: { code: -32504, message: "Malformed credentials." } },
+        { status: 400 }
+      );
     }
 
-    const payload = await req.json();
+    const payload = await req.json().catch(() => null);
+    if (!payload || typeof payload !== "object") {
+      return NextResponse.json(
+        { error: { code: -32700, message: "Parse error" } },
+        { status: 400 }
+      );
+    }
+
     const { method, params, id } = payload;
 
     switch (method) {
       case "CheckPerformTransaction": {
+        const transactionId = params?.account?.transaction_id;
+        if (!transactionId) {
+          return NextResponse.json(
+            { error: { code: -31050, message: "Transaction ID not provided" }, id },
+            { status: 400 }
+          );
+        }
+
         const transaction = await prisma.transaction.findUnique({
-          where: { id: params.account.transaction_id },
+          where: { id: transactionId },
         });
 
         if (!transaction) {
@@ -42,8 +77,8 @@ export async function POST(req: Request) {
           });
         }
 
+        // Payme sends amount in tiyin (1 UZS = 100 tiyins)
         if (transaction.amount * 100 !== params.amount) {
-          // Payme sends tiyins
           return NextResponse.json({ error: { code: -31001, message: "Incorrect amount" }, id });
         }
 
@@ -54,7 +89,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           result: {
             create_time: new Date().getTime(),
-            transaction: params.id,
+            transaction: params?.id,
             state: 1,
           },
           id,
@@ -62,7 +97,7 @@ export async function POST(req: Request) {
       }
 
       case "PerformTransaction": {
-        const transactionId = params.account?.transaction_id || params.id;
+        const transactionId = params?.account?.transaction_id || params?.id;
 
         const existing = await prisma.transaction.findUnique({
           where: { id: transactionId },
@@ -120,7 +155,7 @@ export async function POST(req: Request) {
       }
 
       case "CancelTransaction": {
-        const transactionId = params.account?.transaction_id || params.id;
+        const transactionId = params?.account?.transaction_id || params?.id;
         await prisma.transaction.update({
           where: { id: transactionId },
           data: { status: "CANCELED" },
@@ -140,7 +175,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: { code: -32601, message: "Method not found" }, id });
     }
   } catch (error) {
-    console.error("Payme Webhook Error:", error);
+    console.error("[PAYME_WEBHOOK_ERR]", error);
     return NextResponse.json({ error: { code: -32400, message: "System error" } });
   }
 }

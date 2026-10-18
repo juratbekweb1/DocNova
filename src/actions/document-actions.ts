@@ -2,12 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/auth.config";
+import { authOptions } from "@/lib/auth-options";
 import { revalidatePath } from "next/cache";
 import { DocumentType, DocumentStatus, Prisma } from "@prisma/client";
 
 export async function getDocuments() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const docs = await prisma.document.findMany({
@@ -19,7 +19,7 @@ export async function getDocuments() {
 }
 
 export async function createDocument(type: DocumentType, title: string) {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
@@ -28,15 +28,45 @@ export async function createDocument(type: DocumentType, title: string) {
 
   if (type === "RESUME" || type === "CV") {
     initialSections = [
-      { type: "PERSONAL_INFO", title: "Personal Details", content: {} as Prisma.InputJsonValue, sortOrder: 0 },
-      { type: "SUMMARY", title: "Professional Summary", content: {} as Prisma.InputJsonValue, sortOrder: 1 },
-      { type: "EXPERIENCE", title: "Work Experience", content: { items: [] } as Prisma.InputJsonValue, sortOrder: 2 },
-      { type: "EDUCATION", title: "Education", content: { items: [] } as Prisma.InputJsonValue, sortOrder: 3 },
-      { type: "SKILLS", title: "Skills", content: { items: [] } as Prisma.InputJsonValue, sortOrder: 4 }
+      {
+        type: "PERSONAL_INFO",
+        title: "Personal Details",
+        content: {} as Prisma.InputJsonValue,
+        sortOrder: 0,
+      },
+      {
+        type: "SUMMARY",
+        title: "Professional Summary",
+        content: {} as Prisma.InputJsonValue,
+        sortOrder: 1,
+      },
+      {
+        type: "EXPERIENCE",
+        title: "Work Experience",
+        content: { items: [] } as Prisma.InputJsonValue,
+        sortOrder: 2,
+      },
+      {
+        type: "EDUCATION",
+        title: "Education",
+        content: { items: [] } as Prisma.InputJsonValue,
+        sortOrder: 3,
+      },
+      {
+        type: "SKILLS",
+        title: "Skills",
+        content: { items: [] } as Prisma.InputJsonValue,
+        sortOrder: 4,
+      },
     ];
   } else {
     initialSections = [
-      { type: "CONTENT", title: "Document Content", content: { text: "" } as Prisma.InputJsonValue, sortOrder: 0 }
+      {
+        type: "CONTENT",
+        title: "Document Content",
+        content: { text: "" } as Prisma.InputJsonValue,
+        sortOrder: 0,
+      },
     ];
   }
 
@@ -48,8 +78,8 @@ export async function createDocument(type: DocumentType, title: string) {
       slug,
       status: DocumentStatus.DRAFT,
       sections: {
-        create: initialSections
-      }
+        create: initialSections,
+      },
     },
   });
 
@@ -58,16 +88,16 @@ export async function createDocument(type: DocumentType, title: string) {
 }
 
 export async function getDocumentForEditor(id: string) {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const doc = await prisma.document.findUnique({
     where: { id },
     include: {
       sections: {
-        orderBy: { sortOrder: "asc" }
-      }
-    }
+        orderBy: { sortOrder: "asc" },
+      },
+    },
   });
 
   if (!doc) throw new Error("Document not found");
@@ -77,7 +107,7 @@ export async function getDocumentForEditor(id: string) {
 }
 
 export async function updateDocumentTitle(id: string, title: string) {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const doc = await prisma.document.findUnique({ where: { id } });
@@ -85,25 +115,25 @@ export async function updateDocumentTitle(id: string, title: string) {
 
   await prisma.document.update({
     where: { id },
-    data: { title }
+    data: { title },
   });
 
   revalidatePath(`/dashboard/editor/${id}`);
 }
 
 export async function updateSection(sectionId: string, content: Prisma.InputJsonValue) {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const section = await prisma.documentSection.findUnique({
     where: { id: sectionId },
-    include: { document: true }
+    include: { document: true },
   });
 
   if (!section || section.document.userId !== session.user.id) throw new Error("Unauthorized");
 
   await prisma.documentSection.update({
     where: { id: sectionId },
-    data: { content }
+    data: { content },
   });
 }
