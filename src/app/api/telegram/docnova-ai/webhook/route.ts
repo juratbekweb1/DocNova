@@ -23,6 +23,8 @@ import {
   isJobActive,
   forceReleaseUserLock,
   claimTelegramUpdate,
+  markTelegramUpdateSuccess,
+  markTelegramUpdateFailed,
 } from "@/lib/telegram-lock";
 import {
   generateCourseworkDoc,
@@ -87,7 +89,7 @@ async function handleInitialDocSuccess(
   }
 
   try {
-    // 1. Multi-tenant document and version persistence in PostgreSQL
+    // 1. Multi-tenant document and version persistence in PostgreSQL with fencing token guard
     const record = await createAcademicDocumentRecord({
       userId,
       workType: params.workType,
@@ -95,6 +97,8 @@ async function handleInitialDocSuccess(
       subject: params.subject || params.specialty,
       markdownContent: res.markdownContent,
       fileName: res.fileName,
+      jobId,
+      telegramId: tgId,
     });
 
     // 2. Set editing session state
@@ -126,7 +130,14 @@ async function handleInitialDocSuccess(
         reply_markup: getDocumentEditKeyboard({ version: 1, hasPrevVersion: false }),
       }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    const errObj = err as { message?: string };
+    if (errObj?.message?.includes("JOB_SUPERSEDED")) {
+      console.warn(
+        `[HANDLE_INITIAL_DOC_SUPERSEDED] Job ${jobId} was superseded by another job. Version write aborted.`
+      );
+      return;
+    }
     console.error("[HANDLE_INITIAL_DOC_ERR]", err);
     await ctx.reply("❌ Hujjatni saqlashda xatolik yuz berdi.");
   }
@@ -162,7 +173,7 @@ async function handleUpdatedDocSuccess(
   }
 
   try {
-    // 1. Save new version in PostgreSQL
+    // 1. Save new version in PostgreSQL with fencing token guard
     const { version: newVersion } = await saveNewDocumentVersion({
       docId: session.docId,
       userId,
@@ -172,6 +183,8 @@ async function handleUpdatedDocSuccess(
       subject: session.subject || session.specialty,
       workType: session.type,
       fileName: res.fileName,
+      jobId,
+      telegramId: tgId,
     });
 
     // 2. Update session state
@@ -199,7 +212,14 @@ async function handleUpdatedDocSuccess(
         reply_markup: getDocumentEditKeyboard({ version: newVersion, hasPrevVersion: true }),
       }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    const errObj = err as { message?: string };
+    if (errObj?.message?.includes("JOB_SUPERSEDED")) {
+      console.warn(
+        `[HANDLE_UPDATED_DOC_SUPERSEDED] Job ${jobId} was superseded by another job. Version write aborted.`
+      );
+      return;
+    }
     console.error("[HANDLE_UPDATED_DOC_ERR]", err);
     await setBotSession(tgId, { ...session, inProgress: false });
     await ctx.reply("❌ Yangilangan versiyani saqlashda xatolik yuz berdi.");
@@ -1881,14 +1901,19 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   if (updateId !== undefined && updateId !== null) {
-    const { isFirstAttempt } = await claimTelegramUpdate(updateId);
-    if (!isFirstAttempt) {
-      console.warn(`[WEBHOOK_IDEMPOTENT_SKIP] Duplicate update_id ${updateId} ignored.`);
+    const claim = await claimTelegramUpdate(updateId);
+    if (!claim.canProcess) {
+      console.warn(
+        `[WEBHOOK_IDEMPOTENT_SKIP] Duplicate update_id ${updateId} (${claim.status}) ignored.`
+      );
       // Return HTTP 200 OK immediately so Telegram stops resending this update
-      return new Response(JSON.stringify({ ok: true, note: "duplicate_update_ignored" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ ok: true, note: `duplicate_update_ignored_${claim.status}` }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
   }
 
@@ -1899,5 +1924,20 @@ export async function POST(req: Request): Promise<Response> {
     body: rawBodyText || undefined,
   });
 
-  return baseWebhookHandler(newReq);
+  try {
+    const res = await baseWebhookHandler(newReq);
+    if (updateId !== undefined && updateId !== null) {
+      if (res.status >= 200 && res.status < 400) {
+        await markTelegramUpdateSuccess(updateId);
+      } else {
+        await markTelegramUpdateFailed(updateId);
+      }
+    }
+    return res;
+  } catch (err) {
+    if (updateId !== undefined && updateId !== null) {
+      await markTelegramUpdateFailed(updateId);
+    }
+    throw err;
+  }
 }

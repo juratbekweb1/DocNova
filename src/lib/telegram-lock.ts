@@ -123,6 +123,35 @@ export async function isJobActive(telegramId: string | number, jobId: string): P
 }
 
 /**
+ * Renews the lease for an actively running job, extending its expiration.
+ * Prevents long AI operations (>150s) from expiring and being preempted
+ * while the model is actively generating responses.
+ */
+export async function renewUserLock(
+  telegramId: string | number,
+  jobId: string,
+  extendSeconds = 120
+): Promise<boolean> {
+  const lockKey = `tg_lock_${telegramId}`;
+  const newExpires = new Date(Date.now() + extendSeconds * 1000);
+  try {
+    const res = await prisma.verificationToken.updateMany({
+      where: {
+        token: lockKey,
+        identifier: `job_${jobId}`,
+      },
+      data: {
+        expires: newExpires,
+      },
+    });
+    return res.count > 0;
+  } catch (err) {
+    console.error("[RENEW_USER_LOCK_ERR]", err);
+    return false;
+  }
+}
+
+/**
  * Force-releases lock for a user (e.g. when /cancel is invoked).
  */
 export async function forceReleaseUserLock(telegramId: string | number): Promise<void> {
@@ -136,33 +165,142 @@ export async function forceReleaseUserLock(telegramId: string | number): Promise
   }
 }
 
+export interface UpdateClaimResult {
+  canProcess: boolean;
+  isDuplicate: boolean;
+  status: "FIRST_ATTEMPT" | "IN_PROGRESS" | "ALREADY_COMPLETED" | "RETRY_ALLOWED";
+}
+
 /**
- * Atomic idempotency key check for Telegram webhook retries.
- * Uses PostgreSQL unique constraint on token to prevent duplicate update executions.
+ * Atomic idempotency key check for Telegram webhook retries with a 3-state machine:
+ * - PROCESSING: Worker is actively running. Concurrent retries within 180s return HTTP 200 without re-running AI.
+ * - COMPLETED: Handler succeeded. Any future retry returns HTTP 200 without re-running AI.
+ * - FAILED: Handler threw error. Telegram retries are safely permitted to re-process.
  */
-export async function claimTelegramUpdate(
-  updateId: number | string
-): Promise<{ isFirstAttempt: boolean }> {
+export async function claimTelegramUpdate(updateId: number | string): Promise<UpdateClaimResult> {
   const key = `tg_upd_${updateId}`;
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour retention
+  const now = new Date();
+  const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24-hour retention
 
   try {
-    await prisma.verificationToken.create({
-      data: {
-        token: key,
-        identifier: "PROCESSED",
-        expires,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.verificationToken.findUnique({
+        where: { token: key },
+      });
+
+      if (!existing) {
+        // First attempt ever: claim it atomically
+        await tx.verificationToken.create({
+          data: {
+            token: key,
+            identifier: "PROCESSING",
+            expires,
+          },
+        });
+        return {
+          canProcess: true,
+          isDuplicate: false,
+          status: "FIRST_ATTEMPT",
+        };
+      }
+
+      // If already completed: definitely duplicate retry of an already finished task
+      if (existing.identifier === "COMPLETED") {
+        return {
+          canProcess: false,
+          isDuplicate: true,
+          status: "ALREADY_COMPLETED",
+        };
+      }
+
+      // If previous attempt failed: allow Telegram retry to safely re-process!
+      if (existing.identifier === "FAILED") {
+        await tx.verificationToken.update({
+          where: { token: key },
+          data: {
+            identifier: "PROCESSING",
+            expires,
+          },
+        });
+        return {
+          canProcess: true,
+          isDuplicate: false,
+          status: "RETRY_ALLOWED",
+        };
+      }
+
+      // If still "PROCESSING": check if the worker crashed or is still active
+      // Serverless worker lease: 180 seconds
+      const processingAgeMs = now.getTime() - (existing.expires.getTime() - 24 * 60 * 60 * 1000);
+      if (processingAgeMs > 180 * 1000) {
+        // Previous worker crashed or timed out without completing: safely take over for retry!
+        await tx.verificationToken.update({
+          where: { token: key },
+          data: {
+            identifier: "PROCESSING",
+            expires,
+          },
+        });
+        return {
+          canProcess: true,
+          isDuplicate: false,
+          status: "RETRY_ALLOWED",
+        };
+      }
+
+      // Still actively processing in another in-flight worker: return 200 OK so Telegram doesn't storm retries
+      return {
+        canProcess: false,
+        isDuplicate: true,
+        status: "IN_PROGRESS",
+      };
     });
-    return { isFirstAttempt: true };
   } catch (err: unknown) {
     const prismaErr = err as { code?: string };
     if (prismaErr?.code === "P2002") {
-      // Exactly this update_id was already claimed by an in-flight or completed execution
-      return { isFirstAttempt: false };
+      // Race condition on insert: another worker just inserted this key
+      return {
+        canProcess: false,
+        isDuplicate: true,
+        status: "IN_PROGRESS",
+      };
     }
     console.error("[CLAIM_TELEGRAM_UPDATE_ERR]", err);
-    // On unexpected DB error, fail open to avoid dropping legitimate user actions
-    return { isFirstAttempt: true };
+    // On unexpected DB error, fail-open to avoid losing user message
+    return {
+      canProcess: true,
+      isDuplicate: false,
+      status: "FIRST_ATTEMPT",
+    };
+  }
+}
+
+/**
+ * Marks a Telegram webhook update as successfully completed.
+ */
+export async function markTelegramUpdateSuccess(updateId: number | string): Promise<void> {
+  const key = `tg_upd_${updateId}`;
+  try {
+    await prisma.verificationToken.updateMany({
+      where: { token: key },
+      data: { identifier: "COMPLETED" },
+    });
+  } catch (err) {
+    console.error("[MARK_TELEGRAM_UPDATE_SUCCESS_ERR]", err);
+  }
+}
+
+/**
+ * Marks a Telegram webhook update as failed so a retry is permitted.
+ */
+export async function markTelegramUpdateFailed(updateId: number | string): Promise<void> {
+  const key = `tg_upd_${updateId}`;
+  try {
+    await prisma.verificationToken.updateMany({
+      where: { token: key },
+      data: { identifier: "FAILED" },
+    });
+  } catch (err) {
+    console.error("[MARK_TELEGRAM_UPDATE_FAILED_ERR]", err);
   }
 }

@@ -146,50 +146,67 @@ export async function createAcademicDocumentRecord(params: {
   subject?: string;
   markdownContent: string;
   fileName: string;
+  jobId?: string;
+  telegramId?: string | number;
 }): Promise<{ docId: string; version: number }> {
-  const safeTopicSlug = params.topic
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .slice(0, 40);
-  const slug = `doc_tg_${safeTopicSlug}_${Date.now()}`;
+  return await prisma.$transaction(async (tx) => {
+    // Fencing token check: verify that this job still holds the active lock
+    if (params.jobId && params.telegramId) {
+      const lockKey = `tg_lock_${params.telegramId}`;
+      const lock = await tx.verificationToken.findUnique({
+        where: { token: lockKey },
+      });
+      if (!lock || lock.identifier !== `job_${params.jobId}`) {
+        throw new Error(
+          "JOB_SUPERSEDED: Lock was preempted by another job. Initial creation aborted."
+        );
+      }
+    }
 
-  const snapshot: AcademicDocSnapshot = {
-    markdown: params.markdownContent,
-    topic: params.topic,
-    workType: params.workType,
-    subject: params.subject,
-    fileName: params.fileName,
-    version: 1,
-    timestamp: Date.now(),
-  };
+    const safeTopicSlug = params.topic
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
+    const slug = `doc_tg_${safeTopicSlug}_${Date.now()}`;
 
-  const doc = await prisma.document.create({
-    data: {
-      userId: params.userId,
-      type: DocumentType.REPORT,
-      title: params.topic,
-      slug,
-      status: DocumentStatus.DRAFT,
-      metadata: {
-        create: [
-          { key: "workType", value: params.workType as Prisma.InputJsonValue },
-          { key: "subject", value: (params.subject || "") as Prisma.InputJsonValue },
-          { key: "fileName", value: params.fileName as Prisma.InputJsonValue },
-        ],
-      },
-      versions: {
-        create: {
-          version: 1,
-          changeLog: "Boshlang'ich generatsiya (v1)",
-          createdBy: "DocNova AI Telegram Bot",
-          snapshot: snapshot as unknown as Prisma.InputJsonValue,
+    const snapshot: AcademicDocSnapshot = {
+      markdown: params.markdownContent,
+      topic: params.topic,
+      workType: params.workType,
+      subject: params.subject,
+      fileName: params.fileName,
+      version: 1,
+      timestamp: Date.now(),
+    };
+
+    const doc = await tx.document.create({
+      data: {
+        userId: params.userId,
+        type: DocumentType.REPORT,
+        title: params.topic,
+        slug,
+        status: DocumentStatus.DRAFT,
+        metadata: {
+          create: [
+            { key: "workType", value: params.workType as Prisma.InputJsonValue },
+            { key: "subject", value: (params.subject || "") as Prisma.InputJsonValue },
+            { key: "fileName", value: params.fileName as Prisma.InputJsonValue },
+          ],
+        },
+        versions: {
+          create: {
+            version: 1,
+            changeLog: "Boshlang'ich generatsiya (v1)",
+            createdBy: "DocNova AI Telegram Bot",
+            snapshot: snapshot as unknown as Prisma.InputJsonValue,
+          },
         },
       },
-    },
-    select: { id: true },
-  });
+      select: { id: true },
+    });
 
-  return { docId: doc.id, version: 1 };
+    return { docId: doc.id, version: 1 };
+  });
 }
 
 /**
@@ -204,51 +221,68 @@ export async function saveNewDocumentVersion(params: {
   subject?: string;
   workType?: string;
   fileName?: string;
+  jobId?: string;
+  telegramId?: string | number;
 }): Promise<{ version: number }> {
-  // Multi-tenant check: ensure document belongs to this user
-  const doc = await prisma.document.findFirst({
-    where: { id: params.docId, userId: params.userId },
-    include: {
-      versions: {
-        orderBy: { version: "desc" },
-        take: 1,
+  return await prisma.$transaction(async (tx) => {
+    // Fencing token check: atomically ensure that this job is STILL the active lock holder
+    if (params.jobId && params.telegramId) {
+      const lockKey = `tg_lock_${params.telegramId}`;
+      const lock = await tx.verificationToken.findUnique({
+        where: { token: lockKey },
+      });
+      if (!lock || lock.identifier !== `job_${params.jobId}`) {
+        throw new Error(
+          "JOB_SUPERSEDED: Lock was preempted by another job. Version write aborted."
+        );
+      }
+    }
+
+    // Multi-tenant check: ensure document belongs to this user
+    const doc = await tx.document.findFirst({
+      where: { id: params.docId, userId: params.userId },
+      include: {
+        versions: {
+          orderBy: { version: "desc" },
+          take: 1,
+        },
       },
-    },
-  });
+    });
 
-  if (!doc) {
-    throw new Error("Hujjat topilmadi yoki unga ruxsat yo'q.");
-  }
+    if (!doc) {
+      throw new Error("Hujjat topilmadi yoki unga ruxsat yo'q.");
+    }
 
-  const latestVersion = doc.versions[0]?.version || 1;
-  const newVersion = latestVersion + 1;
+    const latestVersion = doc.versions[0]?.version || 1;
+    const newVersion = latestVersion + 1;
 
-  const snapshot: AcademicDocSnapshot = {
-    markdown: params.markdownContent,
-    topic: params.topic || doc.title,
-    workType: params.workType || "Academic Document",
-    subject: params.subject,
-    fileName: params.fileName || `${doc.title}.doc`,
-    version: newVersion,
-    timestamp: Date.now(),
-  };
-
-  await prisma.documentVersion.create({
-    data: {
-      documentId: params.docId,
+    const snapshot: AcademicDocSnapshot = {
+      markdown: params.markdownContent,
+      topic: params.topic || doc.title,
+      workType: params.workType || "Academic Document",
+      subject: params.subject,
+      fileName: params.fileName || `${doc.title}.doc`,
       version: newVersion,
-      changeLog: params.changeLog,
-      createdBy: "DocNova AI Telegram Bot",
-      snapshot: snapshot as unknown as Prisma.InputJsonValue,
-    },
-  });
+      timestamp: Date.now(),
+    };
 
-  await prisma.document.update({
-    where: { id: params.docId },
-    data: { updatedAt: new Date() },
-  });
+    await tx.documentVersion.create({
+      data: {
+        documentId: params.docId,
+        version: newVersion,
+        changeLog: params.changeLog,
+        createdBy: "DocNova AI Telegram Bot",
+        snapshot: snapshot as unknown as Prisma.InputJsonValue,
+      },
+    });
 
-  return { version: newVersion };
+    await tx.document.update({
+      where: { id: params.docId },
+      data: { updatedAt: new Date() },
+    });
+
+    return { version: newVersion };
+  });
 }
 
 /**
