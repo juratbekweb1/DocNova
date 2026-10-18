@@ -24,6 +24,25 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
   }
 
   try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user && (user.role === "SUPER_ADMIN" || user.role === "ADMIN")) {
+      return {
+        isPremium: true,
+        planSlug: "premium",
+        planName: "Super Admin (Cheksiz)",
+        features: {
+          ai_usage_limit: 999999,
+          templates_limit: 999999,
+          export_formats: ["txt", "pdf", "docx"],
+          unlimited: true,
+        },
+      };
+    }
+
     const orgUser = await prisma.organizationUser.findFirst({
       where: { userId, role: "OWNER" },
       include: {
@@ -37,13 +56,13 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
                 plan: true,
               },
               orderBy: {
-                createdAt: 'desc'
+                createdAt: "desc",
               },
-              take: 1
-            }
-          }
-        }
-      }
+              take: 1,
+            },
+          },
+        },
+      },
     });
 
     if (!orgUser || !orgUser.organization.subscriptions.length) {

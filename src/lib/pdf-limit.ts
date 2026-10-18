@@ -7,10 +7,19 @@ export const checkPdfLimit = async (userId: string) => {
     return false;
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+
+  if (user && (user.role === "SUPER_ADMIN" || user.role === "ADMIN")) {
+    return true;
+  }
+
   const userApiLimit = await prisma.userApiLimit.findUnique({
     where: {
-      userId: userId
-    }
+      userId: userId,
+    },
   });
 
   if (!userApiLimit || userApiLimit.pdfCount < MAX_FREE_PDF_COUNTS) {
@@ -27,8 +36,8 @@ export const increasePdfLimit = async (userId: string) => {
 
   const userApiLimit = await prisma.userApiLimit.findUnique({
     where: {
-      userId: userId
-    }
+      userId: userId,
+    },
   });
 
   if (userApiLimit) {

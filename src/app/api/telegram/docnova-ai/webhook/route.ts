@@ -298,6 +298,25 @@ if (docnovaAiBot) {
       return;
     }
 
+    const isSuperAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
+
+    if (isSuperAdmin) {
+      await ctx.reply(
+        `💎 *Sizning DocNova AI Holatingiz:*\n\n` +
+          `👤 Ism: *${user.name || "Super Admin"}*\n` +
+          `📧 Email: \`${user.email}\`\n` +
+          `💳 Tarif: *Super Admin (Cheksiz)*\n\n` +
+          `📊 *Oylik AI Limitlaringiz:*\n` +
+          `• 📘 Kurs ishi / Referat / BMI: *Cheksiz (Unlimited)*\n` +
+          `• ✍️ Qayta tahrirlash / Rewrite: *Cheksiz (Unlimited)*\n` +
+          `• 📊 Taqdimotlar: *Cheksiz (Unlimited)*\n` +
+          `• 🤖 Jami so'rovlar: *${user.aiUsageCount || 0} ta*\n\n` +
+          `🚀 Super Admin imtiyozi: Barcha AI modullariga cheksiz kirish faollashtirilgan.`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
     const sub = await getUserSubscription(user.id);
     const courseworkLimit = await checkUserLimit(user.id, "coursework");
     const presentationLimit = await checkUserLimit(user.id, "presentation");
@@ -1405,6 +1424,23 @@ if (docnovaAiBot) {
         await ctx.reply("⚠️ Iltimos, oldin DocNova hisobingizni bog'lang:", { reply_markup: kb });
         return;
       }
+
+      const isSuperAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
+      if (isSuperAdmin) {
+        await ctx.reply(
+          `💎 *Tarif va Limitlaringiz:*\n\n` +
+            `👤 Ism: *${user.name || "Super Admin"}*\n` +
+            `💳 Joriy tarif: *Super Admin (Cheksiz)*\n\n` +
+            `• 📘 Kurs ishi / Referat / BMI: *Cheksiz (Unlimited)*\n` +
+            `• ✍️ Qayta tahrirlash: *Cheksiz (Unlimited)*\n` +
+            `• 📊 Taqdimotlar: *Cheksiz (Unlimited)*\n` +
+            `• 🤖 Jami so'rovlar: *${user.aiUsageCount || 0} ta*\n\n` +
+            `🚀 Super Admin imtiyozi: Barcha AI modullariga to'siqsiz cheksiz ruxsat.`,
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
+
       const sub = await getUserSubscription(user.id);
       const courseworkLimit = await checkUserLimit(user.id, "coursework");
       const presentationLimit = await checkUserLimit(user.id, "presentation");
@@ -1433,10 +1469,15 @@ if (docnovaAiBot) {
         });
         return;
       }
+
+      const isSuperAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
+      const roleDisplay = isSuperAdmin ? "Super Admin 👑" : user.role;
+
       await ctx.reply(
         `👤 *Sizning profilingiz:*\n\n` +
           `Ism: *${user.name || "Talaba"}*\n` +
           `Email: \`${user.email}\`\n` +
+          `Rol: *${roleDisplay}*\n` +
           `Telegram ID: \`${tgId}\`\n` +
           `Holat: *Ulangan ✅*`,
         { parse_mode: "Markdown" }

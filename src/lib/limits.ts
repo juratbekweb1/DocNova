@@ -51,6 +51,7 @@ export interface LimitCheckResult {
   totalLimit: number;
   error?: string;
   code?: string;
+  unlimited?: boolean;
 }
 
 export async function checkUserLimit(
@@ -60,6 +61,7 @@ export async function checkUserLimit(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      role: true,
       plan: true,
       lastRequestDate: true,
       mockTestCount: true,
@@ -70,12 +72,10 @@ export async function checkUserLimit(
     throw new Error("User not found");
   }
 
-  const plan = user.plan || SubscriptionTier.FREE;
-  const limits = PLAN_LIMITS[plan];
-
-  const now = new Date();
+  const isSuperAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
 
   const dailyBudget = parseFloat(process.env.AI_DAILY_BUDGET_USD || "10.0");
+  const emergencyBudget = parseFloat(process.env.AI_EMERGENCY_BUDGET_USD || "500.0");
   const todayForBudget = new Date();
   todayForBudget.setHours(0, 0, 0, 0);
 
@@ -84,6 +84,28 @@ export async function checkUserLimit(
     _sum: { estimatedCostUsd: true },
   });
   const currentDailyCost = agg._sum.estimatedCostUsd || 0;
+
+  // Super Admin: unlimited access on all features. Only stopped by extreme emergency cap ($500)
+  if (isSuperAdmin) {
+    if (currentDailyCost >= emergencyBudget) {
+      return {
+        allowed: false,
+        limitExceeded: true,
+        remaining: 0,
+        totalLimit: 0,
+        error:
+          "AI favqulodda xavfsizlik chegarasi (Emergency Safety Cap Exceeded). API balansini tekshiring.",
+        code: "EMERGENCY_BUDGET_EXCEEDED",
+      };
+    }
+    return {
+      allowed: true,
+      limitExceeded: false,
+      remaining: 999999,
+      totalLimit: 999999,
+      unlimited: true,
+    };
+  }
 
   if (currentDailyCost >= dailyBudget) {
     return {
@@ -95,6 +117,11 @@ export async function checkUserLimit(
       code: "GLOBAL_BUDGET_EXCEEDED",
     };
   }
+
+  const plan = user.plan || SubscriptionTier.FREE;
+  const limits = PLAN_LIMITS[plan];
+
+  const now = new Date();
 
   if (featureType === "resume_export") {
     return {
@@ -215,6 +242,7 @@ export async function getUserSubscription(userId: string) {
     where: { id: userId },
     select: {
       id: true,
+      role: true,
       plan: true,
       subscriptionEndDate: true,
       aiUsageCount: true,
@@ -224,7 +252,18 @@ export async function getUserSubscription(userId: string) {
   });
 
   if (!user) {
-    return { plan: "FREE" as const, isProOrPremium: false, user: null };
+    return { plan: "FREE" as const, isProOrPremium: false, isSuperAdmin: false, user: null };
+  }
+
+  const isSuperAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
+
+  if (isSuperAdmin) {
+    return {
+      plan: "PREMIUM" as const,
+      isProOrPremium: true,
+      isSuperAdmin: true,
+      user,
+    };
   }
 
   const isExpired = user.subscriptionEndDate
@@ -235,6 +274,7 @@ export async function getUserSubscription(userId: string) {
   return {
     plan: activePlan as "FREE" | "PRO" | "PREMIUM",
     isProOrPremium: activePlan === "PRO" || activePlan === "PREMIUM",
+    isSuperAdmin: false,
     user,
   };
 }
