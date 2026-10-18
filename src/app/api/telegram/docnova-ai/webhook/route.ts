@@ -18,6 +18,13 @@ import {
   BotWizardState,
 } from "@/lib/telegram-docnova-ai";
 import {
+  acquireUserLock,
+  releaseUserLock,
+  isJobActive,
+  forceReleaseUserLock,
+  claimTelegramUpdate,
+} from "@/lib/telegram-lock";
+import {
   generateCourseworkDoc,
   generateReferatDoc,
   generateBmiDoc,
@@ -60,8 +67,20 @@ async function handleInitialDocSuccess(
     specialty?: string;
     length?: string;
     slidesCount?: number;
-  }
+  },
+  jobId?: string
 ) {
+  // If jobId is provided, ensure this job is still the active lock owner (not timed out or superseded)
+  if (jobId) {
+    const active = await isJobActive(tgId, jobId);
+    if (!active) {
+      console.warn(
+        `[HANDLE_INITIAL_DOC_STALE] Job ${jobId} for user ${tgId} is no longer active. Discarding stale result.`
+      );
+      return;
+    }
+  }
+
   if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent) {
     await ctx.reply(`❌ ${res.error || "Hujjatni tayyorlashda xatolik yuz berdi."}`);
     return;
@@ -122,8 +141,20 @@ async function handleUpdatedDocSuccess(
   tgId: number,
   res: AcademicGenResult,
   session: BotWizardState,
-  changeLog: string
+  changeLog: string,
+  jobId?: string
 ) {
+  // If jobId is provided, ensure this job is still active before committing new version to DB
+  if (jobId) {
+    const active = await isJobActive(tgId, jobId);
+    if (!active) {
+      console.warn(
+        `[HANDLE_UPDATED_DOC_STALE] Job ${jobId} for user ${tgId} is no longer active. Discarding stale result.`
+      );
+      return;
+    }
+  }
+
   if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent || !session.docId) {
     await ctx.reply(`❌ ${res.error || "Tahrirlashda xatolik yuz berdi."}`);
     await setBotSession(tgId, { ...session, inProgress: false });
@@ -150,6 +181,7 @@ async function handleUpdatedDocSuccess(
       action: undefined,
       selectedPart: undefined,
       inProgress: false,
+      activeJobId: undefined,
     });
 
     // 3. Send updated Word document file
@@ -226,6 +258,7 @@ if (docnovaAiBot) {
   // 2. /cancel command
   docnovaAiBot.command("cancel", async (ctx) => {
     if (!ctx.from) return;
+    await forceReleaseUserLock(ctx.from.id);
     await clearBotSession(ctx.from.id);
     await ctx.reply("❌ Joriy jarayon bekor qilindi. Asosiy menyudasiz.", {
       reply_markup: getMainReplyKeyboard(),
@@ -316,7 +349,10 @@ if (docnovaAiBot) {
   // 6. Wizard Selection Callbacks
   docnovaAiBot.callbackQuery("wiz_cancel", async (ctx) => {
     await ctx.answerCallbackQuery({ text: "Bekor qilindi" });
-    if (ctx.from) await clearBotSession(ctx.from.id);
+    if (ctx.from) {
+      await forceReleaseUserLock(ctx.from.id);
+      await clearBotSession(ctx.from.id);
+    }
     await ctx.reply("❌ Jarayon bekor qilindi.", { reply_markup: getMainReplyKeyboard() });
   });
 
@@ -440,76 +476,118 @@ if (docnovaAiBot) {
   docnovaAiBot.callbackQuery(/^ref_len_(short|standard|extended)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !user || !session.topic) {
       await ctx.reply("Sessiya muddati tugagan. Qaytadan /start bosing.");
       return;
     }
 
-    const lengthOption = ctx.match[1] as "short" | "standard" | "extended";
-    const sub = await getUserSubscription(user.id);
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
+      return;
+    }
 
-    await ctx.reply(
-      `⏳ *Referat tayyorlanmoqda...*\n\n` +
-        `📌 *Mavzu:* ${session.topic}\n` +
-        `📚 *Fan:* ${session.subject || "Umumiy"}\n` +
-        `📄 *Hajm:* ${lengthOption === "short" ? "3-5 bet" : lengthOption === "standard" ? "5-8 bet" : "10-15 bet"}\n\n` +
-        `🤖 _Gemini AI MOVSO standartlari bo'yicha to'liq matn shakllantirmoqda. Iltimos 20-40 soniya kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      const lengthOption = ctx.match[1] as "short" | "standard" | "extended";
+      const sub = await getUserSubscription(user.id);
 
-    const res = await generateReferatDoc({
-      userId: user.id,
-      userPlan: sub.plan,
-      topic: session.topic,
-      subject: session.subject,
-      lengthOption,
-      studentName: user.name || undefined,
-    });
+      await ctx.reply(
+        `⏳ *Referat tayyorlanmoqda...*\n\n` +
+          `📌 *Mavzu:* ${session.topic}\n` +
+          `📚 *Fan:* ${session.subject || "Umumiy"}\n` +
+          `📄 *Hajm:* ${lengthOption === "short" ? "3-5 bet" : lengthOption === "standard" ? "5-8 bet" : "10-15 bet"}\n\n` +
+          `🤖 _Gemini AI MOVSO standartlari bo'yicha to'liq matn shakllantirmoqda. Iltimos 20-40 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    await handleInitialDocSuccess(ctx, user.id, ctx.from.id, res, {
-      workType: "referat",
-      topic: session.topic,
-      subject: session.subject,
-      length: lengthOption,
-    });
+      const res = await generateReferatDoc({
+        userId: user.id,
+        userPlan: sub.plan,
+        topic: session.topic,
+        subject: session.subject,
+        lengthOption,
+        studentName: user.name || undefined,
+      });
+
+      await handleInitialDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        {
+          workType: "referat",
+          topic: session.topic,
+          subject: session.subject,
+          length: lengthOption,
+        },
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
+    }
   });
 
   // Slide count callbacks for Presentation
   docnovaAiBot.callbackQuery(/^pres_slides_(\d+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !user || !session.topic) {
       await ctx.reply("Sessiya muddati tugagan. Qaytadan /start bosing.");
       return;
     }
 
-    const slidesCount = parseInt(ctx.match[1], 10);
-    const sub = await getUserSubscription(user.id);
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
+      return;
+    }
 
-    await ctx.reply(
-      `⏳ *Taqdimot slaydlari tayyorlanmoqda...*\n\n` +
-        `📌 *Mavzu:* ${session.topic}\n` +
-        `📑 *Slaydlar:* ${slidesCount} ta\n\n` +
-        `🤖 _Gemini AI slaydlar matni va ma'ruzachi nutqini shakllantirmoqda. Iltimos kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      const slidesCount = parseInt(ctx.match[1], 10);
+      const sub = await getUserSubscription(user.id);
 
-    const res = await generatePresentationDoc({
-      userId: user.id,
-      userPlan: sub.plan,
-      topic: session.topic,
-      slidesCount,
-    });
+      await ctx.reply(
+        `⏳ *Taqdimot slaydlari tayyorlanmoqda...*\n\n` +
+          `📌 *Mavzu:* ${session.topic}\n` +
+          `📑 *Slaydlar:* ${slidesCount} ta\n\n` +
+          `🤖 _Gemini AI slaydlar matni va ma'ruzachi nutqini shakllantirmoqda. Iltimos kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    await handleInitialDocSuccess(ctx, user.id, ctx.from.id, res, {
-      workType: "presentation",
-      topic: session.topic,
-      slidesCount,
-    });
+      const res = await generatePresentationDoc({
+        userId: user.id,
+        userPlan: sub.plan,
+        topic: session.topic,
+        slidesCount,
+      });
+
+      await handleInitialDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        {
+          workType: "presentation",
+          topic: session.topic,
+          slidesCount,
+        },
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
+    }
   });
 
   // =========================================================================
@@ -578,102 +656,112 @@ if (docnovaAiBot) {
     async (ctx) => {
       await ctx.answerCallbackQuery();
       if (!ctx.from) return;
-      const session = await getBotSession(ctx.from.id);
-      const user = await getLinkedUser(ctx.from.id);
+      const tgId = ctx.from.id;
+      const session = await getBotSession(tgId);
+      const user = await getLinkedUser(tgId);
       if (!session || !session.docId || !user) {
         await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
         return;
       }
 
-      if (session.inProgress) {
-        await ctx.reply("⏳ Hozirda hujjat ustida AI ishlamoqda, iltimos kuting...");
+      const lock = await acquireUserLock(tgId);
+      if (!lock.acquired) {
+        await ctx.reply(
+          lock.message ||
+            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+        );
         return;
       }
 
-      const map: Record<string, { label: string; prompt: string }> = {
-        simple: {
-          label: "Sodda va tushunarli",
-          prompt: "Matnni oddiy, sodda va barchaga tushunarli tilda qayta yozib ber.",
-        },
-        academic: {
-          label: "Ilmiy-akademik uslub",
-          prompt:
-            "Matnni qat'iy ilmiy, akademik va rasmiy terminologiya bilan, OAK talablariga mos qayta yozib ber.",
-        },
-        detailed: {
-          label: "Batafsil tahlil",
-          prompt:
-            "Matnni har bir fikr va tushunchani chuqur yoritib, yanada batafsilroq va to'liq qil.",
-        },
-        examples: {
-          label: "Misol va tahlillar",
-          prompt:
-            "Matnga amaliy misollar, 2024-2026 yillardagi statistik ko'rsatkichlar va qiyosiy jadvallarni ko'paytir.",
-        },
-        intro: {
-          label: "Kirish qismi yangilandi",
-          prompt:
-            "Kirish qismini dolzarblik, O'zbekiston-2030 strategiyasi, maqsad va vazifalar bilan butunlay boshqacha va mukammal qilib qayta yoz.",
-        },
-        notemp: {
-          label: "Takrorlar olib tashlandi",
-          prompt:
-            "Matndagi bir xil fikrlar va takrorlangan jumlalarni olib tashlab, toza, aniq va lo'nda qil.",
-        },
-        deep: {
-          label: "Chuqur ilmiy tahlil",
-          prompt:
-            "Mavzuning tub muammolari, ilmiy tahlillari va innovatsion yechimlarini chuqurroq tahlil qil.",
-        },
-        teacher: {
-          label: "O'qituvchi talabiga moslandi",
-          prompt:
-            "O'qituvchi va kafedra talab qiladigan standartlarga moslashtir, ilmiy apparatni kuchaytir.",
-        },
-      };
+      try {
+        const map: Record<string, { label: string; prompt: string }> = {
+          simple: {
+            label: "Sodda va tushunarli",
+            prompt: "Matnni oddiy, sodda va barchaga tushunarli tilda qayta yozib ber.",
+          },
+          academic: {
+            label: "Ilmiy-akademik uslub",
+            prompt:
+              "Matnni qat'iy ilmiy, akademik va rasmiy terminologiya bilan, OAK talablariga mos qayta yozib ber.",
+          },
+          detailed: {
+            label: "Batafsil tahlil",
+            prompt:
+              "Matnni har bir fikr va tushunchani chuqur yoritib, yanada batafsilroq va to'liq qil.",
+          },
+          examples: {
+            label: "Misol va tahlillar",
+            prompt:
+              "Matnga amaliy misollar, 2024-2026 yillardagi statistik ko'rsatkichlar va qiyosiy jadvallarni ko'paytir.",
+          },
+          intro: {
+            label: "Kirish qismi yangilandi",
+            prompt:
+              "Kirish qismini dolzarblik, O'zbekiston-2030 strategiyasi, maqsad va vazifalar bilan butunlay boshqacha va mukammal qilib qayta yoz.",
+          },
+          notemp: {
+            label: "Takrorlar olib tashlandi",
+            prompt:
+              "Matndagi bir xil fikrlar va takrorlangan jumlalarni olib tashlab, toza, aniq va lo'nda qil.",
+          },
+          deep: {
+            label: "Chuqur ilmiy tahlil",
+            prompt:
+              "Mavzuning tub muammolari, ilmiy tahlillari va innovatsion yechimlarini chuqurroq tahlil qil.",
+          },
+          teacher: {
+            label: "O'qituvchi talabiga moslandi",
+            prompt:
+              "O'qituvchi va kafedra talab qiladigan standartlarga moslashtir, ilmiy apparatni kuchaytir.",
+          },
+        };
 
-      const key = ctx.match[1];
-      const opt = map[key] || { label: "Tahrir", prompt: "Matnni qayta tahrirlab ber." };
+        const key = ctx.match[1];
+        const opt = map[key] || { label: "Tahrir", prompt: "Matnni qayta tahrirlab ber." };
 
-      await setBotSession(ctx.from.id, { ...session, inProgress: true });
-      await ctx.reply(
-        `⏳ *Hujjat tanlangan talab asosida qayta tahrirlanmoqda...*\n\n` +
-          `📌 *Talab:* _${opt.label}_\n\n` +
-          `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
-        { parse_mode: "Markdown" }
-      );
+        await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+        await ctx.reply(
+          `⏳ *Hujjat tanlangan talab asosida qayta tahrirlanmoqda...*\n\n` +
+            `📌 *Talab:* _${opt.label}_\n\n` +
+            `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
+          { parse_mode: "Markdown" }
+        );
 
-      const snapshot = await getDocumentVersionData({
-        docId: session.docId,
-        userId: user.id,
-        version: session.currentVersion || 1,
-      });
+        const snapshot = await getDocumentVersionData({
+          docId: session.docId,
+          userId: user.id,
+          version: session.currentVersion || 1,
+        });
 
-      if (!snapshot) {
-        await setBotSession(ctx.from.id, { ...session, inProgress: false });
-        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-        return;
+        if (!snapshot) {
+          await setBotSession(tgId, { ...session, inProgress: false });
+          await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+          return;
+        }
+
+        const sub = await getUserSubscription(user.id);
+        const res = await rewriteAcademicDoc({
+          userId: user.id,
+          userPlan: sub.plan,
+          currentMarkdown: snapshot.markdown,
+          instruction: opt.prompt,
+          workType: session.type,
+          topic: session.topic,
+          subject: session.subject || session.specialty,
+        });
+
+        await handleUpdatedDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          session,
+          `Boshqacharoq yozish: ${opt.label}`,
+          lock.jobId
+        );
+      } finally {
+        await releaseUserLock(tgId, lock.jobId!);
       }
-
-      const sub = await getUserSubscription(user.id);
-      const res = await rewriteAcademicDoc({
-        userId: user.id,
-        userPlan: sub.plan,
-        currentMarkdown: snapshot.markdown,
-        instruction: opt.prompt,
-        workType: session.type,
-        topic: session.topic,
-        subject: session.subject || session.specialty,
-      });
-
-      await handleUpdatedDocSuccess(
-        ctx,
-        user.id,
-        ctx.from.id,
-        res,
-        session,
-        `Boshqacharoq yozish: ${opt.label}`
-      );
     }
   );
 
@@ -690,46 +778,56 @@ if (docnovaAiBot) {
   docnovaAiBot.callbackQuery("ed_regen_confirm", async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user) {
       await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
-    await ctx.reply(
-      `⏳ *Hujjat noldan yangi parametrlar bilan yaratilmoqda...*\n\n` +
-        `📌 *Mavzu:* ${session.topic}\n\n` +
-        `🤖 _Gemini AI ishlamoqda, iltimos 30-45 soniya kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+      await ctx.reply(
+        `⏳ *Hujjat noldan yangi parametrlar bilan yaratilmoqda...*\n\n` +
+          `📌 *Mavzu:* ${session.topic}\n\n` +
+          `🤖 _Gemini AI ishlamoqda, iltimos 30-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const sub = await getUserSubscription(user.id);
-    const res = await regenerateAcademicDoc({
-      userId: user.id,
-      userPlan: sub.plan,
-      type: session.type,
-      topic: session.topic || "Akademik ish",
-      subject: session.subject,
-      specialty: session.specialty,
-      lengthOption: session.length as "short" | "standard" | "extended" | undefined,
-      slidesCount: session.slidesCount,
-    });
+      const sub = await getUserSubscription(user.id);
+      const res = await regenerateAcademicDoc({
+        userId: user.id,
+        userPlan: sub.plan,
+        type: session.type,
+        topic: session.topic || "Akademik ish",
+        subject: session.subject,
+        specialty: session.specialty,
+        lengthOption: session.length as "short" | "standard" | "extended" | undefined,
+        slidesCount: session.slidesCount,
+      });
 
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      "Noldan qaytadan yaratildi"
-    );
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        "Noldan qaytadan yaratildi",
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
+    }
   });
 
   // 5. ed_part: "Faqat tanlangan qismini o'zgartirish"
@@ -811,86 +909,96 @@ if (docnovaAiBot) {
   docnovaAiBot.callbackQuery(/^prtop_(stats|expand|academic|condense)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user || !session.selectedPart) {
       await ctx.reply("Sessiya muddati o'tgan. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    const optMap: Record<string, { label: string; prompt: string }> = {
-      stats: {
-        label: "Jadval va statistika qo'shildi",
-        prompt:
-          "Ushbu bo'limga 2024-2026 yillardagi rasmiy statistik ko'rsatkichlar va batafsil qiyosiy Markdown jadval qo'shing.",
-      },
-      expand: {
-        label: "Mazmun kengaytirildi",
-        prompt:
-          "Ushbu bo'lim mazmunini chuqur tahlillar, qo'shimcha ilmiy ma'lumotlar va amaliy misollar bilan kengaytiring.",
-      },
-      academic: {
-        label: "Ilmiy apparat kuchaytirildi",
-        prompt:
-          "Ushbu bo'limning ilmiy uslubini, terminologiyasini va ilmiy dalillarini kuchaytiring.",
-      },
-      condense: {
-        label: "Ixchamlashtirildi",
-        prompt:
-          "Ushbu bo'limdagi ortiqcha gaplarni olib tashlab, eng muhim ilmiy mohiyatni lo'nda bayon qiling.",
-      },
-    };
+    try {
+      const optMap: Record<string, { label: string; prompt: string }> = {
+        stats: {
+          label: "Jadval va statistika qo'shildi",
+          prompt:
+            "Ushbu bo'limga 2024-2026 yillardagi rasmiy statistik ko'rsatkichlar va batafsil qiyosiy Markdown jadval qo'shing.",
+        },
+        expand: {
+          label: "Mazmun kengaytirildi",
+          prompt:
+            "Ushbu bo'lim mazmunini chuqur tahlillar, qo'shimcha ilmiy ma'lumotlar va amaliy misollar bilan kengaytiring.",
+        },
+        academic: {
+          label: "Ilmiy apparat kuchaytirildi",
+          prompt:
+            "Ushbu bo'limning ilmiy uslubini, terminologiyasini va ilmiy dalillarini kuchaytiring.",
+        },
+        condense: {
+          label: "Ixchamlashtirildi",
+          prompt:
+            "Ushbu bo'limdagi ortiqcha gaplarni olib tashlab, eng muhim ilmiy mohiyatni lo'nda bayon qiling.",
+        },
+      };
 
-    const opt = optMap[ctx.match[1]] || {
-      label: "Bo'lim yangilandi",
-      prompt: "Ushbu bo'limni mukammal tahrirlang.",
-    };
+      const opt = optMap[ctx.match[1]] || {
+        label: "Bo'lim yangilandi",
+        prompt: "Ushbu bo'limni mukammal tahrirlang.",
+      };
 
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
-    await ctx.reply(
-      `⏳ *«${session.selectedPart}» bo'limi tahrirlanmoqda...*\n\n` +
-        `📌 *Amal:* _${opt.label}_\n\n` +
-        `🤖 _Faqat ushbu bo'lim yangilanmoqda, boshqa qismlar to'liq saqlanadi. Iltimos 15-30 soniya kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+      await ctx.reply(
+        `⏳ *«${session.selectedPart}» bo'limi tahrirlanmoqda...*\n\n` +
+          `📌 *Amal:* _${opt.label}_\n\n` +
+          `🤖 _Faqat ushbu bo'lim yangilanmoqda, boshqa qismlar to'liq saqlanadi. Iltimos 15-30 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const snapshot = await getDocumentVersionData({
-      docId: session.docId,
-      userId: user.id,
-      version: session.currentVersion || 1,
-    });
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
 
-    if (!snapshot) {
-      await setBotSession(ctx.from.id, { ...session, inProgress: false });
-      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-      return;
+      if (!snapshot) {
+        await setBotSession(tgId, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await editAcademicSection({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        sectionKey: session.selectedPart as SectionKey,
+        sectionInstruction: opt.prompt,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        `Bo'lim tahrirlandi: ${session.selectedPart} (${opt.label})`,
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
     }
-
-    const sub = await getUserSubscription(user.id);
-    const res = await editAcademicSection({
-      userId: user.id,
-      userPlan: sub.plan,
-      currentMarkdown: snapshot.markdown,
-      sectionKey: session.selectedPart as SectionKey,
-      sectionInstruction: opt.prompt,
-      workType: session.type,
-      topic: session.topic,
-      subject: session.subject || session.specialty,
-    });
-
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      `Bo'lim tahrirlandi: ${session.selectedPart} (${opt.label})`
-    );
   });
 
   // 6. ed_length: "Hajmini o'zgartirish"
@@ -907,58 +1015,69 @@ if (docnovaAiBot) {
   docnovaAiBot.callbackQuery(/^len_(expand_2x|shorten_2x|10_15|20_25|30_plus)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user) {
       await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    const lengthOption = ctx.match[1] as "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus";
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    try {
+      const lengthOption = ctx.match[1] as
+        "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus";
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
 
-    await ctx.reply(
-      `⏳ *Hujjat hajmi o'zgartirilmoqda...*\n\n` +
-        `🤖 _Mantiqiy tuzilma va GOST standartlari saqlangan holda yangi hajm shakllantirilmoqda. Iltimos 25-45 soniya kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+      await ctx.reply(
+        `⏳ *Hujjat hajmi o'zgartirilmoqda...*\n\n` +
+          `🤖 _Mantiqiy tuzilma va GOST standartlari saqlangan holda yangi hajm shakllantirilmoqda. Iltimos 25-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const snapshot = await getDocumentVersionData({
-      docId: session.docId,
-      userId: user.id,
-      version: session.currentVersion || 1,
-    });
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
 
-    if (!snapshot) {
-      await setBotSession(ctx.from.id, { ...session, inProgress: false });
-      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-      return;
+      if (!snapshot) {
+        await setBotSession(tgId, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await adjustAcademicLength({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        lengthOption,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        `Hajm o'zgartirildi: ${lengthOption}`,
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
     }
-
-    const sub = await getUserSubscription(user.id);
-    const res = await adjustAcademicLength({
-      userId: user.id,
-      userPlan: sub.plan,
-      currentMarkdown: snapshot.markdown,
-      lengthOption,
-      workType: session.type,
-      topic: session.topic,
-      subject: session.subject || session.specialty,
-    });
-
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      `Hajm o'zgartirildi: ${lengthOption}`
-    );
   });
 
   docnovaAiBot.callbackQuery("len_custom", async (ctx) => {
@@ -979,165 +1098,195 @@ if (docnovaAiBot) {
   docnovaAiBot.callbackQuery("ed_expand", async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user) {
       await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
-    await ctx.reply(
-      `⏳ *Hujjat mazmuni kengaytirilmoqda...*\n\n` +
-        `📊 _2024-2026 yillardagi rasmiy statistika, qiyosiy jadvallar va amaliy tahlillar bilan boyitilmoqda. Iltimos 25-45 soniya kuting..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+      await ctx.reply(
+        `⏳ *Hujjat mazmuni kengaytirilmoqda...*\n\n` +
+          `📊 _2024-2026 yillardagi rasmiy statistika, qiyosiy jadvallar va amaliy tahlillar bilan boyitilmoqda. Iltimos 25-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const snapshot = await getDocumentVersionData({
-      docId: session.docId,
-      userId: user.id,
-      version: session.currentVersion || 1,
-    });
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
 
-    if (!snapshot) {
-      await setBotSession(ctx.from.id, { ...session, inProgress: false });
-      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-      return;
+      if (!snapshot) {
+        await setBotSession(tgId, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await expandAcademicContent({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        "Mazmuni kengaytirildi (Faktlar, jadvallar, tahlillar)",
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
     }
-
-    const sub = await getUserSubscription(user.id);
-    const res = await expandAcademicContent({
-      userId: user.id,
-      userPlan: sub.plan,
-      currentMarkdown: snapshot.markdown,
-      workType: session.type,
-      topic: session.topic,
-      subject: session.subject || session.specialty,
-    });
-
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      "Mazmuni kengaytirildi (Faktlar, jadvallar, tahlillar)"
-    );
   });
 
   // 8. ed_shorten: "Qisqartirish"
   docnovaAiBot.callbackQuery("ed_shorten", async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user) {
       await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
-    await ctx.reply(
-      `⏳ *Hujjat qisqartirilmoqda va ixchamlashtirilmoqda...*\n\n` +
-        `🧹 _Ortiqcha gaplar, suv matnlar va takroriy fikrlar olib tashlanmoqda. Asosiy ilmiy mohiyat saqlanadi..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+      await ctx.reply(
+        `⏳ *Hujjat qisqartirilmoqda va ixchamlashtirilmoqda...*\n\n` +
+          `🧹 _Ortiqcha gaplar, suv matnlar va takroriy fikrlar olib tashlanmoqda. Asosiy ilmiy mohiyat saqlanadi..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const snapshot = await getDocumentVersionData({
-      docId: session.docId,
-      userId: user.id,
-      version: session.currentVersion || 1,
-    });
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
 
-    if (!snapshot) {
-      await setBotSession(ctx.from.id, { ...session, inProgress: false });
-      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-      return;
+      if (!snapshot) {
+        await setBotSession(tgId, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await condenseAcademicContent({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        "Hujjat qisqartirildi va ixchamlashtirildi",
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
     }
-
-    const sub = await getUserSubscription(user.id);
-    const res = await condenseAcademicContent({
-      userId: user.id,
-      userPlan: sub.plan,
-      currentMarkdown: snapshot.markdown,
-      workType: session.type,
-      topic: session.topic,
-      subject: session.subject || session.specialty,
-    });
-
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      "Hujjat qisqartirildi va ixchamlashtirildi"
-    );
   });
 
   // 9. ed_style: "Akademik uslubni yaxshilash"
   docnovaAiBot.callbackQuery("ed_style", async (ctx) => {
     await ctx.answerCallbackQuery();
     if (!ctx.from) return;
-    const session = await getBotSession(ctx.from.id);
-    const user = await getLinkedUser(ctx.from.id);
+    const tgId = ctx.from.id;
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
     if (!session || !session.docId || !user) {
       await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
       return;
     }
 
-    if (session.inProgress) {
-      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      await ctx.reply(
+        lock.message ||
+          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      );
       return;
     }
 
-    await setBotSession(ctx.from.id, { ...session, inProgress: true });
-    await ctx.reply(
-      `⏳ *Akademik uslub yaxshilanmoqda...*\n\n` +
-        `🏛 _O'zbekiston OAK va MOVSO talablariga mos ilmiy terminologiya, rasmiy uslub va GOST standartlari kiritilmoqda..._`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+      await ctx.reply(
+        `⏳ *Akademik uslub yaxshilanmoqda...*\n\n` +
+          `🏛 _O'zbekiston OAK va MOVSO talablariga mos ilmiy terminologiya, rasmiy uslub va GOST standartlari kiritilmoqda..._`,
+        { parse_mode: "Markdown" }
+      );
 
-    const snapshot = await getDocumentVersionData({
-      docId: session.docId,
-      userId: user.id,
-      version: session.currentVersion || 1,
-    });
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
 
-    if (!snapshot) {
-      await setBotSession(ctx.from.id, { ...session, inProgress: false });
-      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-      return;
+      if (!snapshot) {
+        await setBotSession(tgId, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await improveAcademicStyle({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        "Akademik uslub yaxshilandi (OAK / MOVSO)",
+        lock.jobId
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
     }
-
-    const sub = await getUserSubscription(user.id);
-    const res = await improveAcademicStyle({
-      userId: user.id,
-      userPlan: sub.plan,
-      currentMarkdown: snapshot.markdown,
-      workType: session.type,
-      topic: session.topic,
-      subject: session.subject || session.specialty,
-    });
-
-    await handleUpdatedDocSuccess(
-      ctx,
-      user.id,
-      ctx.from.id,
-      res,
-      session,
-      "Akademik uslub yaxshilandi (OAK / MOVSO)"
-    );
   });
 
   // 10. ed_revert: Revert to previous version
@@ -1315,68 +1464,104 @@ if (docnovaAiBot) {
     // EDITING MODE: User typed text to modify or rewrite the document
     // =======================================================================
     if (session.step === "editing") {
-      if (session.inProgress) {
-        await ctx.reply("⏳ Hozirda hujjat ustida AI ishlamoqda, iltimos kuting...");
-        return;
-      }
-
-      const snapshot = await getDocumentVersionData({
-        docId: session.docId!,
-        userId: user.id,
-        version: session.currentVersion || 1,
-      });
-
-      if (!snapshot) {
-        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
-        return;
-      }
-
-      await setBotSession(tgId, { ...session, inProgress: true });
-
-      // Case A: Custom length input
-      if (session.action === "length_custom_input") {
+      const lock = await acquireUserLock(tgId);
+      if (!lock.acquired) {
         await ctx.reply(
-          `⏳ *Hujjat ko'rsatilgan hajm (${text}) bo'yicha tahrirlanmoqda...*\n\n_Iltimos, 25-45 soniya kuting..._`,
-          { parse_mode: "Markdown" }
+          lock.message ||
+            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
         );
+        return;
+      }
 
-        const res = await adjustAcademicLength({
+      try {
+        const snapshot = await getDocumentVersionData({
+          docId: session.docId!,
           userId: user.id,
-          userPlan: sub.plan,
-          currentMarkdown: snapshot.markdown,
-          lengthOption: "custom",
-          customPages: text,
-          workType: session.type,
-          topic: session.topic,
-          subject: session.subject || session.specialty,
+          version: session.currentVersion || 1,
         });
 
-        await handleUpdatedDocSuccess(
-          ctx,
-          user.id,
-          tgId,
-          res,
-          session,
-          `Hajm o'zgartirildi: ${text}`
-        );
-        return;
-      }
+        if (!snapshot) {
+          await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+          return;
+        }
 
-      // Case B: Instruction for a specific section
-      if (session.action === "part_instruction" && session.selectedPart) {
+        await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+
+        // Case A: Custom length input
+        if (session.action === "length_custom_input") {
+          await ctx.reply(
+            `⏳ *Hujjat ko'rsatilgan hajm (${text}) bo'yicha tahrirlanmoqda...*\n\n_Iltimos, 25-45 soniya kuting..._`,
+            { parse_mode: "Markdown" }
+          );
+
+          const res = await adjustAcademicLength({
+            userId: user.id,
+            userPlan: sub.plan,
+            currentMarkdown: snapshot.markdown,
+            lengthOption: "custom",
+            customPages: text,
+            workType: session.type,
+            topic: session.topic,
+            subject: session.subject || session.specialty,
+          });
+
+          await handleUpdatedDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            session,
+            `Hajm o'zgartirildi: ${text}`,
+            lock.jobId
+          );
+          return;
+        }
+
+        // Case B: Instruction for a specific section
+        if (session.action === "part_instruction" && session.selectedPart) {
+          await ctx.reply(
+            `⏳ *«${session.selectedPart}» bo'limi ko'rsatilgan talab asosida tahrirlanmoqda...*\n\n` +
+              `📌 *Talab:* _"${text}"_\n\n` +
+              `🤖 _Faqat ushbu bo'lim yangilanmoqda, qolgan qismlar o'zgarishsiz saqlanadi. Iltimos kuting..._`,
+            { parse_mode: "Markdown" }
+          );
+
+          const res = await editAcademicSection({
+            userId: user.id,
+            userPlan: sub.plan,
+            currentMarkdown: snapshot.markdown,
+            sectionKey: session.selectedPart as SectionKey,
+            sectionInstruction: text,
+            workType: session.type,
+            topic: session.topic,
+            subject: session.subject || session.specialty,
+          });
+
+          await handleUpdatedDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            session,
+            `Bo'lim tahrirlandi: ${session.selectedPart} ("${text.slice(0, 40)}")`,
+            lock.jobId
+          );
+          return;
+        }
+
+        // Case C: Free-form custom rewrite (or action === "rewrite_custom")
         await ctx.reply(
-          `⏳ *«${session.selectedPart}» bo'limi ko'rsatilgan talab asosida tahrirlanmoqda...*\n\n` +
+          `⏳ *Hujjat talabingiz asosida qayta tahrirlanmoqda...*\n\n` +
             `📌 *Talab:* _"${text}"_\n\n` +
-            `🤖 _Faqat ushbu bo'lim yangilanmoqda, qolgan qismlar o'zgarishsiz saqlanadi. Iltimos kuting..._`,
+            `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
           { parse_mode: "Markdown" }
         );
 
-        const res = await editAcademicSection({
+        const res = await rewriteAcademicDoc({
           userId: user.id,
           userPlan: sub.plan,
           currentMarkdown: snapshot.markdown,
-          sectionKey: session.selectedPart as SectionKey,
-          sectionInstruction: text,
+          instruction: text,
           workType: session.type,
           topic: session.topic,
           subject: session.subject || session.specialty,
@@ -1388,38 +1573,13 @@ if (docnovaAiBot) {
           tgId,
           res,
           session,
-          `Bo'lim tahrirlandi: ${session.selectedPart} ("${text.slice(0, 40)}")`
+          `Tahrir: "${text.slice(0, 40)}"`,
+          lock.jobId
         );
         return;
+      } finally {
+        await releaseUserLock(tgId, lock.jobId!);
       }
-
-      // Case C: Free-form custom rewrite (or action === "rewrite_custom")
-      await ctx.reply(
-        `⏳ *Hujjat talabingiz asosida qayta tahrirlanmoqda...*\n\n` +
-          `📌 *Talab:* _"${text}"_\n\n` +
-          `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
-        { parse_mode: "Markdown" }
-      );
-
-      const res = await rewriteAcademicDoc({
-        userId: user.id,
-        userPlan: sub.plan,
-        currentMarkdown: snapshot.markdown,
-        instruction: text,
-        workType: session.type,
-        topic: session.topic,
-        subject: session.subject || session.specialty,
-      });
-
-      await handleUpdatedDocSuccess(
-        ctx,
-        user.id,
-        tgId,
-        res,
-        session,
-        `Tahrir: "${text.slice(0, 40)}"`
-      );
-      return;
     }
 
     // =======================================================================
@@ -1437,34 +1597,54 @@ if (docnovaAiBot) {
       }
 
       if (session.step === "subject") {
-        const subject = text.toLowerCase() === "standart" ? undefined : text;
-        const topic = session.topic || "Kurs ishi";
+        const lock = await acquireUserLock(tgId);
+        if (!lock.acquired) {
+          await ctx.reply(
+            lock.message ||
+              "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+          );
+          return;
+        }
 
-        await ctx.reply(
-          `⏳ *Kurs ishi tayyorlanmoqda...*\n\n` +
-            `📌 *Mavzu:* ${topic}\n` +
-            `📚 *Fan:* ${subject || "Standart"}\n\n` +
-            `1️⃣ Titul varag'i va mundarija...\n` +
-            `2️⃣ Kirish (dolzarblik, ilmiy apparat)...\n` +
-            `3️⃣ Nazariy va tahliliy boblar (jadval bilan)...\n` +
-            `4️⃣ Takliflar, xulosa va 15+ adabiyotlar...\n\n` +
-            `🤖 _Gemini AI ishlamoqda. Bu taxminan 30-45 soniya vaqt oladi, iltimos kuting..._`,
-          { parse_mode: "Markdown" }
-        );
+        try {
+          const subject = text.toLowerCase() === "standart" ? undefined : text;
+          const topic = session.topic || "Kurs ishi";
 
-        const res = await generateCourseworkDoc({
-          userId: user.id,
-          userPlan: sub.plan,
-          topic,
-          subject,
-          studentName: user.name || undefined,
-        });
+          await ctx.reply(
+            `⏳ *Kurs ishi tayyorlanmoqda...*\n\n` +
+              `📌 *Mavzu:* ${topic}\n` +
+              `📚 *Fan:* ${subject || "Standart"}\n\n` +
+              `1️⃣ Titul varag'i va mundarija...\n` +
+              `2️⃣ Kirish (dolzarblik, ilmiy apparat)...\n` +
+              `3️⃣ Nazariy va tahliliy boblar (jadval bilan)...\n` +
+              `4️⃣ Takliflar, xulosa va 15+ adabiyotlar...\n\n` +
+              `🤖 _Gemini AI ishlamoqda. Bu taxminan 30-45 soniya vaqt oladi, iltimos kuting..._`,
+            { parse_mode: "Markdown" }
+          );
 
-        await handleInitialDocSuccess(ctx, user.id, tgId, res, {
-          workType: "coursework",
-          topic,
-          subject,
-        });
+          const res = await generateCourseworkDoc({
+            userId: user.id,
+            userPlan: sub.plan,
+            topic,
+            subject,
+            studentName: user.name || undefined,
+          });
+
+          await handleInitialDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            {
+              workType: "coursework",
+              topic,
+              subject,
+            },
+            lock.jobId
+          );
+        } finally {
+          await releaseUserLock(tgId, lock.jobId!);
+        }
         return;
       }
     }
@@ -1512,30 +1692,50 @@ if (docnovaAiBot) {
       }
 
       if (session.step === "subject") {
-        const specialty = text;
-        const topic = session.topic || "BMI";
+        const lock = await acquireUserLock(tgId);
+        if (!lock.acquired) {
+          await ctx.reply(
+            lock.message ||
+              "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+          );
+          return;
+        }
 
-        await ctx.reply(
-          `⏳ *Bitiruv malakaviy ishi (BMI) majmuasi tayyorlanmoqda...*\n\n` +
-            `📌 *Mavzu:* ${topic}\n` +
-            `🏛 *Yo'nalish:* ${specialty}\n\n` +
-            `🤖 _MOVSO RUz standartidagi to'liq ilmiy apparat, boblar va statistik tahlil shakllantirilmoqda. Iltimos 35-50 soniya kuting..._`,
-          { parse_mode: "Markdown" }
-        );
+        try {
+          const specialty = text;
+          const topic = session.topic || "BMI";
 
-        const res = await generateBmiDoc({
-          userId: user.id,
-          userPlan: sub.plan,
-          topic,
-          specialty,
-          studentName: user.name || undefined,
-        });
+          await ctx.reply(
+            `⏳ *Bitiruv malakaviy ishi (BMI) majmuasi tayyorlanmoqda...*\n\n` +
+              `📌 *Mavzu:* ${topic}\n` +
+              `🏛 *Yo'nalish:* ${specialty}\n\n` +
+              `🤖 _MOVSO RUz standartidagi to'liq ilmiy apparat, boblar va statistik tahlil shakllantirilmoqda. Iltimos 35-50 soniya kuting..._`,
+            { parse_mode: "Markdown" }
+          );
 
-        await handleInitialDocSuccess(ctx, user.id, tgId, res, {
-          workType: "bmi",
-          topic,
-          specialty,
-        });
+          const res = await generateBmiDoc({
+            userId: user.id,
+            userPlan: sub.plan,
+            topic,
+            specialty,
+            studentName: user.name || undefined,
+          });
+
+          await handleInitialDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            {
+              workType: "bmi",
+              topic,
+              specialty,
+            },
+            lock.jobId
+          );
+        } finally {
+          await releaseUserLock(tgId, lock.jobId!);
+        }
         return;
       }
     }
@@ -1563,43 +1763,83 @@ if (docnovaAiBot) {
 
     // 5. Essay flow
     if (session.type === "essay") {
-      const topic = text;
-      await ctx.reply(
-        `⏳ *Insho / Esse yozilmoqda...*\n\n📌 *Mavzu:* ${topic}\n\n🤖 _Gemini AI chuqur falsafiy va adabiy kompozitsiya tayyorlamoqda..._`,
-        { parse_mode: "Markdown" }
-      );
+      const lock = await acquireUserLock(tgId);
+      if (!lock.acquired) {
+        await ctx.reply(
+          lock.message ||
+            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+        );
+        return;
+      }
 
-      const res = await generateEssayDoc({
-        userId: user.id,
-        userPlan: sub.plan,
-        topic,
-      });
+      try {
+        const topic = text;
+        await ctx.reply(
+          `⏳ *Insho / Esse yozilmoqda...*\n\n📌 *Mavzu:* ${topic}\n\n🤖 _Gemini AI chuqur falsafiy va adabiy kompozitsiya tayyorlamoqda..._`,
+          { parse_mode: "Markdown" }
+        );
 
-      await handleInitialDocSuccess(ctx, user.id, tgId, res, {
-        workType: "essay",
-        topic,
-      });
+        const res = await generateEssayDoc({
+          userId: user.id,
+          userPlan: sub.plan,
+          topic,
+        });
+
+        await handleInitialDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          {
+            workType: "essay",
+            topic,
+          },
+          lock.jobId
+        );
+      } finally {
+        await releaseUserLock(tgId, lock.jobId!);
+      }
       return;
     }
 
     // 6. Exam flow
     if (session.type === "exam") {
-      const topic = text;
-      await ctx.reply(
-        `⏳ *Imtihon biletlari va konspekt tayyorlanmoqda...*\n\n📌 *Fan / Mavzular:* ${topic}\n\n🤖 _10 ta asosiy imtihon savoli va yechimlari tuzilmoqda..._`,
-        { parse_mode: "Markdown" }
-      );
+      const lock = await acquireUserLock(tgId);
+      if (!lock.acquired) {
+        await ctx.reply(
+          lock.message ||
+            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+        );
+        return;
+      }
 
-      const res = await generateExamDoc({
-        userId: user.id,
-        userPlan: sub.plan,
-        topic,
-      });
+      try {
+        const topic = text;
+        await ctx.reply(
+          `⏳ *Imtihon biletlari va konspekt tayyorlanmoqda...*\n\n📌 *Fan / Mavzular:* ${topic}\n\n🤖 _10 ta asosiy imtihon savoli va yechimlari tuzilmoqda..._`,
+          { parse_mode: "Markdown" }
+        );
 
-      await handleInitialDocSuccess(ctx, user.id, tgId, res, {
-        workType: "exam",
-        topic,
-      });
+        const res = await generateExamDoc({
+          userId: user.id,
+          userPlan: sub.plan,
+          topic,
+        });
+
+        await handleInitialDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          {
+            workType: "exam",
+            topic,
+          },
+          lock.jobId
+        );
+      } finally {
+        await releaseUserLock(tgId, lock.jobId!);
+      }
       return;
     }
   });
@@ -1607,12 +1847,57 @@ if (docnovaAiBot) {
 
 const webhookSecret = process.env.DOCNOVA_AI_BOT_SECRET;
 
-export const POST =
+const baseWebhookHandler =
   docnovaAiBot && webhookSecret
     ? webhookCallback(docnovaAiBot, "std/http", {
         secretToken: webhookSecret,
       })
-    : async () =>
-        new Response("DocNova AI Bot or Webhook Secret is not configured securely.", {
-          status: 500,
-        });
+    : null;
+
+export async function POST(req: Request): Promise<Response> {
+  if (!docnovaAiBot || !webhookSecret || !baseWebhookHandler) {
+    return new Response("DocNova AI Bot or Webhook Secret is not configured securely.", {
+      status: 500,
+    });
+  }
+
+  // 1. Secret token header verification
+  const headerSecret = req.headers.get("x-telegram-bot-api-secret-token");
+  if (headerSecret !== webhookSecret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // 2. Webhook Idempotency Check: intercept update_id to prevent duplicate execution from Telegram retries
+  let updateId: number | string | undefined;
+  let rawBodyText = "";
+  try {
+    rawBodyText = await req.text();
+    if (rawBodyText) {
+      const parsedBody = JSON.parse(rawBodyText);
+      updateId = parsedBody?.update_id;
+    }
+  } catch (err) {
+    console.error("[WEBHOOK_BODY_PARSE_ERR]", err);
+  }
+
+  if (updateId !== undefined && updateId !== null) {
+    const { isFirstAttempt } = await claimTelegramUpdate(updateId);
+    if (!isFirstAttempt) {
+      console.warn(`[WEBHOOK_IDEMPOTENT_SKIP] Duplicate update_id ${updateId} ignored.`);
+      // Return HTTP 200 OK immediately so Telegram stops resending this update
+      return new Response(JSON.stringify({ ok: true, note: "duplicate_update_ignored" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // 3. Reconstruct Request with the consumed body text so Grammy std/http can process it
+  const newReq = new Request(req.url, {
+    method: req.method,
+    headers: req.headers,
+    body: rawBodyText || undefined,
+  });
+
+  return baseWebhookHandler(newReq);
+}

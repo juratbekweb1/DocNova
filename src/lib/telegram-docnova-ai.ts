@@ -30,25 +30,40 @@ export interface BotWizardState {
     | "idle_editing";
   selectedPart?: string;
   inProgress?: boolean;
+  activeJobId?: string;
   _ts?: number;
 }
 
 /**
- * Session persistence using VerificationToken table to survive serverless cold starts
+ * Session persistence using VerificationToken table with atomic upsert to survive serverless cold starts
  */
 export async function getBotSession(telegramId: string | number): Promise<BotWizardState | null> {
   try {
-    const id = `tg_state_${telegramId}`;
-    const record = await prisma.verificationToken.findFirst({
+    const sessKey = `tg_sess_${telegramId}`;
+    // 1. Primary lookup using unique token index (O(1) atomic read)
+    const record = await prisma.verificationToken.findUnique({
+      where: { token: sessKey },
+    });
+
+    if (record && record.expires > new Date()) {
+      const jsonStr = Buffer.from(record.identifier, "base64").toString("utf-8");
+      return JSON.parse(jsonStr) as BotWizardState;
+    }
+
+    // 2. Backward compatibility fallback for legacy session rows
+    const legacyRecord = await prisma.verificationToken.findFirst({
       where: {
-        identifier: id,
+        identifier: `tg_state_${telegramId}`,
         expires: { gt: new Date() },
       },
     });
 
-    if (!record) return null;
-    const jsonStr = Buffer.from(record.token, "base64").toString("utf-8");
-    return JSON.parse(jsonStr) as BotWizardState;
+    if (legacyRecord) {
+      const jsonStr = Buffer.from(legacyRecord.token, "base64").toString("utf-8");
+      return JSON.parse(jsonStr) as BotWizardState;
+    }
+
+    return null;
   } catch (err) {
     console.error("[BOT_SESSION_GET_ERR]", err);
     return null;
@@ -60,18 +75,22 @@ export async function setBotSession(
   state: BotWizardState
 ): Promise<void> {
   try {
-    const id = `tg_state_${telegramId}`;
-    const token = Buffer.from(JSON.stringify({ ...state, _ts: Date.now() })).toString("base64");
+    const sessKey = `tg_sess_${telegramId}`;
+    const base64Json = Buffer.from(JSON.stringify({ ...state, _ts: Date.now() })).toString(
+      "base64"
+    );
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await prisma.verificationToken.deleteMany({
-      where: { identifier: id },
-    });
-
-    await prisma.verificationToken.create({
-      data: {
-        identifier: id,
-        token,
+    // Atomic PostgreSQL UPSERT on unique token: eliminates race conditions of deleteMany + create!
+    await prisma.verificationToken.upsert({
+      where: { token: sessKey },
+      update: {
+        identifier: base64Json,
+        expires,
+      },
+      create: {
+        token: sessKey,
+        identifier: base64Json,
         expires,
       },
     });
@@ -82,9 +101,11 @@ export async function setBotSession(
 
 export async function clearBotSession(telegramId: string | number): Promise<void> {
   try {
-    const id = `tg_state_${telegramId}`;
+    const sessKey = `tg_sess_${telegramId}`;
     await prisma.verificationToken.deleteMany({
-      where: { identifier: id },
+      where: {
+        OR: [{ token: sessKey }, { identifier: `tg_state_${telegramId}` }],
+      },
     });
   } catch (err) {
     console.error("[BOT_SESSION_CLEAR_ERR]", err);
