@@ -1,4 +1,4 @@
-import { webhookCallback, InlineKeyboard, InputFile } from "grammy";
+import { webhookCallback, InlineKeyboard, InputFile, Context } from "grammy";
 import {
   docnovaAiBot,
   getBotSession,
@@ -8,6 +8,14 @@ import {
   getLinkedUser,
   getMainReplyKeyboard,
   getStudentInlineMenu,
+  getDocumentEditKeyboard,
+  getRewriteOptionsKeyboard,
+  getPartSelectionKeyboard,
+  getPartEditOptionsKeyboard,
+  getLengthOptionsKeyboard,
+  getRegenConfirmKeyboard,
+  generateWordDocumentBuffer,
+  BotWizardState,
 } from "@/lib/telegram-docnova-ai";
 import {
   generateCourseworkDoc,
@@ -16,9 +24,155 @@ import {
   generatePresentationDoc,
   generateEssayDoc,
   generateExamDoc,
+  rewriteAcademicDoc,
+  editAcademicSection,
+  adjustAcademicLength,
+  expandAcademicContent,
+  condenseAcademicContent,
+  improveAcademicStyle,
+  regenerateAcademicDoc,
+  AcademicGenResult,
 } from "@/lib/telegram-academic-generator";
+import {
+  createAcademicDocumentRecord,
+  saveNewDocumentVersion,
+  getDocumentVersionData,
+  revertToPreviousVersion,
+  finalizeAcademicDocument,
+  parseDocumentSections,
+  SectionKey,
+} from "@/lib/telegram-doc-manager";
 import { prisma } from "@/lib/prisma";
 import { checkUserLimit, getUserSubscription } from "@/lib/limits";
+
+/**
+ * Helper to handle successful initial document generation
+ */
+async function handleInitialDocSuccess(
+  ctx: Context,
+  userId: string,
+  tgId: number,
+  res: AcademicGenResult,
+  params: {
+    workType: "coursework" | "referat" | "bmi" | "presentation" | "essay" | "exam";
+    topic: string;
+    subject?: string;
+    specialty?: string;
+    length?: string;
+    slidesCount?: number;
+  }
+) {
+  if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent) {
+    await ctx.reply(`❌ ${res.error || "Hujjatni tayyorlashda xatolik yuz berdi."}`);
+    return;
+  }
+
+  try {
+    // 1. Multi-tenant document and version persistence in PostgreSQL
+    const record = await createAcademicDocumentRecord({
+      userId,
+      workType: params.workType,
+      topic: params.topic,
+      subject: params.subject || params.specialty,
+      markdownContent: res.markdownContent,
+      fileName: res.fileName,
+    });
+
+    // 2. Set editing session state
+    await setBotSession(tgId, {
+      type: params.workType,
+      step: "editing",
+      docId: record.docId,
+      currentVersion: 1,
+      topic: params.topic,
+      subject: params.subject,
+      specialty: params.specialty,
+      length: params.length,
+      slidesCount: params.slidesCount,
+    });
+
+    // 3. Send Word document file
+    await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+      caption: res.summaryText,
+      parse_mode: "Markdown",
+    });
+
+    // 4. Send Post-Generation Editing Menu (Section 9.A)
+    await ctx.reply(
+      `✍️ *Hujjat tayyor! Endi uni o'z xohishingizga ko'ra tahrirlashingiz mumkin.*\n\n` +
+        `📄 *Joriy versiya:* \`v1 (Boshlang'ich)\`\n\n` +
+        `Barcha qismlar ma'qul bo'lsa, *«✅ Ma’qul, yakunlash»* tugmasini bosing. O'zgartirish kiritmoqchi bo'lsangiz, quyidagi variantlardan birini tanlang:`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: getDocumentEditKeyboard({ version: 1, hasPrevVersion: false }),
+      }
+    );
+  } catch (err) {
+    console.error("[HANDLE_INITIAL_DOC_ERR]", err);
+    await ctx.reply("❌ Hujjatni saqlashda xatolik yuz berdi.");
+  }
+}
+
+/**
+ * Helper to handle successful updated/edited document version
+ */
+async function handleUpdatedDocSuccess(
+  ctx: Context,
+  userId: string,
+  tgId: number,
+  res: AcademicGenResult,
+  session: BotWizardState,
+  changeLog: string
+) {
+  if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent || !session.docId) {
+    await ctx.reply(`❌ ${res.error || "Tahrirlashda xatolik yuz berdi."}`);
+    await setBotSession(tgId, { ...session, inProgress: false });
+    return;
+  }
+
+  try {
+    // 1. Save new version in PostgreSQL
+    const { version: newVersion } = await saveNewDocumentVersion({
+      docId: session.docId,
+      userId,
+      markdownContent: res.markdownContent,
+      changeLog,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+      workType: session.type,
+      fileName: res.fileName,
+    });
+
+    // 2. Update session state
+    await setBotSession(tgId, {
+      ...session,
+      currentVersion: newVersion,
+      action: undefined,
+      selectedPart: undefined,
+      inProgress: false,
+    });
+
+    // 3. Send updated Word document file
+    await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+      caption: `${res.summaryText}\n\n📄 *Versiya:* \`v${newVersion}\` (Oldingi: \`v${newVersion - 1}\`)`,
+      parse_mode: "Markdown",
+    });
+
+    // 4. Send Post-Generation Editing Menu with version controls
+    await ctx.reply(
+      `✍️ *Yangi tahrir (v${newVersion}) tayyor!*\n\n` +
+        `Siz yangi versiyani qabul qilishingiz, yana o'zgartirish kiritishingiz yoki avvalgi versiyaga qaytishingiz mumkin:`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: getDocumentEditKeyboard({ version: newVersion, hasPrevVersion: true }),
+      }
+    );
+  } catch (err) {
+    console.error("[HANDLE_UPDATED_DOC_ERR]", err);
+    await setBotSession(tgId, { ...session, inProgress: false });
+    await ctx.reply("❌ Yangilangan versiyani saqlashda xatolik yuz berdi.");
+  }
+}
 
 if (docnovaAiBot) {
   // 1. /start command
@@ -31,7 +185,6 @@ if (docnovaAiBot) {
       const user = await getLinkedUser(tgId);
 
       if (!user) {
-        // User not linked -> Generate single-use secure auth link
         const linkUrl = await createTelegramLinkToken(tgId, username);
         const kb = new InlineKeyboard().url("🔗 Google orqali hisobni bog'lash", linkUrl);
 
@@ -46,13 +199,12 @@ if (docnovaAiBot) {
             `• ✍️ *Insho va ilmiy esselar*\n` +
             `• 📝 *Imtihon biletlari va konspektlar*\n\n` +
             `🔒 *Xavfsiz foydalanish va AI limitlaringizni ulash uchun DocNova hisobingizni bog'lang:*\n` +
-            `Quyidagi tugma orqali Google yoki profilingiz bilan tizimga kiring. Bu bir necha soniya vaqt oladi:`,
+            `Quyidagi tugma orqali Google yoki profilingiz bilan tizimga kiring:`,
           { parse_mode: "Markdown", reply_markup: kb }
         );
         return;
       }
 
-      // User already linked
       const sub = await getUserSubscription(user.id);
       await clearBotSession(tgId);
 
@@ -96,6 +248,7 @@ if (docnovaAiBot) {
     const sub = await getUserSubscription(user.id);
     const courseworkLimit = await checkUserLimit(user.id, "coursework");
     const presentationLimit = await checkUserLimit(user.id, "presentation");
+    const rewriteLimit = await checkUserLimit(user.id, "rewrite");
 
     await ctx.reply(
       `💎 *Sizning DocNova AI Holatingiz:*\n\n` +
@@ -104,6 +257,7 @@ if (docnovaAiBot) {
         `💳 Tarif: *${sub.plan}*\n\n` +
         `📊 *Oylik AI Limitlaringiz:*\n` +
         `• 📘 Kurs ishi / Referat / BMI: *${courseworkLimit.remaining} ta qoldi* (Jami: ${courseworkLimit.totalLimit})\n` +
+        `• ✍️ Qayta tahrirlash / Rewrite: *${rewriteLimit.remaining} ta qoldi* (Jami: ${rewriteLimit.totalLimit})\n` +
         `• 📊 Taqdimotlar: *${presentationLimit.remaining} ta qoldi* (Jami: ${presentationLimit.totalLimit})\n` +
         `• 🤖 Jami so'rovlar: *${user.aiUsageCount || 0} ta*\n\n` +
         `Tarifni oshirish yoki limitlarni yangilash uchun:\n` +
@@ -141,24 +295,25 @@ if (docnovaAiBot) {
       `🤖 *DocNova AI Boti bo'yicha qo'llanma:*\n\n` +
         `Ushbu bot yordamida bir necha soniyada O'zbekiston OTMlari talablariga mos ilmiy va akademik ishlarni tayyorlab, tayyor *Microsoft Word (.doc)* faylini yuklab olishingiz mumkin.\n\n` +
         `📋 *Xizmatlar:*\n` +
-        `1. *Kurs ishi* — Titul, reja, kirish (dolzarbligi, ilmiy apparat), 3 ta bob, statistik jadval, xulosa va 15+ adabiyotlar.\n` +
+        `1. *Kurs ishi* — Titul, reja, kirish (dolzarblik, ilmiy apparat), 3 ta bob, statistik jadval, xulosa va 15+ adabiyotlar.\n` +
         `2. *Referat / Mustaqil ish* — 3-5, 5-8 yoki 10-15 betlik akademik referatlar.\n` +
         `3. *BMI / Diplom ishi* — Bitiruv malakaviy ishi to'liq ilmiy apparati bilan.\n` +
         `4. *Taqdimot* — Slaydlar rejasi va har bir slayd uchun spiker nutqi.\n` +
         `5. *Insho / Esse* — Ilmiy-badiiy chuqur esse.\n` +
         `6. *Imtihon* — 10 ta asosiy bilet savoli va yechimlari.\n\n` +
+        `✍️ *Tahrirlash va qayta ishlash imkoniyatlari:*\n` +
+        `Hujjat yaratilgandan keyin uni boshqacharoq yozdirish, tanlangan bo'limini o'zgartirish, hajmini kengaytirish/qisqartirish, akademik uslubini oshirish yoki avvalgi versiyalarga qaytishingiz mumkin!\n\n` +
         `⌨️ *Buyruqlar:*\n` +
         `/start — Botni yangilash va bosh menyu\n` +
         `/status — Limitlar va tarifni tekshirish\n` +
         `/cancel — Har qanday jarayonni bekor qilish\n` +
         `/unlink — Telegram hisobni uzish\n\n` +
-        `🌐 Rasmiy sayt: https://www.docnova.uz\n` +
-        `💬 Qo'llab-quvvatlash: @docnova_support`,
+        `🌐 Rasmiy sayt: https://www.docnova.uz`,
       { parse_mode: "Markdown" }
     );
   });
 
-  // 6. Callback Queries: Wizard selection
+  // 6. Wizard Selection Callbacks
   docnovaAiBot.callbackQuery("wiz_cancel", async (ctx) => {
     await ctx.answerCallbackQuery({ text: "Bekor qilindi" });
     if (ctx.from) await clearBotSession(ctx.from.id);
@@ -185,9 +340,8 @@ if (docnovaAiBot) {
     await setBotSession(ctx.from.id, { type: "coursework", step: "topic" });
     await ctx.reply(
       `📘 *Kurs ishi generatori*\n\n` +
-        `Iltimos, kurs ishingizning *mavzusini* yozing:\n\n` +
-        `_Masalan: O'zbekistonda tijorat banklarining investitsion faoliyatini takomillashtirish_\n\n` +
-        `Bekor qilish uchun /cancel deb yozing.`,
+        `Iltimos, kurs ishi *mavzusini* to'liq kiriting:\n\n` +
+        `_Masalan: Tijorat banklarida kredit risklarini boshqarish strategiyasi_`,
       { parse_mode: "Markdown" }
     );
   });
@@ -314,19 +468,12 @@ if (docnovaAiBot) {
       studentName: user.name || undefined,
     });
 
-    await clearBotSession(ctx.from.id);
-
-    if (res.success && res.docBuffer && res.fileName) {
-      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-        caption: res.summaryText,
-        parse_mode: "Markdown",
-      });
-      await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-        reply_markup: getMainReplyKeyboard(),
-      });
-    } else {
-      await ctx.reply(`❌ ${res.error || "Xatolik yuz berdi"}`);
-    }
+    await handleInitialDocSuccess(ctx, user.id, ctx.from.id, res, {
+      workType: "referat",
+      topic: session.topic,
+      subject: session.subject,
+      length: lengthOption,
+    });
   });
 
   // Slide count callbacks for Presentation
@@ -358,45 +505,726 @@ if (docnovaAiBot) {
       slidesCount,
     });
 
-    await clearBotSession(ctx.from.id);
-
-    if (res.success && res.docBuffer && res.fileName) {
-      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-        caption: res.summaryText,
-        parse_mode: "Markdown",
-      });
-      await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-        reply_markup: getMainReplyKeyboard(),
-      });
-    } else {
-      await ctx.reply(`❌ ${res.error || "Xatolik yuz berdi"}`);
-    }
+    await handleInitialDocSuccess(ctx, user.id, ctx.from.id, res, {
+      workType: "presentation",
+      topic: session.topic,
+      slidesCount,
+    });
   });
 
-  // 7. General Text Message Handler (Replies & Conversational steps)
+  // =========================================================================
+  // SECTION 9: ACADEMIC EDITING & REWRITING CALLBACK QUERIES
+  // =========================================================================
+
+  // 1. ed_done: Accept and finish
+  docnovaAiBot.callbackQuery("ed_done", async (ctx) => {
+    await ctx.answerCallbackQuery({ text: "✅ Yakunlandi!" });
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+
+    if (session?.docId && user) {
+      await finalizeAcademicDocument(session.docId, user.id);
+    }
+
+    await clearBotSession(ctx.from.id);
+    await ctx.reply(
+      `🎉 *Akademik ish muvaffaqiyatli qabul qilindi va yakunlandi!*\n\n` +
+        `Siz yaratgan hujjat va barcha tahrirlangan versiyalar DocNova profilingizda xavfsiz saqlandi.\n\n` +
+        `🌐 Rasmiy sayt: https://www.docnova.uz\n\n` +
+        `Yana qanday akademik ish tayyorlaymiz?`,
+      { parse_mode: "Markdown", reply_markup: getMainReplyKeyboard() }
+    );
+  });
+
+  // 2. ed_menu: Back to main editing menu
+  docnovaAiBot.callbackQuery("ed_menu", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const ver = session?.currentVersion || 1;
+    await setBotSession(ctx.from.id, {
+      ...session!,
+      action: undefined,
+      selectedPart: undefined,
+    });
+    await ctx.reply("✍️ Quyidagi tahrirlash amallaridan birini tanlang:", {
+      reply_markup: getDocumentEditKeyboard({ version: ver, hasPrevVersion: ver > 1 }),
+    });
+  });
+
+  // 3. ed_rewrite: "Boshqacharoq yozib ber"
+  docnovaAiBot.callbackQuery("ed_rewrite", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    if (!session || !session.docId) {
+      await ctx.reply("⚠️ Hujjat sessiyasi topilmadi. Qaytadan boshlash uchun /start ni bosing.");
+      return;
+    }
+
+    await setBotSession(ctx.from.id, { ...session, action: "rewrite_custom" });
+    await ctx.reply(
+      `✍️ *Hujjatni qanday o'zgartirishni xohlaysiz?*\n\n` +
+        `Quyidagi tavsiyalardan birini tanlashingiz yoki o'zgartirish talabingizni *to'g'ridan-to'g'ri yozma xabar qilib yuborishingiz* mumkin:\n\n` +
+        `_Masalan: Kirish qismini o'zgartir, 2024-yilgi yangi statistik ma'lumotlarni qo'sh va xulosani kengaytir._`,
+      { parse_mode: "Markdown", reply_markup: getRewriteOptionsKeyboard() }
+    );
+  });
+
+  // Quick suggestions for rewrite
+  docnovaAiBot.callbackQuery(
+    /^rw_(simple|academic|detailed|examples|intro|notemp|deep|teacher)$/,
+    async (ctx) => {
+      await ctx.answerCallbackQuery();
+      if (!ctx.from) return;
+      const session = await getBotSession(ctx.from.id);
+      const user = await getLinkedUser(ctx.from.id);
+      if (!session || !session.docId || !user) {
+        await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+        return;
+      }
+
+      if (session.inProgress) {
+        await ctx.reply("⏳ Hozirda hujjat ustida AI ishlamoqda, iltimos kuting...");
+        return;
+      }
+
+      const map: Record<string, { label: string; prompt: string }> = {
+        simple: {
+          label: "Sodda va tushunarli",
+          prompt: "Matnni oddiy, sodda va barchaga tushunarli tilda qayta yozib ber.",
+        },
+        academic: {
+          label: "Ilmiy-akademik uslub",
+          prompt:
+            "Matnni qat'iy ilmiy, akademik va rasmiy terminologiya bilan, OAK talablariga mos qayta yozib ber.",
+        },
+        detailed: {
+          label: "Batafsil tahlil",
+          prompt:
+            "Matnni har bir fikr va tushunchani chuqur yoritib, yanada batafsilroq va to'liq qil.",
+        },
+        examples: {
+          label: "Misol va tahlillar",
+          prompt:
+            "Matnga amaliy misollar, 2024-2026 yillardagi statistik ko'rsatkichlar va qiyosiy jadvallarni ko'paytir.",
+        },
+        intro: {
+          label: "Kirish qismi yangilandi",
+          prompt:
+            "Kirish qismini dolzarblik, O'zbekiston-2030 strategiyasi, maqsad va vazifalar bilan butunlay boshqacha va mukammal qilib qayta yoz.",
+        },
+        notemp: {
+          label: "Takrorlar olib tashlandi",
+          prompt:
+            "Matndagi bir xil fikrlar va takrorlangan jumlalarni olib tashlab, toza, aniq va lo'nda qil.",
+        },
+        deep: {
+          label: "Chuqur ilmiy tahlil",
+          prompt:
+            "Mavzuning tub muammolari, ilmiy tahlillari va innovatsion yechimlarini chuqurroq tahlil qil.",
+        },
+        teacher: {
+          label: "O'qituvchi talabiga moslandi",
+          prompt:
+            "O'qituvchi va kafedra talab qiladigan standartlarga moslashtir, ilmiy apparatni kuchaytir.",
+        },
+      };
+
+      const key = ctx.match[1];
+      const opt = map[key] || { label: "Tahrir", prompt: "Matnni qayta tahrirlab ber." };
+
+      await setBotSession(ctx.from.id, { ...session, inProgress: true });
+      await ctx.reply(
+        `⏳ *Hujjat tanlangan talab asosida qayta tahrirlanmoqda...*\n\n` +
+          `📌 *Talab:* _${opt.label}_\n\n` +
+          `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
+
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
+
+      if (!snapshot) {
+        await setBotSession(ctx.from.id, { ...session, inProgress: false });
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      const sub = await getUserSubscription(user.id);
+      const res = await rewriteAcademicDoc({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        instruction: opt.prompt,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        ctx.from.id,
+        res,
+        session,
+        `Boshqacharoq yozish: ${opt.label}`
+      );
+    }
+  );
+
+  // 4. ed_regen: "Qaytadan yaratish"
+  docnovaAiBot.callbackQuery("ed_regen", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    await ctx.reply(
+      `🔄 *Hujjatni noldan qaytadan yaratmoqchimisiz?*\n\n` +
+        `Avval kiritilgan mavzu va parametrlar asosida yangi variant shakllantiriladi. Avvalgi versiyangiz yo'qolmaydi va unga istalgan payt qaytishingiz mumkin bo'ladi.`,
+      { parse_mode: "Markdown", reply_markup: getRegenConfirmKeyboard() }
+    );
+  });
+
+  docnovaAiBot.callbackQuery("ed_regen_confirm", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    await ctx.reply(
+      `⏳ *Hujjat noldan yangi parametrlar bilan yaratilmoqda...*\n\n` +
+        `📌 *Mavzu:* ${session.topic}\n\n` +
+        `🤖 _Gemini AI ishlamoqda, iltimos 30-45 soniya kuting..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const sub = await getUserSubscription(user.id);
+    const res = await regenerateAcademicDoc({
+      userId: user.id,
+      userPlan: sub.plan,
+      type: session.type,
+      topic: session.topic || "Akademik ish",
+      subject: session.subject,
+      specialty: session.specialty,
+      lengthOption: session.length as "short" | "standard" | "extended" | undefined,
+      slidesCount: session.slidesCount,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      "Noldan qaytadan yaratildi"
+    );
+  });
+
+  // 5. ed_part: "Faqat tanlangan qismini o'zgartirish"
+  docnovaAiBot.callbackQuery("ed_part", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    const parsed = snapshot ? parseDocumentSections(snapshot.markdown) : [];
+    const availableKeys = parsed.map((p) => p.key);
+
+    await setBotSession(ctx.from.id, { ...session, action: "part_select" });
+    await ctx.reply(
+      `📝 *Faqat tanlangan qismini o'zgartirish:*\n\n` +
+        `Qaysi qismni o'zgartirmoqchisiz? Quyidagi tarkibiy qismlardan birini tanlang:`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: getPartSelectionKeyboard(availableKeys),
+      }
+    );
+  });
+
+  // Selected Part Handler
+  docnovaAiBot.callbackQuery(
+    /^prt_(titul|mundarija|kirish|bob1|bob2|bob3|xulosa|adabiyot)$/,
+    async (ctx) => {
+      await ctx.answerCallbackQuery();
+      if (!ctx.from) return;
+      const session = await getBotSession(ctx.from.id);
+      if (!session || !session.docId) {
+        await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+        return;
+      }
+
+      const partKey = ctx.match[1] as SectionKey;
+      const labelMap: Record<string, string> = {
+        titul: "Titul / Muqova varag'i",
+        mundarija: "Mundarija / Reja",
+        kirish: "Kirish qismi",
+        bob1: "1-bob (Nazariy asoslar)",
+        bob2: "2-bob (Amaliy / Tahlil)",
+        bob3: "3-bob (Taklif va tavsiyalar)",
+        xulosa: "Xulosa va tavsiyalar",
+        adabiyot: "Foydalanilgan adabiyotlar",
+      };
+
+      const partLabel = labelMap[partKey] || partKey;
+
+      await setBotSession(ctx.from.id, {
+        ...session,
+        action: "part_instruction",
+        selectedPart: partKey,
+      });
+
+      await ctx.reply(
+        `📝 *«${partLabel}» qismini tahrirlash:*\n\n` +
+          `Ushbu qismni qanday o'zgartirmoqchisiz? Quyidagi tavsiyalardan birini tanlang yoki *o'zgartirish talabingizni yozma xabar qilib yuboring*:\n\n` +
+          `_Masalan: 2024-yilgi rasmiy statistikalarni kirit va qiyosiy jadval qo'sh._`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: getPartEditOptionsKeyboard(partKey, partLabel),
+        }
+      );
+    }
+  );
+
+  // Suggested edits for the selected part
+  docnovaAiBot.callbackQuery(/^prtop_(stats|expand|academic|condense)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user || !session.selectedPart) {
+      await ctx.reply("Sessiya muddati o'tgan. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    const optMap: Record<string, { label: string; prompt: string }> = {
+      stats: {
+        label: "Jadval va statistika qo'shildi",
+        prompt:
+          "Ushbu bo'limga 2024-2026 yillardagi rasmiy statistik ko'rsatkichlar va batafsil qiyosiy Markdown jadval qo'shing.",
+      },
+      expand: {
+        label: "Mazmun kengaytirildi",
+        prompt:
+          "Ushbu bo'lim mazmunini chuqur tahlillar, qo'shimcha ilmiy ma'lumotlar va amaliy misollar bilan kengaytiring.",
+      },
+      academic: {
+        label: "Ilmiy apparat kuchaytirildi",
+        prompt:
+          "Ushbu bo'limning ilmiy uslubini, terminologiyasini va ilmiy dalillarini kuchaytiring.",
+      },
+      condense: {
+        label: "Ixchamlashtirildi",
+        prompt:
+          "Ushbu bo'limdagi ortiqcha gaplarni olib tashlab, eng muhim ilmiy mohiyatni lo'nda bayon qiling.",
+      },
+    };
+
+    const opt = optMap[ctx.match[1]] || {
+      label: "Bo'lim yangilandi",
+      prompt: "Ushbu bo'limni mukammal tahrirlang.",
+    };
+
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    await ctx.reply(
+      `⏳ *«${session.selectedPart}» bo'limi tahrirlanmoqda...*\n\n` +
+        `📌 *Amal:* _${opt.label}_\n\n` +
+        `🤖 _Faqat ushbu bo'lim yangilanmoqda, boshqa qismlar to'liq saqlanadi. Iltimos 15-30 soniya kuting..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    if (!snapshot) {
+      await setBotSession(ctx.from.id, { ...session, inProgress: false });
+      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const sub = await getUserSubscription(user.id);
+    const res = await editAcademicSection({
+      userId: user.id,
+      userPlan: sub.plan,
+      currentMarkdown: snapshot.markdown,
+      sectionKey: session.selectedPart as SectionKey,
+      sectionInstruction: opt.prompt,
+      workType: session.type,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      `Bo'lim tahrirlandi: ${session.selectedPart} (${opt.label})`
+    );
+  });
+
+  // 6. ed_length: "Hajmini o'zgartirish"
+  docnovaAiBot.callbackQuery("ed_length", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    await ctx.reply(
+      `📏 *Hujjat hajmini qanday o'zgartirmoqchisiz?*\n\n` +
+        `Kerakli variantni tanlang yoki o'zingiz xohlagan aniq sahifa sonini kiriting:`,
+      { parse_mode: "Markdown", reply_markup: getLengthOptionsKeyboard() }
+    );
+  });
+
+  // Length option buttons
+  docnovaAiBot.callbackQuery(/^len_(expand_2x|shorten_2x|10_15|20_25|30_plus)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    const lengthOption = ctx.match[1] as "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus";
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+
+    await ctx.reply(
+      `⏳ *Hujjat hajmi o'zgartirilmoqda...*\n\n` +
+        `🤖 _Mantiqiy tuzilma va GOST standartlari saqlangan holda yangi hajm shakllantirilmoqda. Iltimos 25-45 soniya kuting..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    if (!snapshot) {
+      await setBotSession(ctx.from.id, { ...session, inProgress: false });
+      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const sub = await getUserSubscription(user.id);
+    const res = await adjustAcademicLength({
+      userId: user.id,
+      userPlan: sub.plan,
+      currentMarkdown: snapshot.markdown,
+      lengthOption,
+      workType: session.type,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      `Hajm o'zgartirildi: ${lengthOption}`
+    );
+  });
+
+  docnovaAiBot.callbackQuery("len_custom", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    if (!session) return;
+
+    await setBotSession(ctx.from.id, { ...session, action: "length_custom_input" });
+    await ctx.reply(
+      `✏️ *Iltimos, hujjat aynan necha bet bo'lishini yozib yuboring:*\n\n` +
+        `_Masalan: 18 bet yoki 26 bet_`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  // 7. ed_expand: "Mazmunini kengaytirish"
+  docnovaAiBot.callbackQuery("ed_expand", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    await ctx.reply(
+      `⏳ *Hujjat mazmuni kengaytirilmoqda...*\n\n` +
+        `📊 _2024-2026 yillardagi rasmiy statistika, qiyosiy jadvallar va amaliy tahlillar bilan boyitilmoqda. Iltimos 25-45 soniya kuting..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    if (!snapshot) {
+      await setBotSession(ctx.from.id, { ...session, inProgress: false });
+      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const sub = await getUserSubscription(user.id);
+    const res = await expandAcademicContent({
+      userId: user.id,
+      userPlan: sub.plan,
+      currentMarkdown: snapshot.markdown,
+      workType: session.type,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      "Mazmuni kengaytirildi (Faktlar, jadvallar, tahlillar)"
+    );
+  });
+
+  // 8. ed_shorten: "Qisqartirish"
+  docnovaAiBot.callbackQuery("ed_shorten", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    await ctx.reply(
+      `⏳ *Hujjat qisqartirilmoqda va ixchamlashtirilmoqda...*\n\n` +
+        `🧹 _Ortiqcha gaplar, suv matnlar va takroriy fikrlar olib tashlanmoqda. Asosiy ilmiy mohiyat saqlanadi..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    if (!snapshot) {
+      await setBotSession(ctx.from.id, { ...session, inProgress: false });
+      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const sub = await getUserSubscription(user.id);
+    const res = await condenseAcademicContent({
+      userId: user.id,
+      userPlan: sub.plan,
+      currentMarkdown: snapshot.markdown,
+      workType: session.type,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      "Hujjat qisqartirildi va ixchamlashtirildi"
+    );
+  });
+
+  // 9. ed_style: "Akademik uslubni yaxshilash"
+  docnovaAiBot.callbackQuery("ed_style", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    if (session.inProgress) {
+      await ctx.reply("⏳ Hozirda jarayon davom etmoqda, iltimos kuting...");
+      return;
+    }
+
+    await setBotSession(ctx.from.id, { ...session, inProgress: true });
+    await ctx.reply(
+      `⏳ *Akademik uslub yaxshilanmoqda...*\n\n` +
+        `🏛 _O'zbekiston OAK va MOVSO talablariga mos ilmiy terminologiya, rasmiy uslub va GOST standartlari kiritilmoqda..._`,
+      { parse_mode: "Markdown" }
+    );
+
+    const snapshot = await getDocumentVersionData({
+      docId: session.docId,
+      userId: user.id,
+      version: session.currentVersion || 1,
+    });
+
+    if (!snapshot) {
+      await setBotSession(ctx.from.id, { ...session, inProgress: false });
+      await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const sub = await getUserSubscription(user.id);
+    const res = await improveAcademicStyle({
+      userId: user.id,
+      userPlan: sub.plan,
+      currentMarkdown: snapshot.markdown,
+      workType: session.type,
+      topic: session.topic,
+      subject: session.subject || session.specialty,
+    });
+
+    await handleUpdatedDocSuccess(
+      ctx,
+      user.id,
+      ctx.from.id,
+      res,
+      session,
+      "Akademik uslub yaxshilandi (OAK / MOVSO)"
+    );
+  });
+
+  // 10. ed_revert: Revert to previous version
+  docnovaAiBot.callbackQuery("ed_revert", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const session = await getBotSession(ctx.from.id);
+    const user = await getLinkedUser(ctx.from.id);
+    if (!session || !session.docId || !user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    const curVer = session.currentVersion || 1;
+    if (curVer <= 1) {
+      await ctx.reply("⚠️ Bu birinchi versiya, avvalgi versiya mavjud emas.");
+      return;
+    }
+
+    await ctx.reply("⏪ *Avvalgi versiya yuklanmoqda...*", { parse_mode: "Markdown" });
+
+    const revertResult = await revertToPreviousVersion({
+      docId: session.docId,
+      userId: user.id,
+      currentVersion: curVer,
+    });
+
+    if (!revertResult) {
+      await ctx.reply("❌ Avvalgi versiya ma'lumotlari topilmadi.");
+      return;
+    }
+
+    const { snapshot, targetVersion } = revertResult;
+
+    // Generate Word document Buffer from reverted snapshot
+    const buffer = generateWordDocumentBuffer({
+      title: snapshot.topic,
+      bodyContent: snapshot.markdown,
+      workType: snapshot.workType,
+      subject: snapshot.subject,
+    });
+
+    // Update session to targetVersion
+    await setBotSession(ctx.from.id, {
+      ...session,
+      currentVersion: targetVersion,
+      action: undefined,
+      selectedPart: undefined,
+    });
+
+    await ctx.replyWithDocument(new InputFile(buffer, snapshot.fileName || "Hujjat.doc"), {
+      caption: `⏪ *Hujjat avvalgi v${targetVersion} versiyasiga muvaffaqiyatli qaytarildi!*\n\n📌 *Mavzu:* ${snapshot.topic}\n📄 *Format:* Microsoft Word (.doc)`,
+      parse_mode: "Markdown",
+    });
+
+    await ctx.reply(`✍️ *Hujjat v${targetVersion} holatida.* Qanday amal bajaramiz?`, {
+      reply_markup: getDocumentEditKeyboard({
+        version: targetVersion,
+        hasPrevVersion: targetVersion > 1,
+      }),
+    });
+  });
+
+  // =========================================================================
+  // TEXT MESSAGE HANDLER (Wizard Steps + Editing Text Input + Main Menu)
+  // =========================================================================
   docnovaAiBot.on("message:text", async (ctx) => {
     if (!ctx.from) return;
-    const text = ctx.message.text.trim();
     const tgId = ctx.from.id;
+    const text = ctx.message.text.trim();
 
-    // Handle Reply Keyboard buttons
+    // Ignore commands (they are handled by bot.command)
+    if (text.startsWith("/")) return;
+
+    // Handle Main Reply Keyboard Navigation
     if (text === "🎓 Talabalar uchun") {
       const user = await getLinkedUser(tgId);
       if (!user) {
         const linkUrl = await createTelegramLinkToken(tgId, ctx.from.username);
         const kb = new InlineKeyboard().url("🔗 Hisobni bog'lash", linkUrl);
-        await ctx.reply("Akademik generatorlardan foydalanish uchun hisobingizni bog'lang:", {
-          reply_markup: kb,
-        });
+        await ctx.reply("⚠️ Iltimos, oldin DocNova hisobingizni bog'lang:", { reply_markup: kb });
         return;
       }
-      await ctx.reply(
-        "🎓 *Qanday akademik hujjat tayyorlaymiz?*\n\nQuyidagi xizmatlardan birini tanlang:",
-        {
-          parse_mode: "Markdown",
-          reply_markup: getStudentInlineMenu(),
-        }
-      );
+      await ctx.reply("🎓 *Kerakli akademik ish turini tanlang:*", {
+        reply_markup: getStudentInlineMenu(),
+        parse_mode: "Markdown",
+      });
       return;
     }
 
@@ -405,20 +1233,22 @@ if (docnovaAiBot) {
       if (!user) {
         const linkUrl = await createTelegramLinkToken(tgId, ctx.from.username);
         const kb = new InlineKeyboard().url("🔗 Hisobni bog'lash", linkUrl);
-        await ctx.reply("Iltimos, avval hisobingizni bog'lang:", { reply_markup: kb });
+        await ctx.reply("⚠️ Iltimos, oldin DocNova hisobingizni bog'lang:", { reply_markup: kb });
         return;
       }
       const sub = await getUserSubscription(user.id);
-      const cw = await checkUserLimit(user.id, "coursework");
-      const pr = await checkUserLimit(user.id, "presentation");
+      const courseworkLimit = await checkUserLimit(user.id, "coursework");
+      const presentationLimit = await checkUserLimit(user.id, "presentation");
+      const rewriteLimit = await checkUserLimit(user.id, "rewrite");
 
       await ctx.reply(
-        `💎 *Tarif va Oylik Limitlaringiz:*\n\n` +
-          `💳 Tarif: *${sub.plan}*\n` +
-          `📘 Kurs ishi / Referat / BMI: *${cw.remaining} ta qoldi* (Jami: ${cw.totalLimit})\n` +
-          `📊 Taqdimotlar: *${pr.remaining} ta qoldi* (Jami: ${pr.totalLimit})\n` +
-          `🤖 Jami AI so'rovlar: *${user.aiUsageCount || 0} ta*\n\n` +
-          `Barcha limitlarni oshirish uchun saytimizga kiring:\n👉 https://www.docnova.uz/pricing`,
+        `💎 *Tarif va Limitlaringiz:*\n\n` +
+          `👤 Ism: *${user.name || "Talaba"}*\n` +
+          `💳 Joriy tarif: *${sub.plan}*\n\n` +
+          `• 📘 Kurs ishi / Referat / BMI: *${courseworkLimit.remaining} ta qoldi*\n` +
+          `• ✍️ Qayta tahrirlash: *${rewriteLimit.remaining} ta qoldi*\n` +
+          `• 📊 Taqdimotlar: *${presentationLimit.remaining} ta qoldi*\n\n` +
+          `Tarifni yangilash: https://www.docnova.uz/pricing`,
         { parse_mode: "Markdown" }
       );
       return;
@@ -429,45 +1259,45 @@ if (docnovaAiBot) {
       if (!user) {
         const linkUrl = await createTelegramLinkToken(tgId, ctx.from.username);
         const kb = new InlineKeyboard().url("🔗 Hisobni bog'lash", linkUrl);
-        await ctx.reply("Hisobingiz hali ulanmagan:", { reply_markup: kb });
+        await ctx.reply("⚠️ Hisob bog'lanmagan. Iltimos, profilingizni ulang:", {
+          reply_markup: kb,
+        });
         return;
       }
       await ctx.reply(
-        `👤 *Sizning Profilingiz:*\n\n` +
-          `👤 Ism: *${user.name || "Noma'lum"}*\n` +
-          `📧 Email: \`${user.email}\`\n` +
-          `💳 Tarif: *${user.plan || "FREE"}*\n` +
-          `🔗 Bog'langan Telegram ID: \`${tgId}\`\n\n` +
-          `DocNova platformasini ochish: https://www.docnova.uz`,
+        `👤 *Sizning profilingiz:*\n\n` +
+          `Ism: *${user.name || "Talaba"}*\n` +
+          `Email: \`${user.email}\`\n` +
+          `Telegram ID: \`${tgId}\`\n` +
+          `Holat: *Ulangan ✅*`,
         { parse_mode: "Markdown" }
       );
       return;
     }
 
     if (text === "🌐 DocNova sayti") {
-      const kb = new InlineKeyboard().url("🌐 Saytni ochish", "https://www.docnova.uz/academic");
-      await ctx.reply("DocNova rasmiy veb-platformasiga o'tish uchun quyidagi tugmani bosing:", {
-        reply_markup: kb,
-      });
+      await ctx.reply(
+        `🌐 *DocNova Rasmiy Platformasi:*\n\nhttps://www.docnova.uz\n\nBarcha xizmatlar, shaxsiy kabinet va hisobotlar saytda mavjud.`,
+        { parse_mode: "Markdown" }
+      );
       return;
     }
 
     if (text === "❓ Yordam") {
       await ctx.reply(
-        `🤖 *DocNova AI Yordam:*\n\n` +
-          `• Kurs ishi yoki referat yaratish uchun «🎓 Talabalar uchun» tugmasini bosing.\n` +
-          `• Har qanday jarayondan chiqish uchun /cancel deb yozing.\n` +
-          `• Barcha hujjatlar Word (.doc) formatida to'g'ridan-to'g'ri Telegramingizga yuboriladi.\n` +
-          `• Telefoningizda Word dasturi (Microsoft Word, WPS Office) orqali ochib, darhol chop etishingiz yoki tahrirlashingiz mumkin.`,
-        { reply_markup: getMainReplyKeyboard() }
+        `❓ *Yordam va qo'llab-quvvatlash:*\n\n` +
+          `Har qanday savol yoki takliflar bo'yicha biz bilan bog'laning:\n` +
+          `💬 Qo'llab-quvvatlash: @docnova_support\n` +
+          `🌐 Sayt: https://www.docnova.uz`,
+        { parse_mode: "Markdown" }
       );
       return;
     }
 
-    // Check active wizard session
+    // Check active session
     const session = await getBotSession(tgId);
     if (!session) {
-      await ctx.reply("Kerakli xizmatni tanlash uchun quyidagi menyudan foydalaning:", {
+      await ctx.reply("Iltimos, pastdagi menyudan kerakli bo'limni tanlang:", {
         reply_markup: getMainReplyKeyboard(),
       });
       return;
@@ -475,22 +1305,134 @@ if (docnovaAiBot) {
 
     const user = await getLinkedUser(tgId);
     if (!user) {
-      await clearBotSession(tgId);
-      await ctx.reply("Sessiya muddati tugadi. Iltimos, /start bosing.");
+      await ctx.reply("Iltimos, avval hisobingizni bog'lang (/start).");
       return;
     }
 
     const sub = await getUserSubscription(user.id);
 
+    // =======================================================================
+    // EDITING MODE: User typed text to modify or rewrite the document
+    // =======================================================================
+    if (session.step === "editing") {
+      if (session.inProgress) {
+        await ctx.reply("⏳ Hozirda hujjat ustida AI ishlamoqda, iltimos kuting...");
+        return;
+      }
+
+      const snapshot = await getDocumentVersionData({
+        docId: session.docId!,
+        userId: user.id,
+        version: session.currentVersion || 1,
+      });
+
+      if (!snapshot) {
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+        return;
+      }
+
+      await setBotSession(tgId, { ...session, inProgress: true });
+
+      // Case A: Custom length input
+      if (session.action === "length_custom_input") {
+        await ctx.reply(
+          `⏳ *Hujjat ko'rsatilgan hajm (${text}) bo'yicha tahrirlanmoqda...*\n\n_Iltimos, 25-45 soniya kuting..._`,
+          { parse_mode: "Markdown" }
+        );
+
+        const res = await adjustAcademicLength({
+          userId: user.id,
+          userPlan: sub.plan,
+          currentMarkdown: snapshot.markdown,
+          lengthOption: "custom",
+          customPages: text,
+          workType: session.type,
+          topic: session.topic,
+          subject: session.subject || session.specialty,
+        });
+
+        await handleUpdatedDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          session,
+          `Hajm o'zgartirildi: ${text}`
+        );
+        return;
+      }
+
+      // Case B: Instruction for a specific section
+      if (session.action === "part_instruction" && session.selectedPart) {
+        await ctx.reply(
+          `⏳ *«${session.selectedPart}» bo'limi ko'rsatilgan talab asosida tahrirlanmoqda...*\n\n` +
+            `📌 *Talab:* _"${text}"_\n\n` +
+            `🤖 _Faqat ushbu bo'lim yangilanmoqda, qolgan qismlar o'zgarishsiz saqlanadi. Iltimos kuting..._`,
+          { parse_mode: "Markdown" }
+        );
+
+        const res = await editAcademicSection({
+          userId: user.id,
+          userPlan: sub.plan,
+          currentMarkdown: snapshot.markdown,
+          sectionKey: session.selectedPart as SectionKey,
+          sectionInstruction: text,
+          workType: session.type,
+          topic: session.topic,
+          subject: session.subject || session.specialty,
+        });
+
+        await handleUpdatedDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          session,
+          `Bo'lim tahrirlandi: ${session.selectedPart} ("${text.slice(0, 40)}")`
+        );
+        return;
+      }
+
+      // Case C: Free-form custom rewrite (or action === "rewrite_custom")
+      await ctx.reply(
+        `⏳ *Hujjat talabingiz asosida qayta tahrirlanmoqda...*\n\n` +
+          `📌 *Talab:* _"${text}"_\n\n` +
+          `🤖 _Gemini AI ishlamoqda, iltimos 25-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
+
+      const res = await rewriteAcademicDoc({
+        userId: user.id,
+        userPlan: sub.plan,
+        currentMarkdown: snapshot.markdown,
+        instruction: text,
+        workType: session.type,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await handleUpdatedDocSuccess(
+        ctx,
+        user.id,
+        tgId,
+        res,
+        session,
+        `Tahrir: "${text.slice(0, 40)}"`
+      );
+      return;
+    }
+
+    // =======================================================================
+    // WIZARD STEPS FOR INITIAL GENERATION
+    // =======================================================================
+
     // 1. Coursework flow
     if (session.type === "coursework") {
       if (session.step === "topic") {
         await setBotSession(tgId, { ...session, topic: text, step: "subject" });
-        await ctx.reply(
-          `📚 Rahmat! Endi *fan yoki mutaxassislik nomini* kiriting:\n\n` +
-            `_Masalan: Moliya va bank ishi (yoki o'tkazib yuborish uchun 'Standart' deb yozing)_`,
-          { parse_mode: "Markdown" }
-        );
+        await ctx.reply(`📚 Ajoyib! Endi *fan nomini* kiriting (yoki 'Standart' deb yozing):`, {
+          parse_mode: "Markdown",
+        });
         return;
       }
 
@@ -518,19 +1460,11 @@ if (docnovaAiBot) {
           studentName: user.name || undefined,
         });
 
-        await clearBotSession(tgId);
-
-        if (res.success && res.docBuffer && res.fileName) {
-          await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-            caption: res.summaryText,
-            parse_mode: "Markdown",
-          });
-          await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-            reply_markup: getMainReplyKeyboard(),
-          });
-        } else {
-          await ctx.reply(`❌ ${res.error || "Kurs ishini tayyorlashda xatolik yuz berdi."}`);
-        }
+        await handleInitialDocSuccess(ctx, user.id, tgId, res, {
+          workType: "coursework",
+          topic,
+          subject,
+        });
         return;
       }
     }
@@ -597,19 +1531,11 @@ if (docnovaAiBot) {
           studentName: user.name || undefined,
         });
 
-        await clearBotSession(tgId);
-
-        if (res.success && res.docBuffer && res.fileName) {
-          await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-            caption: res.summaryText,
-            parse_mode: "Markdown",
-          });
-          await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-            reply_markup: getMainReplyKeyboard(),
-          });
-        } else {
-          await ctx.reply(`❌ ${res.error || "BMI tayyorlashda xatolik yuz berdi."}`);
-        }
+        await handleInitialDocSuccess(ctx, user.id, tgId, res, {
+          workType: "bmi",
+          topic,
+          specialty,
+        });
         return;
       }
     }
@@ -649,19 +1575,10 @@ if (docnovaAiBot) {
         topic,
       });
 
-      await clearBotSession(tgId);
-
-      if (res.success && res.docBuffer && res.fileName) {
-        await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-          caption: res.summaryText,
-          parse_mode: "Markdown",
-        });
-        await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-          reply_markup: getMainReplyKeyboard(),
-        });
-      } else {
-        await ctx.reply(`❌ ${res.error || "Insho tayyorlashda xatolik yuz berdi."}`);
-      }
+      await handleInitialDocSuccess(ctx, user.id, tgId, res, {
+        workType: "essay",
+        topic,
+      });
       return;
     }
 
@@ -679,21 +1596,10 @@ if (docnovaAiBot) {
         topic,
       });
 
-      await clearBotSession(tgId);
-
-      if (res.success && res.docBuffer && res.fileName) {
-        await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-          caption: res.summaryText,
-          parse_mode: "Markdown",
-        });
-        await ctx.reply("Yana qanday akademik ish tayyorlaymiz?", {
-          reply_markup: getMainReplyKeyboard(),
-        });
-      } else {
-        await ctx.reply(
-          `❌ ${res.error || "Imtihon materiallarini tayyorlashda xatolik yuz berdi."}`
-        );
-      }
+      await handleInitialDocSuccess(ctx, user.id, tgId, res, {
+        workType: "exam",
+        topic,
+      });
       return;
     }
   });

@@ -11,13 +11,25 @@ export const docnovaAiBot = botToken ? new Bot(botToken) : null;
 
 export interface BotWizardState {
   type: "coursework" | "referat" | "bmi" | "presentation" | "essay" | "exam";
-  step: "topic" | "subject" | "length" | "slidesCount" | "confirm";
+  step: "topic" | "subject" | "length" | "slidesCount" | "confirm" | "editing" | "editing_input";
   topic?: string;
   subject?: string;
   length?: string;
   slidesCount?: number;
   language?: "uz" | "ru";
   specialty?: string;
+  // Academic Document Editing / Version Management fields:
+  docId?: string;
+  currentVersion?: number;
+  action?:
+    | "rewrite_custom"
+    | "part_select"
+    | "part_instruction"
+    | "length_change"
+    | "length_custom_input"
+    | "idle_editing";
+  selectedPart?: string;
+  inProgress?: boolean;
   _ts?: number;
 }
 
@@ -160,6 +172,132 @@ export function getStudentInlineMenu() {
     .text("📝 Imtihon biletlari", "wiz_exam")
     .row()
     .text("❌ Bekor qilish", "wiz_cancel");
+}
+
+/**
+ * Section 9.A: Post-generation academic document editing keyboard
+ */
+export function getDocumentEditKeyboard(params: { version: number; hasPrevVersion: boolean }) {
+  const kb = new InlineKeyboard()
+    .text("✅ Ma’qul, yakunlash", "ed_done")
+    .row()
+    .text("✍️ Boshqacharoq yozib ber", "ed_rewrite")
+    .text("🔄 Qaytadan yaratish", "ed_regen")
+    .row()
+    .text("📝 Faqat tanlangan qismini o‘zgartirish", "ed_part")
+    .row()
+    .text("📏 Hajmini o‘zgartirish", "ed_length")
+    .text("🎓 Akademik uslubni yaxshilash", "ed_style")
+    .row()
+    .text("➕ Mazmunini kengaytirish", "ed_expand")
+    .text("➖ Qisqartirish", "ed_shorten");
+
+  if (params.hasPrevVersion && params.version > 1) {
+    kb.row().text(`⏪ Avvalgi versiyaga qaytish (v${params.version - 1})`, "ed_revert");
+  }
+
+  return kb;
+}
+
+/**
+ * Section 9.B: Quick options for "Boshqacharoq yozib ber"
+ */
+export function getRewriteOptionsKeyboard() {
+  return new InlineKeyboard()
+    .text("💡 Sodda va tushunarliroq", "rw_simple")
+    .text("🏛 Ilmiy va akademik uslub", "rw_academic")
+    .row()
+    .text("📖 Matnni batafsilroq qil", "rw_detailed")
+    .text("📊 Misol va tahlil ko'paytir", "rw_examples")
+    .row()
+    .text("🎯 Kirish qismini o'zgartir", "rw_intro")
+    .text("🧹 Takrorlarni olib tashla", "rw_notemp")
+    .row()
+    .text("🔬 Chuqurroq tahlil qil", "rw_deep")
+    .text("🎓 O‘qituvchi talabiga mosla", "rw_teacher")
+    .row()
+    .text("⬅️ Orqaga", "ed_menu");
+}
+
+/**
+ * Section 9.D: Sections list for "Faqat tanlangan qismini o'zgartirish"
+ */
+export function getPartSelectionKeyboard(availableParts?: string[]) {
+  const kb = new InlineKeyboard();
+
+  const allParts = [
+    { key: "titul", label: "📄 Titul / Muqova" },
+    { key: "mundarija", label: "📑 Mundarija / Reja" },
+    { key: "kirish", label: "🎯 Kirish qismi" },
+    { key: "bob1", label: "1️⃣ 1-bob (Nazariy)" },
+    { key: "bob2", label: "2️⃣ 2-bob (Amaliy / Tahlil)" },
+    { key: "bob3", label: "3️⃣ 3-bob (Tavsiyalar)" },
+    { key: "xulosa", label: "🏁 Xulosa va tavsiyalar" },
+    { key: "adabiyot", label: "📚 Foydalanilgan adabiyotlar" },
+  ];
+
+  const filtered =
+    availableParts && availableParts.length > 0
+      ? allParts.filter((p) => availableParts.includes(p.key))
+      : allParts;
+
+  for (let i = 0; i < filtered.length; i += 2) {
+    if (i + 1 < filtered.length) {
+      kb.text(filtered[i].label, `prt_${filtered[i].key}`).text(
+        filtered[i + 1].label,
+        `prt_${filtered[i + 1].key}`
+      );
+    } else {
+      kb.text(filtered[i].label, `prt_${filtered[i].key}`);
+    }
+    kb.row();
+  }
+
+  kb.text("⬅️ Orqaga", "ed_menu");
+  return kb;
+}
+
+/**
+ * Section 9.D: Suggested edits for a specific section
+ */
+export function getPartEditOptionsKeyboard(_partKey?: string, _partLabel?: string) {
+  return new InlineKeyboard()
+    .text("📊 Jadval va tahlil qo'shish", "prtop_stats")
+    .text("📖 Mazmunini kengaytirish", "prtop_expand")
+    .row()
+    .text("🎯 Ilmiy asoslarini kuchaytirish", "prtop_academic")
+    .text("🧹 Qisqartirish va tozalash", "prtop_condense")
+    .row()
+    .text("⬅️ Bo'limlar ro'yxatiga qaytish", "ed_part");
+}
+
+/**
+ * Section 9.E: Length options for "Hajmini o'zgartirish"
+ */
+export function getLengthOptionsKeyboard() {
+  return new InlineKeyboard()
+    .text("➕ Hajmni 2 barobar kengaytirish", "len_expand_2x")
+    .row()
+    .text("➖ Hajmni 2 barobar qisqartirish", "len_shorten_2x")
+    .row()
+    .text("📄 10-15 bet", "len_10_15")
+    .text("📄 20-25 bet", "len_20_25")
+    .row()
+    .text("📄 30+ bet (To'liq hajm)", "len_30_plus")
+    .row()
+    .text("✏️ Aniq bet sonini kiritish", "len_custom")
+    .row()
+    .text("⬅️ Orqaga", "ed_menu");
+}
+
+/**
+ * Section 9.C: Confirmation for "Qaytadan yaratish"
+ */
+export function getRegenConfirmKeyboard() {
+  return new InlineKeyboard()
+    .text("🔄 Ha, qaytadan yaratilsin", "ed_regen_confirm")
+    .row()
+    .text("⬅️ Orqaga", "ed_menu");
 }
 
 /**

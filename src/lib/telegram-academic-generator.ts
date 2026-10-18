@@ -1,12 +1,18 @@
 import { generateGeminiContent } from "@/lib/gemini";
 import { checkUserLimit, deductUserAiCredit, trackAIUsage } from "@/lib/limits";
 import { generateWordDocumentBuffer } from "@/lib/telegram-docnova-ai";
+import {
+  parseDocumentSections,
+  replaceDocumentSection,
+  SectionKey,
+} from "@/lib/telegram-doc-manager";
 
 export interface AcademicGenResult {
   success: boolean;
   docBuffer?: Buffer;
   fileName?: string;
   summaryText?: string;
+  markdownContent?: string;
   error?: string;
   requireUpgrade?: boolean;
 }
@@ -104,6 +110,7 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `📘 *Kurs ishi muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -207,6 +214,7 @@ Matnni Markdown formatida yozing.`;
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `📑 *Referat / Mustaqil ish tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -301,6 +309,7 @@ Matnni Markdown formatida yozing.`;
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `🎓 *Bitiruv malakaviy ishi (BMI) tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n🏛 *Yo'nalish:* ${specialtyName}\n📄 *Format:* Microsoft Word (.doc)\n📚 *Tarkib:* Titul, Mundarija, Kirish, 3 ta Bob, Jadval, Xulosa, 25+ Adabiyotlar\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -384,6 +393,7 @@ Format: Markdown ko'rinishida aniq sarlavhalar bilan yozing.`;
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `📊 *Taqdimot (slaydlar) muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📑 *Slaydlar soni:* ${count} ta\n🎙 *Tarkib:* Har bir slayd mazmuni + Spiker nutqi (Speaker Notes)\n📄 *Format:* Microsoft Word (.doc)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -459,6 +469,7 @@ Format: Markdown formatida ravon va jozibali o'zbek tilida yozing.`;
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `✍️ *Insho / Esse muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📄 *Format:* Microsoft Word (.doc)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -533,6 +544,7 @@ Format: Markdown ko'rinishida yozing.`;
       success: true,
       docBuffer: buffer,
       fileName,
+      markdownContent: content,
       summaryText: `📝 *Imtihon biletlari va yechimlari tayyorlandi!*\n\n📌 *Fan / Mavzu:* ${params.topic}\n📚 *Tarkib:* 10 ta asosiy bilet savoli va batafsil javoblar\n📄 *Format:* Microsoft Word (.doc)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
@@ -542,4 +554,416 @@ Format: Markdown ko'rinishida yozing.`;
       error: "Imtihon materiallarini tayyorlashda xatolik yuz berdi.",
     };
   }
+}
+
+/**
+ * Section 9.B: Rewrite entire document based on user's custom instruction / quick suggestion
+ */
+export async function rewriteAcademicDoc(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  instruction: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+}): Promise<AcademicGenResult> {
+  const startTime = Date.now();
+  const limitCheck = await checkUserLimit(params.userId, "rewrite");
+  if (!limitCheck.allowed) {
+    return {
+      success: false,
+      error: limitCheck.error || "Ushbu oy uchun qayta tahrirlash limitingiz tugadi.",
+      requireUpgrade: true,
+    };
+  }
+
+  const prompt = `Siz O'zbekiston Respublikasi OTMlari bo'yicha yetakchi professor, ilmiy ekspert va tahrirchisiz.
+Quyida avval yaratilgan ${params.workType || "akademik ish"} hujjati matni berilgan:
+---
+${params.currentMarkdown}
+---
+
+FOYDALANUVCHINING TAHRIRLASH TALABI:
+"${params.instruction}"
+
+QAT'IY TALABLAR:
+1. Foydalanuvchining talabini to'liq va benuqson inobatga olgan holda butun hujjatni qayta tahrirlang.
+2. Hujjatning barcha zaruriy tuzilmasini (Titul varag'i, Mundarija, Kirish, Boblar, Xulosa, Foydalanilgan adabiyotlar) MOVSO RUz standartida to'liq saqlang.
+3. Kerakli o'rinlarda statistik tahlillar, Markdown jadvallari va rasmiy manbalarni yangilang.
+4. Javobni faqat to'liq yangilangan matn sifatida Markdown formatida (#, ##, ### sarlavhalari bilan) qaytaring. Ortiqcha tushuntirish yozmang.`;
+
+  try {
+    const res = await generateGeminiContent(prompt, {
+      systemInstruction:
+        "Siz O'zbekiston OTMlarining yetakchi ilmiy muharriri va professori sifatida hujjatlarni foydalanuvchi talabiga mos mukammal tahrirlaysiz.",
+      temperature: 0.3,
+      maxOutputTokens: 8192,
+    });
+
+    const content = res.text.trim();
+    if (!content || content.length < 300) {
+      throw new Error("AI tomonidan yaratilgan yangilangan matn yetarli hajmda emas");
+    }
+
+    await deductUserAiCredit(params.userId);
+    await trackAIUsage({
+      userId: params.userId,
+      plan: params.userPlan,
+      feature: "REWRITE",
+      model: res.modelUsed,
+      status: "SUCCESS",
+      inputTokens: res.usage.promptTokenCount,
+      outputTokens: res.usage.candidatesTokenCount,
+      requestDurationMs: Date.now() - startTime,
+    });
+
+    const topic = params.topic || "Akademik_Hujjat";
+    const buffer = generateWordDocumentBuffer({
+      title: topic,
+      bodyContent: content,
+      workType: params.workType,
+      subject: params.subject,
+    });
+
+    const safeTopic = topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
+    const fileName = `${params.workType ? params.workType.replace(/\s+/g, "_") : "Hujjat"}_${safeTopic}_Tahrirlangan.doc`;
+
+    return {
+      success: true,
+      docBuffer: buffer,
+      fileName,
+      markdownContent: content,
+      summaryText: `✍️ *Hujjat talabingiz asosida qayta tahrirlandi!*\n\n📌 *Talab:* _"${params.instruction.slice(0, 60)}${params.instruction.length > 60 ? "..." : ""}"_\n📄 *Format:* Microsoft Word (.doc)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+    };
+  } catch (err) {
+    console.error("[TELEGRAM_REWRITE_ERR]", err);
+    return {
+      success: false,
+      error: "Hujjatni tahrirlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.",
+    };
+  }
+}
+
+/**
+ * Section 9.D: Edit only a specific selected section of the document
+ */
+export async function editAcademicSection(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  sectionKey: SectionKey;
+  sectionInstruction: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+}): Promise<AcademicGenResult> {
+  const startTime = Date.now();
+  const limitCheck = await checkUserLimit(params.userId, "rewrite");
+  if (!limitCheck.allowed) {
+    return {
+      success: false,
+      error: limitCheck.error || "Ushbu oy uchun tahrirlash limitingiz tugadi.",
+      requireUpgrade: true,
+    };
+  }
+
+  const sections = parseDocumentSections(params.currentMarkdown);
+  const targetSection = sections.find((s) => s.key === params.sectionKey);
+
+  let newMarkdown = "";
+
+  if (targetSection && targetSection.content.length > 20) {
+    // Isolated section rewrite: lightning fast and keeps all other sections 100% intact
+    const prompt = `Siz O'zbekiston OTMlari bo'yicha yetakchi professor va ilmiy ekspertsiz.
+Quyida "${params.topic || "mavzu"}" bo'yicha akademik ishning aynan "${targetSection.label}" qismi matni berilgan:
+---
+${targetSection.content}
+---
+
+FOYDALANUVCHINING USHBU BO'LIM BO'YICHA TALABI:
+"${params.sectionInstruction}"
+
+VAZIFA:
+Faqat va faqat ushbu "${targetSection.label}" qismini foydalanuvchining talabiga ko'ra mukammal va chuqur tahrirlab, to'liq matn sifatida qaytaring.
+Boshqa bo'limlarni qo'shmang. Faqat yangilangan bo'lim matnini Markdown formatida qaytaring.`;
+
+    try {
+      const res = await generateGeminiContent(prompt, {
+        systemInstruction: "Siz ilmiy bo'limlarni mukammal tahrirlovchi professsiz.",
+        temperature: 0.3,
+        maxOutputTokens: 5000,
+      });
+
+      const updatedSection = res.text.trim();
+      newMarkdown = replaceDocumentSection(
+        params.currentMarkdown,
+        params.sectionKey,
+        updatedSection
+      );
+
+      await deductUserAiCredit(params.userId);
+      await trackAIUsage({
+        userId: params.userId,
+        plan: params.userPlan,
+        feature: "REWRITE",
+        model: res.modelUsed,
+        status: "SUCCESS",
+        inputTokens: res.usage.promptTokenCount,
+        outputTokens: res.usage.candidatesTokenCount,
+        requestDurationMs: Date.now() - startTime,
+      });
+    } catch (err) {
+      console.error("[TELEGRAM_SECTION_EDIT_ERR]", err);
+      return {
+        success: false,
+        error: "Bo'limni tahrirlashda xatolik yuz berdi.",
+      };
+    }
+  } else {
+    // Fallback: full context rewrite targeting section
+    const prompt = `Siz O'zbekiston OTMlari bo'yicha yetakchi professorsiz.
+Quyidagi akademik hujjatning faqat "${params.sectionKey}" qismini quyidagi talab asosida o'zgartiring va butun hujjatni qaytaring:
+"${params.sectionInstruction}"
+
+Hujjat:
+${params.currentMarkdown}`;
+
+    try {
+      const res = await generateGeminiContent(prompt, {
+        systemInstruction:
+          "Faqat so'ralgan bo'limni o'zgartiring, boshqa bo'limlarni to'liq saqlang.",
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+      });
+
+      newMarkdown = res.text.trim();
+      await deductUserAiCredit(params.userId);
+      await trackAIUsage({
+        userId: params.userId,
+        plan: params.userPlan,
+        feature: "REWRITE",
+        model: res.modelUsed,
+        status: "SUCCESS",
+        inputTokens: res.usage.promptTokenCount,
+        outputTokens: res.usage.candidatesTokenCount,
+        requestDurationMs: Date.now() - startTime,
+      });
+    } catch (err) {
+      console.error("[TELEGRAM_SECTION_FALLBACK_ERR]", err);
+      return {
+        success: false,
+        error: "Bo'limni tahrirlashda xatolik yuz berdi.",
+      };
+    }
+  }
+
+  const topic = params.topic || "Akademik_Hujjat";
+  const buffer = generateWordDocumentBuffer({
+    title: topic,
+    bodyContent: newMarkdown,
+    workType: params.workType,
+    subject: params.subject,
+  });
+
+  const safeTopic = topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
+  const fileName = `${safeTopic}_Qism_Yangilandi.doc`;
+
+  return {
+    success: true,
+    docBuffer: buffer,
+    fileName,
+    markdownContent: newMarkdown,
+    summaryText: `📝 *«${targetSection?.label || params.sectionKey}» bo'limi muvaffaqiyatli yangilandi!*\n\n📌 *Talab:* _"${params.sectionInstruction.slice(0, 60)}"_\n📄 *Format:* Microsoft Word (.doc)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+  };
+}
+
+/**
+ * Section 9.E: Adjust document length (expand, shorten, or set explicit page count)
+ */
+export async function adjustAcademicLength(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  lengthOption: "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus" | "custom";
+  customPages?: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+}): Promise<AcademicGenResult> {
+  let instruction = "";
+  if (params.lengthOption === "expand_2x") {
+    instruction =
+      "Hujjatning barcha boblari va bandlarini chuqurroq nazariy tahlillar, qo'shimcha statistik jadvallar, 2024-2026 yillardagi rasmiy ko'rsatkichlar va amaliy misollar bilan boyitib, matn hajmini 1.5 - 2 barobar kengaytiring. Barcha standart bo'limlar saqlansin.";
+  } else if (params.lengthOption === "shorten_2x") {
+    instruction =
+      "Hujjatdagi barcha ortiqcha gaplar, suv matnlar va takroriy fikrlarni olib tashlab, asosiy ilmiy mohiyat, ilmiy apparat, xulosalar va adabiyotlarni to'liq saqlagan holda matn hajmini 2 barobar qisqartiring va ixchamlashtiring.";
+  } else if (params.lengthOption === "10_15") {
+    instruction =
+      "Hujjatni 10-15 betlik hajmga (taxminan 3000-4500 so'z) moslab qayta tahrirlang. Strukturaviy yaxlitlik va MOVSO talablari saqlansin.";
+  } else if (params.lengthOption === "20_25") {
+    instruction =
+      "Hujjatni 20-25 betlik to'liq kurs ishi hajmiga (taxminan 6000-7500 so'z) moslab chuqur tahlillar va statistik jadvallar bilan kengaytiring.";
+  } else if (params.lengthOption === "30_plus") {
+    instruction =
+      "Hujjatni 30+ betlik to'liq ilmiy ish (BMI / diplom) darajasida maksimal darajada batafsil, keng qamrovli tahlillar va 25+ adabiyotlar bilan shakllantiring.";
+  } else if (params.lengthOption === "custom") {
+    instruction = `Hujjatni aynan foydalanuvchi so'ragan hajmda (${params.customPages || "belgilangan hajmda"}) tayyorlang. Akademik talablarga to'liq rioya qiling.`;
+  }
+
+  return rewriteAcademicDoc({
+    userId: params.userId,
+    userPlan: params.userPlan,
+    currentMarkdown: params.currentMarkdown,
+    instruction,
+    workType: params.workType,
+    topic: params.topic,
+    subject: params.subject,
+  });
+}
+
+/**
+ * Section 9.F: Expand academic content with facts, data, tables, cases
+ */
+export async function expandAcademicContent(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+  customNote?: string;
+}): Promise<AcademicGenResult> {
+  const instruction = `Ushbu ilmiy hujjat mazmunini yanada boyiting:
+- 2024-2026 yillardagi O'zbekiston va xalqaro rasmiy statistik ma'lumotlarni kiriting;
+- Har bir asosiy bobga kamida bitta qiyosiy Markdown jadval (Table) qo'shing;
+- Amaliy keyslar, muammoli vaziyatlar va ularning innovatsion yechimlarini batafsil tahlil qiling;
+- Ilmiy asoslar va adabiyotlar manbalarini kengaytiring.${params.customNote ? `\nQo'shimcha eslatma: ${params.customNote}` : ""}`;
+
+  return rewriteAcademicDoc({
+    userId: params.userId,
+    userPlan: params.userPlan,
+    currentMarkdown: params.currentMarkdown,
+    instruction,
+    workType: params.workType,
+    topic: params.topic,
+    subject: params.subject,
+  });
+}
+
+/**
+ * Section 9.G: Condense academic content (eliminate redundancy, keep core science)
+ */
+export async function condenseAcademicContent(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+}): Promise<AcademicGenResult> {
+  const instruction = `Ushbu ilmiy ishni ixchamlashtiring:
+- Asosiy ilmiy mohiyat, ilmiy apparat, boblarning asosiy xulosalari va adabiyotlarni qat'iy saqlang;
+- Barcha ortiqcha gaplar, umumiy jumlalar va takrorlangan fikrlarni olib tashlang;
+- Har bir fikrni lo'nda, ravon va ilmiy jihatdan qat'iy bayon qiling.`;
+
+  return rewriteAcademicDoc({
+    userId: params.userId,
+    userPlan: params.userPlan,
+    currentMarkdown: params.currentMarkdown,
+    instruction,
+    workType: params.workType,
+    topic: params.topic,
+    subject: params.subject,
+  });
+}
+
+/**
+ * Section 9.H: Improve academic and scientific style according to OAK / MOVSO RUz
+ */
+export async function improveAcademicStyle(params: {
+  userId: string;
+  userPlan: string;
+  currentMarkdown: string;
+  workType?: string;
+  topic?: string;
+  subject?: string;
+}): Promise<AcademicGenResult> {
+  const instruction = `Ushbu ishning butun matnini O'zbekiston Respublikasi OAK (Oliy attestatsiya komissiyasi) va Oliy ta'lim vazirligi talablariga mos yuqori ilmiy-akademik uslubga o'tkazing:
+- Barcha noilmiy, so'zlashuv yoki umumiy ifodalarni aniq ilmiy terminlarga almashtiring;
+- Fikrlar o'rtasidagi mantiqiy bog'liqlik va ilmiy apparat (dolzarblik, obyekt, predmet, maqsad, vazifalar) izchilligini mukammallashtiring;
+- Takroriy jumlalarni yo'qoting;
+- Foydalanilgan adabiyotlar ro'yxatini GOST 7.0.5 talablariga to'liq moslashtiring.`;
+
+  return rewriteAcademicDoc({
+    userId: params.userId,
+    userPlan: params.userPlan,
+    currentMarkdown: params.currentMarkdown,
+    instruction,
+    workType: params.workType,
+    topic: params.topic,
+    subject: params.subject,
+  });
+}
+
+/**
+ * Section 9.C: Full regeneration from scratch with same parameters
+ */
+export async function regenerateAcademicDoc(params: {
+  userId: string;
+  userPlan: string;
+  type: string;
+  topic: string;
+  subject?: string;
+  specialty?: string;
+  lengthOption?: "short" | "standard" | "extended";
+  slidesCount?: number;
+}): Promise<AcademicGenResult> {
+  if (params.type === "coursework") {
+    return generateCourseworkDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+      subject: params.subject,
+    });
+  } else if (params.type === "referat") {
+    return generateReferatDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+      subject: params.subject,
+      lengthOption: params.lengthOption,
+    });
+  } else if (params.type === "bmi") {
+    return generateBmiDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+      specialty: params.specialty,
+    });
+  } else if (params.type === "presentation") {
+    return generatePresentationDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+      slidesCount: params.slidesCount,
+    });
+  } else if (params.type === "essay") {
+    return generateEssayDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+    });
+  } else if (params.type === "exam") {
+    return generateExamDoc({
+      userId: params.userId,
+      userPlan: params.userPlan,
+      topic: params.topic,
+    });
+  }
+
+  return {
+    success: false,
+    error: "Noma'lum akademik ish turi.",
+  };
 }
