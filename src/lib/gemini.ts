@@ -5,8 +5,9 @@ import { GoogleGenerativeAI, GenerativeModel, type UsageMetadata } from "@google
  */
 export const CANDIDATE_MODELS: string[] = [
   process.env.GEMINI_MODEL,
-  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.8-flash",
 ].filter(Boolean) as string[];
 
 export function getGenAI(customApiKey?: string): GoogleGenerativeAI {

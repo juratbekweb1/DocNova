@@ -28,6 +28,11 @@ import {
   claimTelegramUpdate,
   markTelegramUpdateSuccess,
   markTelegramUpdateFailed,
+  createAcademicTask,
+  updateAcademicTaskStage,
+  completeAcademicTask,
+  failAcademicTask,
+  getAcademicTask,
 } from "@/lib/telegram-lock";
 import {
   generateCourseworkDoc,
@@ -56,6 +61,27 @@ import {
 } from "@/lib/telegram-doc-manager";
 import { prisma } from "@/lib/prisma";
 import { checkUserLimit, getUserSubscription } from "@/lib/limits";
+
+/**
+ * Diagnostic logger for academic flow stages.
+ * Never logs secrets, API keys, bot tokens, or user raw prompt text.
+ */
+function logAcademicStage(data: {
+  requestId: string;
+  stage: string;
+  telegramId?: string | number;
+  durationMs?: number;
+  status: "START" | "SUCCESS" | "FAILED";
+  error?: string;
+  meta?: Record<string, unknown>;
+}) {
+  const metaStr = data.meta ? ` | meta=${JSON.stringify(data.meta)}` : "";
+  const durStr = data.durationMs !== undefined ? ` | duration=${data.durationMs}ms` : "";
+  const errStr = data.error ? ` | error=${data.error}` : "";
+  console.log(
+    `[ACADEMIC_FLOW] req=${data.requestId} | stage=${data.stage} | status=${data.status} | tgId=${data.telegramId ?? "N/A"}${durStr}${metaStr}${errStr}`
+  );
+}
 
 /**
  * Helper to handle successful initial document generation
@@ -87,12 +113,28 @@ async function handleInitialDocSuccess(
   }
 
   if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent) {
+    if (jobId) {
+      await failAcademicTask(jobId, res.error || "Generation returned invalid or empty content");
+    }
     await ctx.reply(`❌ ${res.error || "Hujjatni tayyorlashda xatolik yuz berdi."}`);
     return;
   }
 
+  // Validate Buffer and size
+  if (!Buffer.isBuffer(res.docBuffer) || res.docBuffer.length < 500) {
+    if (jobId) {
+      await failAcademicTask(jobId, "Invalid Word buffer generated");
+    }
+    await ctx.reply("❌ Hujjat faylini tayyorlashda texnik xatolik yuz berdi.");
+    return;
+  }
+
+  let docId: string | null = null;
   try {
     // 1. Multi-tenant document and version persistence in PostgreSQL with fencing token guard
+    if (jobId) {
+      await updateAcademicTaskStage(jobId, "DB_SAVE");
+    }
     const record = await createAcademicDocumentRecord({
       userId,
       workType: params.workType,
@@ -103,6 +145,7 @@ async function handleInitialDocSuccess(
       jobId,
       telegramId: tgId,
     });
+    docId = record.docId;
 
     // 2. Set editing session state
     await setBotSession(tgId, {
@@ -117,13 +160,32 @@ async function handleInitialDocSuccess(
       slidesCount: params.slidesCount,
     });
 
-    // 3. Send Word document file
-    await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-      caption: res.summaryText,
-      parse_mode: "Markdown",
-    });
+    // 3. Send Word document file via Telegram API with safe Markdown fallback
+    if (jobId) {
+      await updateAcademicTaskStage(jobId, "TG_SEND", {
+        docId: record.docId,
+        fileName: res.fileName,
+      });
+    }
 
-    // 4. Send Post-Generation Editing Menu (Section 9.A)
+    try {
+      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+        caption: res.summaryText,
+        parse_mode: "Markdown",
+      });
+    } catch (sendErr) {
+      console.warn("[SEND_DOC_MD_FAIL] Retrying sendDocument without markdown parsing:", sendErr);
+      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+        caption: res.summaryText?.replace(/[*_`\[\]()]/g, "") || "Hujjat tayyorlandi.",
+      });
+    }
+
+    // 4. Mark task completed only after successful delivery!
+    if (jobId) {
+      await completeAcademicTask(jobId, record.docId, res.fileName);
+    }
+
+    // 5. Send Post-Generation Editing Menu (Section 9.A)
     await ctx.reply(
       `✍️ *Hujjat tayyor! Endi uni o'z xohishingizga ko'ra tahrirlashingiz mumkin.*\n\n` +
         `📄 *Joriy versiya:* \`v1 (Boshlang'ich)\`\n\n` +
@@ -142,7 +204,19 @@ async function handleInitialDocSuccess(
       return;
     }
     console.error("[HANDLE_INITIAL_DOC_ERR]", err);
-    await ctx.reply("❌ Hujjatni saqlashda xatolik yuz berdi.");
+    if (jobId) {
+      await failAcademicTask(jobId, errObj?.message || "Initial doc save or send failed");
+    }
+
+    if (docId) {
+      const kb = new InlineKeyboard().text("📥 Faylni qayta yuborish", `tg_resend_${docId}`);
+      await ctx.reply(
+        "⚠️ Hujjat muvaffaqiyatli tayyorlandi va profilingizda saqlandi, lekin Telegram orqali faylni yuborishda uzilish yuz berdi. Faylni olish uchun quyidagi tugmani bosing:",
+        { reply_markup: kb }
+      );
+    } else {
+      await ctx.reply("❌ Hujjatni saqlashda xatolik yuz berdi.");
+    }
   }
 }
 
@@ -170,13 +244,29 @@ async function handleUpdatedDocSuccess(
   }
 
   if (!res.success || !res.docBuffer || !res.fileName || !res.markdownContent || !session.docId) {
+    if (jobId) {
+      await failAcademicTask(jobId, res.error || "Update returned invalid or empty content");
+    }
     await ctx.reply(`❌ ${res.error || "Tahrirlashda xatolik yuz berdi."}`);
+    await setBotSession(tgId, { ...session, inProgress: false });
+    return;
+  }
+
+  // Validate Buffer and size
+  if (!Buffer.isBuffer(res.docBuffer) || res.docBuffer.length < 500) {
+    if (jobId) {
+      await failAcademicTask(jobId, "Invalid updated Word buffer generated");
+    }
+    await ctx.reply("❌ Yangilangan faylni tayyorlashda texnik xatolik yuz berdi.");
     await setBotSession(tgId, { ...session, inProgress: false });
     return;
   }
 
   try {
     // 1. Save new version in PostgreSQL with fencing token guard
+    if (jobId) {
+      await updateAcademicTaskStage(jobId, "DB_SAVE");
+    }
     const { version: newVersion } = await saveNewDocumentVersion({
       docId: session.docId,
       userId,
@@ -200,13 +290,32 @@ async function handleUpdatedDocSuccess(
       activeJobId: undefined,
     });
 
-    // 3. Send updated Word document file
-    await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
-      caption: `${res.summaryText}\n\n📄 *Versiya:* \`v${newVersion}\` (Oldingi: \`v${newVersion - 1}\`)`,
-      parse_mode: "Markdown",
-    });
+    // 3. Send updated Word document file via Telegram API with safe fallback
+    if (jobId) {
+      await updateAcademicTaskStage(jobId, "TG_SEND", {
+        docId: session.docId,
+        fileName: res.fileName,
+      });
+    }
 
-    // 4. Send Post-Generation Editing Menu with version controls
+    try {
+      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+        caption: `${res.summaryText}\n\n📄 *Versiya:* \`v${newVersion}\` (Oldingi: \`v${newVersion - 1}\`)`,
+        parse_mode: "Markdown",
+      });
+    } catch (sendErr) {
+      console.warn("[SEND_UPDATED_DOC_MD_FAIL] Retrying sendDocument without markdown:", sendErr);
+      await ctx.replyWithDocument(new InputFile(res.docBuffer, res.fileName), {
+        caption: `${res.summaryText?.replace(/[*_`\[\]()]/g, "") || "Hujjat yangilandi."}\n\nVersiya: v${newVersion}`,
+      });
+    }
+
+    // 4. Mark task completed only after delivery!
+    if (jobId) {
+      await completeAcademicTask(jobId, session.docId, res.fileName);
+    }
+
+    // 5. Send Post-Generation Editing Menu with version controls
     await ctx.reply(
       `✍️ *Yangi tahrir (v${newVersion}) tayyor!*\n\n` +
         `Siz yangi versiyani qabul qilishingiz, yana o'zgartirish kiritishingiz yoki avvalgi versiyaga qaytishingiz mumkin:`,
@@ -224,6 +333,9 @@ async function handleUpdatedDocSuccess(
       return;
     }
     console.error("[HANDLE_UPDATED_DOC_ERR]", err);
+    if (jobId) {
+      await failAcademicTask(jobId, errObj?.message || "Updated doc save or send failed");
+    }
     await setBotSession(tgId, { ...session, inProgress: false });
     await ctx.reply("❌ Yangilangan versiyani saqlashda xatolik yuz berdi.");
   }
@@ -528,16 +640,27 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      console.warn(
+        `[PARALLEL_RETRY_SUPPRESSED] Referat generation already running for tgId ${tgId}`
       );
       return;
     }
 
+    const taskId = lock.jobId!;
+    let taskCompleted = false;
+
     try {
       const lengthOption = ctx.match[1] as "short" | "standard" | "extended";
       const sub = await getUserSubscription(user.id);
+
+      await createAcademicTask({
+        taskId,
+        telegramId: tgId,
+        userId: user.id,
+        workType: "referat",
+        topic: session.topic,
+        subject: session.subject,
+      });
 
       await ctx.reply(
         `⏳ *Referat tayyorlanmoqda...*\n\n` +
@@ -548,6 +671,8 @@ if (docnovaAiBot) {
         { parse_mode: "Markdown" }
       );
 
+      await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
       const res = await generateReferatDoc({
         userId: user.id,
         userPlan: sub.plan,
@@ -557,21 +682,53 @@ if (docnovaAiBot) {
         studentName: user.name || undefined,
       });
 
-      await handleInitialDocSuccess(
-        ctx,
-        user.id,
-        tgId,
-        res,
-        {
-          workType: "referat",
-          topic: session.topic,
-          subject: session.subject,
-          length: lengthOption,
-        },
-        lock.jobId
+      if (res.success) {
+        await handleInitialDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          {
+            workType: "referat",
+            topic: session.topic,
+            subject: session.subject,
+            length: lengthOption,
+          },
+          taskId
+        );
+        taskCompleted = true;
+      } else {
+        await failAcademicTask(
+          taskId,
+          res.error || "Referat generatsiyasi muvaffaqiyatsiz bo'ldi."
+        );
+        await ctx.reply(
+          `❌ ${res.error || "Referatni yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+        );
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("[TELEGRAM_REFERAT_ERR]", err);
+      await failAcademicTask(taskId, errorMsg);
+      await ctx.reply(
+        "❌ Referat yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
       );
     } finally {
-      await releaseUserLock(tgId, lock.jobId!);
+      if (!taskCompleted) {
+        try {
+          const currentTask = await getAcademicTask(taskId);
+          if (
+            currentTask &&
+            currentTask.status !== "COMPLETED" &&
+            currentTask.status !== "FAILED"
+          ) {
+            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+          }
+        } catch (e) {
+          console.error("[FINALLY_FAIL_TASK_ERR]", e);
+        }
+      }
+      await releaseUserLock(tgId, taskId);
     }
   });
 
@@ -589,16 +746,26 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+      console.warn(
+        `[PARALLEL_RETRY_SUPPRESSED] Presentation generation already running for tgId ${tgId}`
       );
       return;
     }
 
+    const taskId = lock.jobId!;
+    let taskCompleted = false;
+
     try {
       const slidesCount = parseInt(ctx.match[1], 10);
       const sub = await getUserSubscription(user.id);
+
+      await createAcademicTask({
+        taskId,
+        telegramId: tgId,
+        userId: user.id,
+        workType: "presentation",
+        topic: session.topic,
+      });
 
       await ctx.reply(
         `⏳ *Taqdimot slaydlari tayyorlanmoqda...*\n\n` +
@@ -608,6 +775,8 @@ if (docnovaAiBot) {
         { parse_mode: "Markdown" }
       );
 
+      await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
       const res = await generatePresentationDoc({
         userId: user.id,
         userPlan: sub.plan,
@@ -615,20 +784,52 @@ if (docnovaAiBot) {
         slidesCount,
       });
 
-      await handleInitialDocSuccess(
-        ctx,
-        user.id,
-        tgId,
-        res,
-        {
-          workType: "presentation",
-          topic: session.topic,
-          slidesCount,
-        },
-        lock.jobId
+      if (res.success) {
+        await handleInitialDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          {
+            workType: "presentation",
+            topic: session.topic,
+            slidesCount,
+          },
+          taskId
+        );
+        taskCompleted = true;
+      } else {
+        await failAcademicTask(
+          taskId,
+          res.error || "Taqdimot generatsiyasi muvaffaqiyatsiz bo'ldi."
+        );
+        await ctx.reply(
+          `❌ ${res.error || "Taqdimotni yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+        );
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("[TELEGRAM_PRESENTATION_ERR]", err);
+      await failAcademicTask(taskId, errorMsg);
+      await ctx.reply(
+        "❌ Taqdimot yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
       );
     } finally {
-      await releaseUserLock(tgId, lock.jobId!);
+      if (!taskCompleted) {
+        try {
+          const currentTask = await getAcademicTask(taskId);
+          if (
+            currentTask &&
+            currentTask.status !== "COMPLETED" &&
+            currentTask.status !== "FAILED"
+          ) {
+            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+          }
+        } catch (e) {
+          console.error("[FINALLY_FAIL_TASK_ERR]", e);
+        }
+      }
+      await releaseUserLock(tgId, taskId);
     }
   });
 
@@ -708,10 +909,7 @@ if (docnovaAiBot) {
 
       const lock = await acquireUserLock(tgId);
       if (!lock.acquired) {
-        await ctx.reply(
-          lock.message ||
-            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-        );
+        console.warn(`[PARALLEL_RETRY_SUPPRESSED] Rewriting already running for tgId ${tgId}`);
         return;
       }
 
@@ -830,10 +1028,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -961,10 +1156,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -1067,10 +1259,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -1150,10 +1339,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -1215,10 +1401,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -1280,10 +1463,7 @@ if (docnovaAiBot) {
 
     const lock = await acquireUserLock(tgId);
     if (!lock.acquired) {
-      await ctx.reply(
-        lock.message ||
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-      );
+      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
       return;
     }
 
@@ -1530,10 +1710,7 @@ if (docnovaAiBot) {
     if (session.step === "editing") {
       const lock = await acquireUserLock(tgId);
       if (!lock.acquired) {
-        await ctx.reply(
-          lock.message ||
-            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
-        );
+        console.warn(`[PARALLEL_RETRY_SUPPRESSED] Rewriting already running for tgId ${tgId}`);
         return;
       }
 
@@ -1663,16 +1840,35 @@ if (docnovaAiBot) {
       if (session.step === "subject") {
         const lock = await acquireUserLock(tgId);
         if (!lock.acquired) {
-          await ctx.reply(
-            lock.message ||
-              "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+          console.warn(
+            `[PARALLEL_RETRY_SUPPRESSED] Coursework generation already in progress for tgId ${tgId}`
           );
           return;
         }
 
+        const taskId = lock.jobId!;
+        const startTime = Date.now();
+        let taskCompleted = false;
+
+        logAcademicStage({
+          requestId: taskId,
+          stage: "INIT",
+          status: "START",
+          telegramId: tgId,
+        });
+
         try {
           const subject = text.toLowerCase() === "standart" ? undefined : text;
           const topic = session.topic || "Kurs ishi";
+
+          await createAcademicTask({
+            taskId,
+            telegramId: tgId,
+            userId: user.id,
+            workType: "coursework",
+            topic,
+            subject,
+          });
 
           await ctx.reply(
             `⏳ *Kurs ishi tayyorlanmoqda...*\n\n` +
@@ -1682,9 +1878,17 @@ if (docnovaAiBot) {
               `2️⃣ Kirish (dolzarblik, ilmiy apparat)...\n` +
               `3️⃣ Nazariy va tahliliy boblar (jadval bilan)...\n` +
               `4️⃣ Takliflar, xulosa va 15+ adabiyotlar...\n\n` +
-              `🤖 _Gemini AI ishlamoqda. Bu taxminan 30-45 soniya vaqt oladi, iltimos kuting..._`,
+              `🤖 _Gemini AI ilmiy apparat va boblarni shakllantirmoqda. Bu taxminan 15-25 soniya vaqt oladi, iltimos kuting..._`,
             { parse_mode: "Markdown" }
           );
+
+          await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+          logAcademicStage({
+            requestId: taskId,
+            stage: "GEMINI_GEN",
+            status: "START",
+            telegramId: tgId,
+          });
 
           const res = await generateCourseworkDoc({
             userId: user.id,
@@ -1694,20 +1898,74 @@ if (docnovaAiBot) {
             studentName: user.name || undefined,
           });
 
-          await handleInitialDocSuccess(
-            ctx,
-            user.id,
-            tgId,
-            res,
-            {
-              workType: "coursework",
-              topic,
-              subject,
-            },
-            lock.jobId
+          logAcademicStage({
+            requestId: taskId,
+            stage: "GEMINI_GEN",
+            status: res.success ? "SUCCESS" : "FAILED",
+            telegramId: tgId,
+            durationMs: Date.now() - startTime,
+            error: res.error,
+          });
+
+          if (res.success) {
+            await handleInitialDocSuccess(
+              ctx,
+              user.id,
+              tgId,
+              res,
+              {
+                workType: "coursework",
+                topic,
+                subject,
+              },
+              taskId
+            );
+            taskCompleted = true;
+          } else {
+            await failAcademicTask(
+              taskId,
+              res.error || "Kurs ishi generatsiyasi muvaffaqiyatsiz bo'ldi."
+            );
+            await ctx.reply(
+              `❌ ${res.error || "Kurs ishini yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+            );
+          }
+        } catch (genErr) {
+          logAcademicStage({
+            requestId: taskId,
+            stage: "HANDLER",
+            status: "FAILED",
+            telegramId: tgId,
+            durationMs: Date.now() - startTime,
+            error: genErr instanceof Error ? genErr.message : String(genErr),
+          });
+          await failAcademicTask(taskId, genErr instanceof Error ? genErr.message : String(genErr));
+          await ctx.reply(
+            "❌ Kurs ishini yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
           );
         } finally {
-          await releaseUserLock(tgId, lock.jobId!);
+          if (!taskCompleted) {
+            try {
+              const currentTask = await getAcademicTask(taskId);
+              if (
+                currentTask &&
+                currentTask.status !== "COMPLETED" &&
+                currentTask.status !== "FAILED"
+              ) {
+                await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+              }
+            } catch (err) {
+              console.error("[FINALLY_FAIL_TASK_ERR]", err);
+            }
+          }
+          await releaseUserLock(tgId, taskId);
+          logAcademicStage({
+            requestId: taskId,
+            stage: "LOCK_RELEASE",
+            status: "SUCCESS",
+            telegramId: tgId,
+            durationMs: Date.now() - startTime,
+          });
         }
         return;
       }
@@ -1758,16 +2016,27 @@ if (docnovaAiBot) {
       if (session.step === "subject") {
         const lock = await acquireUserLock(tgId);
         if (!lock.acquired) {
-          await ctx.reply(
-            lock.message ||
-              "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+          console.warn(
+            `[PARALLEL_RETRY_SUPPRESSED] BMI generation already in progress for tgId ${tgId}`
           );
           return;
         }
 
+        const taskId = lock.jobId!;
+        let taskCompleted = false;
+
         try {
           const specialty = text;
           const topic = session.topic || "BMI";
+
+          await createAcademicTask({
+            taskId,
+            telegramId: tgId,
+            userId: user.id,
+            workType: "bmi",
+            topic,
+            subject: specialty,
+          });
 
           await ctx.reply(
             `⏳ *Bitiruv malakaviy ishi (BMI) majmuasi tayyorlanmoqda...*\n\n` +
@@ -1777,6 +2046,8 @@ if (docnovaAiBot) {
             { parse_mode: "Markdown" }
           );
 
+          await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
           const res = await generateBmiDoc({
             userId: user.id,
             userPlan: sub.plan,
@@ -1785,20 +2056,52 @@ if (docnovaAiBot) {
             studentName: user.name || undefined,
           });
 
-          await handleInitialDocSuccess(
-            ctx,
-            user.id,
-            tgId,
-            res,
-            {
-              workType: "bmi",
-              topic,
-              specialty,
-            },
-            lock.jobId
+          if (res.success) {
+            await handleInitialDocSuccess(
+              ctx,
+              user.id,
+              tgId,
+              res,
+              {
+                workType: "bmi",
+                topic,
+                specialty,
+              },
+              taskId
+            );
+            taskCompleted = true;
+          } else {
+            await failAcademicTask(
+              taskId,
+              res.error || "BMI generatsiyasi muvaffaqiyatsiz bo'ldi."
+            );
+            await ctx.reply(
+              `❌ ${res.error || "BMI yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+            );
+          }
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          console.error("[TELEGRAM_BMI_ERR]", err);
+          await failAcademicTask(taskId, errorMsg);
+          await ctx.reply(
+            "❌ BMI yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
           );
         } finally {
-          await releaseUserLock(tgId, lock.jobId!);
+          if (!taskCompleted) {
+            try {
+              const currentTask = await getAcademicTask(taskId);
+              if (
+                currentTask &&
+                currentTask.status !== "COMPLETED" &&
+                currentTask.status !== "FAILED"
+              ) {
+                await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+              }
+            } catch (e) {
+              console.error("[FINALLY_FAIL_TASK_ERR]", e);
+            }
+          }
+          await releaseUserLock(tgId, taskId);
         }
         return;
       }
@@ -1829,19 +2132,31 @@ if (docnovaAiBot) {
     if (session.type === "essay") {
       const lock = await acquireUserLock(tgId);
       if (!lock.acquired) {
-        await ctx.reply(
-          lock.message ||
-            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+        console.warn(
+          `[PARALLEL_RETRY_SUPPRESSED] Essay generation already running for tgId ${tgId}`
         );
         return;
       }
 
+      const taskId = lock.jobId!;
+      let taskCompleted = false;
+
       try {
         const topic = text;
+        await createAcademicTask({
+          taskId,
+          telegramId: tgId,
+          userId: user.id,
+          workType: "essay",
+          topic,
+        });
+
         await ctx.reply(
           `⏳ *Insho / Esse yozilmoqda...*\n\n📌 *Mavzu:* ${topic}\n\n🤖 _Gemini AI chuqur falsafiy va adabiy kompozitsiya tayyorlamoqda..._`,
           { parse_mode: "Markdown" }
         );
+
+        await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
         const res = await generateEssayDoc({
           userId: user.id,
@@ -1849,19 +2164,48 @@ if (docnovaAiBot) {
           topic,
         });
 
-        await handleInitialDocSuccess(
-          ctx,
-          user.id,
-          tgId,
-          res,
-          {
-            workType: "essay",
-            topic,
-          },
-          lock.jobId
+        if (res.success) {
+          await handleInitialDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            {
+              workType: "essay",
+              topic,
+            },
+            taskId
+          );
+          taskCompleted = true;
+        } else {
+          await failAcademicTask(taskId, res.error || "Esse generatsiyasi muvaffaqiyatsiz bo'ldi.");
+          await ctx.reply(
+            `❌ ${res.error || "Esse yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+          );
+        }
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("[TELEGRAM_ESSAY_ERR]", err);
+        await failAcademicTask(taskId, errorMsg);
+        await ctx.reply(
+          "❌ Esse yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
         );
       } finally {
-        await releaseUserLock(tgId, lock.jobId!);
+        if (!taskCompleted) {
+          try {
+            const currentTask = await getAcademicTask(taskId);
+            if (
+              currentTask &&
+              currentTask.status !== "COMPLETED" &&
+              currentTask.status !== "FAILED"
+            ) {
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+            }
+          } catch (e) {
+            console.error("[FINALLY_FAIL_TASK_ERR]", e);
+          }
+        }
+        await releaseUserLock(tgId, taskId);
       }
       return;
     }
@@ -1870,19 +2214,31 @@ if (docnovaAiBot) {
     if (session.type === "exam") {
       const lock = await acquireUserLock(tgId);
       if (!lock.acquired) {
-        await ctx.reply(
-          lock.message ||
-            "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting."
+        console.warn(
+          `[PARALLEL_RETRY_SUPPRESSED] Exam generation already running for tgId ${tgId}`
         );
         return;
       }
 
+      const taskId = lock.jobId!;
+      let taskCompleted = false;
+
       try {
         const topic = text;
+        await createAcademicTask({
+          taskId,
+          telegramId: tgId,
+          userId: user.id,
+          workType: "exam",
+          topic,
+        });
+
         await ctx.reply(
           `⏳ *Imtihon biletlari va konspekt tayyorlanmoqda...*\n\n📌 *Fan / Mavzular:* ${topic}\n\n🤖 _10 ta asosiy imtihon savoli va yechimlari tuzilmoqda..._`,
           { parse_mode: "Markdown" }
         );
+
+        await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
         const res = await generateExamDoc({
           userId: user.id,
@@ -1890,21 +2246,130 @@ if (docnovaAiBot) {
           topic,
         });
 
-        await handleInitialDocSuccess(
-          ctx,
-          user.id,
-          tgId,
-          res,
-          {
-            workType: "exam",
-            topic,
-          },
-          lock.jobId
+        if (res.success) {
+          await handleInitialDocSuccess(
+            ctx,
+            user.id,
+            tgId,
+            res,
+            {
+              workType: "exam",
+              topic,
+            },
+            taskId
+          );
+          taskCompleted = true;
+        } else {
+          await failAcademicTask(
+            taskId,
+            res.error || "Imtihon materiallari generatsiyasi muvaffaqiyatsiz bo'ldi."
+          );
+          await ctx.reply(
+            `❌ ${res.error || "Imtihon materiallarini tayyorlashda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."}`
+          );
+        }
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("[TELEGRAM_EXAM_ERR]", err);
+        await failAcademicTask(taskId, errorMsg);
+        await ctx.reply(
+          "❌ Imtihon materiallarini tayyorlashda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
         );
       } finally {
-        await releaseUserLock(tgId, lock.jobId!);
+        if (!taskCompleted) {
+          try {
+            const currentTask = await getAcademicTask(taskId);
+            if (
+              currentTask &&
+              currentTask.status !== "COMPLETED" &&
+              currentTask.status !== "FAILED"
+            ) {
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+            }
+          } catch (e) {
+            console.error("[FINALLY_FAIL_TASK_ERR]", e);
+          }
+        }
+        await releaseUserLock(tgId, taskId);
       }
       return;
+    }
+  });
+
+  // Callback for resending already-created document if Telegram delivery failed
+  docnovaAiBot.callbackQuery(/^tg_resend_(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery({ text: "Fayl yuklanmoqda..." });
+    if (!ctx.from) return;
+    const docId = ctx.match[1];
+    const user = await getLinkedUser(ctx.from.id);
+    if (!user) {
+      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
+      return;
+    }
+
+    // 1. Debounce guard: prevent concurrent duplicate taps
+    const lock = await acquireUserLock(ctx.from.id, 20);
+    if (!lock.acquired) {
+      await ctx.reply("⏳ Hujjat yuborilmoqda, iltimos kuting...");
+      return;
+    }
+
+    try {
+      // 2. Multi-tenant ownership check (userId: user.id enforced in DB)
+      const snapshot = await getDocumentVersionData({
+        docId,
+        userId: user.id,
+        version: 1,
+      });
+
+      if (!snapshot) {
+        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi yoki bu hujjat sizga tegishli emas.");
+        return;
+      }
+
+      const buffer = generateWordDocumentBuffer({
+        title: snapshot.topic,
+        bodyContent: snapshot.markdown,
+        workType: snapshot.workType,
+        subject: snapshot.subject,
+      });
+
+      // 3. Remove inline button so user cannot re-trigger duplicate delivery
+      try {
+        await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      } catch {
+        // Safe to ignore if already edited or deleted
+      }
+
+      // 4. Send document with safe Markdown error fallback
+      try {
+        await ctx.replyWithDocument(new InputFile(buffer, snapshot.fileName || "Hujjat.doc"), {
+          caption: `📄 *${snapshot.topic}*\nFormat: Microsoft Word (.doc)`,
+          parse_mode: "Markdown",
+        });
+      } catch {
+        await ctx.replyWithDocument(new InputFile(buffer, snapshot.fileName || "Hujjat.doc"), {
+          caption: `Hujjat: ${snapshot.topic}\nFormat: Microsoft Word (.doc)`,
+        });
+      }
+
+      await ctx.reply(
+        `✅ *Hujjat muvaffaqiyatli yetkazildi!*\n\n` +
+          `Siz ushbu hujjatni tahrirlashingiz, reja o'zgartirishingiz yoki yangi bo'lim qo'shishingiz mumkin.`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: new InlineKeyboard()
+            .text("✏️ Qayta tahrirlash", `edit_custom_${docId}`)
+            .row()
+            .text("➕ Yangi bo'lim", `edit_addsec_${docId}`)
+            .text("✅ Qabul qilish", `edit_accept_${docId}`),
+        }
+      );
+    } catch (err) {
+      console.error("[TG_RESEND_ERR]", err);
+      await ctx.reply("❌ Faylni qayta yuborishda xatolik yuz berdi.");
+    } finally {
+      await releaseUserLock(ctx.from.id, lock.jobId!);
     }
   });
 }
@@ -1915,6 +2380,8 @@ const baseWebhookHandler =
   docnovaAiBot && webhookSecret
     ? webhookCallback(docnovaAiBot, "std/http", {
         secretToken: webhookSecret,
+        timeoutMilliseconds: 55_000,
+        onTimeout: "return",
       })
     : null;
 
@@ -1944,8 +2411,10 @@ export async function POST(req: Request): Promise<Response> {
     console.error("[WEBHOOK_BODY_PARSE_ERR]", err);
   }
 
+  let updatePersisted = false;
   if (updateId !== undefined && updateId !== null) {
     const claim = await claimTelegramUpdate(updateId);
+    updatePersisted = claim.persisted;
     if (!claim.canProcess) {
       console.warn(
         `[WEBHOOK_IDEMPOTENT_SKIP] Duplicate update_id ${updateId} (${claim.status}) ignored.`
@@ -1979,9 +2448,31 @@ export async function POST(req: Request): Promise<Response> {
     }
     return res;
   } catch (err) {
+    console.error("[WEBHOOK_POST_ERR]", err);
     if (updateId !== undefined && updateId !== null) {
       await markTelegramUpdateFailed(updateId);
     }
-    throw err;
+    // If the update was NEVER reliably persisted in DB (e.g. DB outage), return 503
+    // so Telegram's retry mechanism safely redelivers the update when DB is healthy
+    if (!updatePersisted) {
+      console.error(
+        "[WEBHOOK_UNPERSISTED_FAIL] Update was not persisted in DB; requesting Telegram retry via HTTP 503"
+      );
+      return new Response(
+        JSON.stringify({ ok: false, error: "Database unavailable, retry requested" }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    // Return HTTP 200 OK with error payload if update was claimed and recorded, preventing duplicate retry loops
+    return new Response(
+      JSON.stringify({ ok: false, error: "Internal processing error handled safely" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

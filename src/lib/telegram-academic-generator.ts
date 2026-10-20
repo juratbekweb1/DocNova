@@ -6,6 +6,13 @@ import {
   replaceDocumentSection,
   SectionKey,
 } from "@/lib/telegram-doc-manager";
+import {
+  createAcademicTask,
+  updateAcademicTaskStage,
+  failAcademicTask,
+  getAcademicTask,
+  releaseUserLock,
+} from "@/lib/telegram-lock";
 
 export interface AcademicGenResult {
   success: boolean;
@@ -75,6 +82,7 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
         "Siz O'zbekiston OTMlarining yetakchi ilmiy professori va metodistisiz. Kurs ishlarini MOVSO RUz standartida benuqson yozasiz.",
       temperature: 0.25,
       maxOutputTokens: 4500,
+      timeoutMs: 35_000,
     });
 
     const content = res.text.trim();
@@ -102,6 +110,10 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
       studentName: authorName,
       year: currentYear,
     });
+
+    if (!Buffer.isBuffer(buffer) || buffer.length < 500) {
+      throw new Error("Word hujjat buferi yaratilmadi yoki hajm yetarli emas");
+    }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
     const fileName = `Kurs_Ishi_${safeTopic}_DocNova.doc`;
@@ -179,6 +191,7 @@ Matnni Markdown formatida yozing.`;
         "Siz referat va mustaqil ishlar bo'yicha ilmiy ekspertsiz. Belgilangan hajm va mavzuga qat'iy rioya qiling.",
       temperature: 0.25,
       maxOutputTokens: 4000,
+      timeoutMs: 35_000,
     });
 
     const content = res.text.trim();
@@ -206,6 +219,10 @@ Matnni Markdown formatida yozing.`;
       studentName: authorName,
       year: currentYear,
     });
+
+    if (!Buffer.isBuffer(buffer) || buffer.length < 500) {
+      throw new Error("Word hujjat buferi yaratilmadi yoki hajm yetarli emas");
+    }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
     const fileName = `Referat_${safeTopic}_DocNova.doc`;
@@ -274,6 +291,7 @@ Matnni Markdown formatida yozing.`;
         "Siz bitiruv malakaviy ishlari va dissertatsiyalar bo'yicha bosh ekspertsiz. Ilmiy apparat va standartlarga qat'iy amal qiling.",
       temperature: 0.2,
       maxOutputTokens: 8192,
+      timeoutMs: 35_000,
     });
 
     const content = res.text.trim();
@@ -301,6 +319,10 @@ Matnni Markdown formatida yozing.`;
       studentName: authorName,
       year: currentYear,
     });
+
+    if (!Buffer.isBuffer(buffer) || buffer.length < 500) {
+      throw new Error("Word hujjat buferi yaratilmadi yoki hajm yetarli emas");
+    }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
     const fileName = `BMI_${safeTopic}_DocNova.doc`;
@@ -966,4 +988,126 @@ export async function regenerateAcademicDoc(params: {
     success: false,
     error: "Noma'lum akademik ish turi.",
   };
+}
+
+/**
+ * Unified generation entrypoint with guaranteed task state tracking and lock release.
+ */
+export async function generateAcademicDocument(params: {
+  workType: "coursework" | "referat" | "bmi" | "presentation" | "essay" | "exam";
+  userId: string;
+  userPlan: string;
+  topic: string;
+  subject?: string;
+  specialty?: string;
+  lengthOption?: "short" | "standard" | "extended";
+  slidesCount?: number;
+  studentName?: string;
+  taskId?: string;
+  telegramId?: string | number;
+}): Promise<AcademicGenResult> {
+  const { taskId, telegramId } = params;
+  let taskCompleted = false;
+
+  try {
+    if (taskId && telegramId) {
+      await createAcademicTask({
+        taskId,
+        telegramId,
+        userId: params.userId,
+        workType: params.workType,
+        topic: params.topic,
+        subject: params.subject || params.specialty,
+      });
+      await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+    }
+
+    let result: AcademicGenResult;
+    switch (params.workType) {
+      case "coursework":
+        result = await generateCourseworkDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+          subject: params.subject,
+          studentName: params.studentName,
+        });
+        break;
+      case "referat":
+        result = await generateReferatDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+          subject: params.subject,
+          lengthOption: params.lengthOption,
+          studentName: params.studentName,
+        });
+        break;
+      case "bmi":
+        result = await generateBmiDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+          specialty: params.specialty || params.subject || "Umumiy",
+          studentName: params.studentName,
+        });
+        break;
+      case "presentation":
+        result = await generatePresentationDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+          slidesCount: params.slidesCount || 10,
+        });
+        break;
+      case "essay":
+        result = await generateEssayDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+        });
+        break;
+      case "exam":
+        result = await generateExamDoc({
+          userId: params.userId,
+          userPlan: params.userPlan,
+          topic: params.topic,
+        });
+        break;
+      default:
+        throw new Error(`Noma'lum akademik ish turi: ${params.workType}`);
+    }
+
+    if (result.success) {
+      taskCompleted = true;
+    } else if (taskId) {
+      await failAcademicTask(taskId, result.error || "Generatsiya muvaffaqiyatsiz bo'ldi");
+    }
+
+    return result;
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[GENERATE_ACADEMIC_DOCUMENT_ERR]", err);
+    if (taskId) {
+      await failAcademicTask(taskId, errorMsg);
+    }
+    return {
+      success: false,
+      error: "Hujjatni yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.",
+    };
+  } finally {
+    if (!taskCompleted && taskId) {
+      try {
+        const currentTask = await getAcademicTask(taskId);
+        if (currentTask && currentTask.status !== "COMPLETED" && currentTask.status !== "FAILED") {
+          await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+        }
+      } catch (e) {
+        console.error("[FINALLY_FAIL_TASK_ERR]", e);
+      }
+    }
+    if (telegramId && taskId) {
+      await releaseUserLock(telegramId, taskId);
+    }
+  }
 }
