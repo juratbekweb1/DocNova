@@ -324,6 +324,20 @@ export default function CourseworkGenerator() {
 
   const [showTitleDetails, setShowTitleDetails] = useState(false);
   const [isFastGenerating, setIsFastGenerating] = useState(false);
+  const [isCustomPageCount, setIsCustomPageCount] = useState(false);
+
+  const handleCustomPageCountChange = (raw: string) => {
+    setIsCustomPageCount(true);
+    if (raw === "") {
+      setFormData((prev) => ({ ...prev, pageCount: "" }));
+      return;
+    }
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed)) {
+      const clamped = Math.min(500, Math.max(1, parsed));
+      setFormData((prev) => ({ ...prev, pageCount: String(clamped) }));
+    }
+  };
 
   // ------------------------------------------------------------------
   // STEP 1 FAST TRACK: One-Click Instant Full Coursework Generation
@@ -1004,9 +1018,12 @@ export default function CourseworkGenerator() {
               <button
                 key={cnt}
                 type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, pageCount: cnt }))}
-                className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
-                  formData.pageCount === cnt
+                onClick={() => {
+                  setIsCustomPageCount(false);
+                  setFormData((prev) => ({ ...prev, pageCount: cnt }));
+                }}
+                className={`h-8 cursor-pointer rounded-lg border px-2.5 text-xs font-bold transition-all ${
+                  !isCustomPageCount && formData.pageCount === cnt
                     ? "bg-primary border-primary text-white shadow-sm"
                     : "bg-surface border-border text-foreground hover:border-primary/50"
                 }`}
@@ -1017,13 +1034,14 @@ export default function CourseworkGenerator() {
             <div className="flex items-center gap-1">
               <input
                 type="number"
-                min={5}
-                max={100}
+                min={1}
+                max={500}
                 value={formData.pageCount}
-                onChange={(e) => setFormData((prev) => ({ ...prev, pageCount: e.target.value }))}
-                placeholder="Boshqa"
-                className="border-border bg-background text-foreground h-7 w-16 rounded border text-center text-xs font-bold"
-                title="O'zingiz xohlagan sahifalar sonini kiriting (100 tagacha)"
+                onFocus={() => setIsCustomPageCount(true)}
+                onChange={(e) => handleCustomPageCountChange(e.target.value)}
+                placeholder="Boshqa..."
+                className="border-border bg-background text-foreground focus:border-primary h-8 max-w-[120px] rounded-lg border px-2 text-center text-xs font-bold focus:outline-none"
+                title="O'zingiz xohlagan sahifalar sonini kiriting (1 dan 500 gacha)"
               />
               <span className="text-foreground-muted text-[11px]">bet</span>
             </div>
@@ -1208,7 +1226,7 @@ export default function CourseworkGenerator() {
                     <label className="text-foreground mb-1.5 block text-xs font-bold">
                       Hajm (sahifalar soni)
                     </label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                       {[
                         { cnt: "15", label: "15 bet" },
                         { cnt: "19", label: "19 bet" },
@@ -1218,9 +1236,12 @@ export default function CourseworkGenerator() {
                         <button
                           key={item.cnt}
                           type="button"
-                          onClick={() => setFormData((prev) => ({ ...prev, pageCount: item.cnt }))}
-                          className={`flex cursor-pointer items-center justify-center rounded-xl border py-2.5 text-xs font-bold transition-all ${
-                            formData.pageCount === item.cnt
+                          onClick={() => {
+                            setIsCustomPageCount(false);
+                            setFormData((prev) => ({ ...prev, pageCount: item.cnt }));
+                          }}
+                          className={`flex h-10 cursor-pointer items-center justify-center rounded-xl border px-3 text-xs font-bold transition-all ${
+                            !isCustomPageCount && formData.pageCount === item.cnt
                               ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
                               : "bg-surface-elevated border-border text-foreground hover:border-primary/50"
                           }`}
@@ -1228,6 +1249,29 @@ export default function CourseworkGenerator() {
                           {item.label}
                         </button>
                       ))}
+                      <input
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={
+                          isCustomPageCount ||
+                          !["15", "19", "25", "30"].includes(formData.pageCount)
+                            ? formData.pageCount
+                            : ""
+                        }
+                        onFocus={() => setIsCustomPageCount(true)}
+                        onChange={(e) => handleCustomPageCountChange(e.target.value)}
+                        placeholder="Boshqa..."
+                        aria-label="Boshqa sahifalar soni (1-500)"
+                        title="O'zingiz xohlagan sahifalar sonini kiriting (1 dan 500 gacha)"
+                        className={`h-10 max-w-[120px] rounded-xl border px-3 text-center text-xs font-bold transition-all focus:outline-none ${
+                          isCustomPageCount ||
+                          (!["15", "19", "25", "30"].includes(formData.pageCount) &&
+                            formData.pageCount !== "")
+                            ? "border-primary bg-primary/10 text-primary ring-primary/40 ring-1"
+                            : "bg-surface-elevated border-border text-foreground hover:border-primary/50 focus:border-primary"
+                        }`}
+                      />
                     </div>
                   </div>
 

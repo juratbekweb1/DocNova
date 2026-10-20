@@ -89,7 +89,13 @@ export default async function BillingPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-bold ${t.status === "success" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}
+                        className={`rounded-full px-2 py-1 text-xs font-bold ${
+                          ["PAID", "COMPLETED", "success"].includes(t.status)
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : t.status === "PENDING"
+                              ? "bg-amber-500/10 text-amber-400"
+                              : "bg-red-500/10 text-red-400"
+                        }`}
                       >
                         {t.status}
                       </span>

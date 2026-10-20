@@ -7,10 +7,10 @@ import {
   SectionKey,
 } from "@/lib/telegram-doc-manager";
 import {
+  acquireUserLock,
   createAcademicTask,
   updateAcademicTaskStage,
   failAcademicTask,
-  getAcademicTask,
   releaseUserLock,
 } from "@/lib/telegram-lock";
 
@@ -1005,109 +1005,130 @@ export async function generateAcademicDocument(params: {
   studentName?: string;
   taskId?: string;
   telegramId?: string | number;
+  releaseLockOnExit?: boolean;
 }): Promise<AcademicGenResult> {
-  const { taskId, telegramId } = params;
+  const { telegramId, releaseLockOnExit = true } = params;
+  let activeTaskId = params.taskId;
+  let acquiredInternally = false;
   let taskCompleted = false;
 
+  if (!activeTaskId && telegramId !== undefined) {
+    const lock = await acquireUserLock(telegramId);
+    if (!lock.acquired || !lock.jobId) {
+      return {
+        success: false,
+        error: "PARALLEL_SUPPRESSED",
+      };
+    }
+    activeTaskId = lock.jobId;
+    acquiredInternally = true;
+  }
+
   try {
-    if (taskId && telegramId) {
+    if (activeTaskId && telegramId !== undefined) {
       await createAcademicTask({
-        taskId,
+        taskId: activeTaskId,
         telegramId,
         userId: params.userId,
         workType: params.workType,
         topic: params.topic,
         subject: params.subject || params.specialty,
       });
-      await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+      await updateAcademicTaskStage(activeTaskId, "GEMINI_GEN");
     }
 
-    let result: AcademicGenResult;
-    switch (params.workType) {
-      case "coursework":
-        result = await generateCourseworkDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-          subject: params.subject,
-          studentName: params.studentName,
-        });
-        break;
-      case "referat":
-        result = await generateReferatDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-          subject: params.subject,
-          lengthOption: params.lengthOption,
-          studentName: params.studentName,
-        });
-        break;
-      case "bmi":
-        result = await generateBmiDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-          specialty: params.specialty || params.subject || "Umumiy",
-          studentName: params.studentName,
-        });
-        break;
-      case "presentation":
-        result = await generatePresentationDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-          slidesCount: params.slidesCount || 10,
-        });
-        break;
-      case "essay":
-        result = await generateEssayDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-        });
-        break;
-      case "exam":
-        result = await generateExamDoc({
-          userId: params.userId,
-          userPlan: params.userPlan,
-          topic: params.topic,
-        });
-        break;
-      default:
-        throw new Error(`Noma'lum akademik ish turi: ${params.workType}`);
-    }
+    const runGeneration = async (): Promise<AcademicGenResult> => {
+      switch (params.workType) {
+        case "coursework":
+          return generateCourseworkDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+            subject: params.subject,
+            studentName: params.studentName,
+          });
+        case "referat":
+          return generateReferatDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+            subject: params.subject,
+            lengthOption: params.lengthOption,
+            studentName: params.studentName,
+          });
+        case "bmi":
+          return generateBmiDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+            specialty: params.specialty || params.subject || "Umumiy",
+            studentName: params.studentName,
+          });
+        case "presentation":
+          return generatePresentationDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+            slidesCount: params.slidesCount || 10,
+          });
+        case "essay":
+          return generateEssayDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+          });
+        case "exam":
+          return generateExamDoc({
+            userId: params.userId,
+            userPlan: params.userPlan,
+            topic: params.topic,
+          });
+        default:
+          throw new Error(`Noma'lum akademik ish turi: ${params.workType}`);
+      }
+    };
+
+    const timeoutPromise = new Promise<AcademicGenResult>((_, reject) =>
+      setTimeout(() => reject(new Error("GEMINI_GENERATION_TIMEOUT")), 45_000)
+    );
+
+    const result = await Promise.race([runGeneration(), timeoutPromise]);
 
     if (result.success) {
       taskCompleted = true;
-    } else if (taskId) {
-      await failAcademicTask(taskId, result.error || "Generatsiya muvaffaqiyatsiz bo'ldi");
+    } else if (activeTaskId) {
+      await failAcademicTask(activeTaskId, result.error || "Generatsiya muvaffaqiyatsiz bo'ldi");
     }
 
     return result;
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[GENERATE_ACADEMIC_DOCUMENT_ERR]", err);
-    if (taskId) {
-      await failAcademicTask(taskId, errorMsg);
+    if (activeTaskId) {
+      await failAcademicTask(activeTaskId, errorMsg);
     }
     return {
       success: false,
       error: "Hujjatni yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.",
     };
   } finally {
-    if (!taskCompleted && taskId) {
-      try {
-        const currentTask = await getAcademicTask(taskId);
-        if (currentTask && currentTask.status !== "COMPLETED" && currentTask.status !== "FAILED") {
-          await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+    if (!taskCompleted) {
+      if (activeTaskId) {
+        try {
+          await failAcademicTask(activeTaskId, "Jarayon to'xtatildi yoki Gemini javob bermadi");
+        } catch (e) {
+          console.error("[FINALLY_FAIL_TASK_ERR]", e);
         }
-      } catch (e) {
-        console.error("[FINALLY_FAIL_TASK_ERR]", e);
       }
-    }
-    if (telegramId && taskId) {
-      await releaseUserLock(telegramId, taskId);
+      if (telegramId !== undefined && activeTaskId) {
+        await releaseUserLock(telegramId, activeTaskId);
+      }
+    } else if (
+      (releaseLockOnExit || acquiredInternally) &&
+      telegramId !== undefined &&
+      activeTaskId
+    ) {
+      await releaseUserLock(telegramId, activeTaskId);
     }
   }
 }

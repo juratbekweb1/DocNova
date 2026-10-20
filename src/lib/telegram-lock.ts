@@ -158,25 +158,56 @@ export async function completeAcademicTask(
  */
 export async function failAcademicTask(taskId: string, error: string): Promise<void> {
   const key = `tg_task_${taskId}`;
+  const now = Date.now();
+  const expires = new Date(now + 24 * 60 * 60 * 1000);
   try {
     const existing = await prisma.verificationToken.findUnique({
       where: { token: key },
     });
-    if (!existing) return;
 
-    const task = JSON.parse(
-      Buffer.from(existing.identifier, "base64").toString("utf-8")
-    ) as AcademicTaskRecord;
-    task.status = "FAILED";
-    task.stage = "FAILED";
-    task.error = error;
-    task.updatedAt = Date.now();
+    let task: AcademicTaskRecord;
+    if (existing) {
+      try {
+        task = JSON.parse(
+          Buffer.from(existing.identifier, "base64").toString("utf-8")
+        ) as AcademicTaskRecord;
+      } catch {
+        task = {
+          taskId,
+          telegramId: "N/A",
+          userId: "N/A",
+          workType: "unknown",
+          topic: "unknown",
+          status: "FAILED",
+          stage: "FAILED",
+          createdAt: now,
+          updatedAt: now,
+        };
+      }
+      task.status = "FAILED";
+      task.stage = "FAILED";
+      task.error = error;
+      task.updatedAt = now;
+    } else {
+      task = {
+        taskId,
+        telegramId: "N/A",
+        userId: "N/A",
+        workType: "unknown",
+        topic: "unknown",
+        status: "FAILED",
+        stage: "FAILED",
+        error,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
 
-    await prisma.verificationToken.update({
+    const payload = Buffer.from(JSON.stringify(task)).toString("base64");
+    await prisma.verificationToken.upsert({
       where: { token: key },
-      data: {
-        identifier: Buffer.from(JSON.stringify(task)).toString("base64"),
-      },
+      update: { identifier: payload, expires },
+      create: { token: key, identifier: payload, expires },
     });
   } catch (err) {
     console.error("[FAIL_ACADEMIC_TASK_ERR]", err);
@@ -239,11 +270,12 @@ export async function acquireUserLock(
               ) as AcademicTaskRecord;
               if (oldTask.status === "COMPLETED" || oldTask.status === "FAILED") {
                 isStale = true; // Job already finished! Lock is safe to reclaim immediately.
-              } else if (Date.now() - (oldTask.updatedAt || oldTask.createdAt || 0) > 60_000) {
-                // Task was left in RUNNING/PENDING for >60s without any updates (serverless container died/timed out)
+              } else if (Date.now() - (oldTask.updatedAt || oldTask.createdAt || 0) > 50_000) {
+                // Task was left in RUNNING/PENDING for >50s without any updates (serverless container died/timed out)
                 isStale = true;
                 oldTask.status = "FAILED";
-                oldTask.error = "Avvalgi jarayon 60 soniyadan ortiq javobsiz qoldi va to'xtatildi.";
+                oldTask.stage = "FAILED";
+                oldTask.error = "Avvalgi jarayon 50 soniyadan ortiq javobsiz qoldi va to'xtatildi.";
                 oldTask.updatedAt = Date.now();
                 await tx.verificationToken.update({
                   where: { token: taskKey },
@@ -256,21 +288,19 @@ export async function acquireUserLock(
               // ignore parse errors
             }
           } else {
-            // Task record does not exist; if lock has been held for >60s, reclaim it
+            // Task record does not exist; if lock has been held for >50s, reclaim it
             const lockAgeMs = now.getTime() - (existing.expires.getTime() - leaseSeconds * 1000);
-            if (lockAgeMs > 60_000) {
+            if (lockAgeMs > 50_000) {
               isStale = true;
             }
           }
         }
 
         if (!isStale) {
-          // Lock is actively held by a genuinely running job
+          // Lock is actively held by a genuinely running job (suppress duplicate retry warning)
           return {
             acquired: false,
             reason: "BUSY",
-            message:
-              "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting.",
           };
         }
 
@@ -301,8 +331,6 @@ export async function acquireUserLock(
       return {
         acquired: false,
         reason: "LOCKED",
-        message:
-          "⏳ Hozirda boshqa akademik jarayon bajarilmoqda. Iltimos, u yakunlanishini kuting.",
       };
     }
     console.error("[ACQUIRE_USER_LOCK_ERR]", err);
@@ -441,59 +469,13 @@ export async function claimTelegramUpdate(updateId: number | string): Promise<Up
         };
       }
 
-      // If already completed: definitely duplicate retry of an already finished task
-      if (existing.identifier === "COMPLETED") {
-        return {
-          canProcess: false,
-          isDuplicate: true,
-          persisted: true,
-          status: "ALREADY_COMPLETED",
-        };
-      }
-
-      // If previous attempt failed: allow Telegram retry to safely re-process!
-      if (existing.identifier === "FAILED") {
-        await tx.verificationToken.update({
-          where: { token: key },
-          data: {
-            identifier: "PROCESSING",
-            expires,
-          },
-        });
-        return {
-          canProcess: true,
-          isDuplicate: false,
-          persisted: true,
-          status: "RETRY_ALLOWED",
-        };
-      }
-
-      // If still "PROCESSING": check if the worker crashed or is still active
-      // Serverless worker lease: 180 seconds
-      const processingAgeMs = now.getTime() - (existing.expires.getTime() - 24 * 60 * 60 * 1000);
-      if (processingAgeMs > 180 * 1000) {
-        // Previous worker crashed or timed out without completing: safely take over for retry!
-        await tx.verificationToken.update({
-          where: { token: key },
-          data: {
-            identifier: "PROCESSING",
-            expires,
-          },
-        });
-        return {
-          canProcess: true,
-          isDuplicate: false,
-          persisted: true,
-          status: "RETRY_ALLOWED",
-        };
-      }
-
-      // Still actively processing in another in-flight worker: return 200 OK so Telegram doesn't storm retries
+      // Any existing record for this update_id is a duplicate webhook retry from Telegram.
+      // Return canProcess: false so the webhook handler returns HTTP 200 immediately without warning messages.
       return {
         canProcess: false,
         isDuplicate: true,
         persisted: true,
-        status: "IN_PROGRESS",
+        status: existing.identifier === "COMPLETED" ? "ALREADY_COMPLETED" : "IN_PROGRESS",
       };
     });
   } catch (err: unknown) {

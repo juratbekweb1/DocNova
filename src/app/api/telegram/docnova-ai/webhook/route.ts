@@ -35,12 +35,7 @@ import {
   getAcademicTask,
 } from "@/lib/telegram-lock";
 import {
-  generateCourseworkDoc,
-  generateReferatDoc,
-  generateBmiDoc,
-  generatePresentationDoc,
-  generateEssayDoc,
-  generateExamDoc,
+  generateAcademicDocument,
   rewriteAcademicDoc,
   editAcademicSection,
   adjustAcademicLength,
@@ -673,13 +668,17 @@ if (docnovaAiBot) {
 
       await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
-      const res = await generateReferatDoc({
+      const res = await generateAcademicDocument({
+        workType: "referat",
         userId: user.id,
         userPlan: sub.plan,
         topic: session.topic,
         subject: session.subject,
         lengthOption,
         studentName: user.name || undefined,
+        taskId,
+        telegramId: tgId,
+        releaseLockOnExit: false,
       });
 
       if (res.success) {
@@ -696,7 +695,10 @@ if (docnovaAiBot) {
           },
           taskId
         );
-        taskCompleted = true;
+        const finalTask = await getAcademicTask(taskId);
+        if (finalTask?.status === "COMPLETED") {
+          taskCompleted = true;
+        }
       } else {
         await failAcademicTask(
           taskId,
@@ -716,14 +718,7 @@ if (docnovaAiBot) {
     } finally {
       if (!taskCompleted) {
         try {
-          const currentTask = await getAcademicTask(taskId);
-          if (
-            currentTask &&
-            currentTask.status !== "COMPLETED" &&
-            currentTask.status !== "FAILED"
-          ) {
-            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-          }
+          await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
         } catch (e) {
           console.error("[FINALLY_FAIL_TASK_ERR]", e);
         }
@@ -777,11 +772,15 @@ if (docnovaAiBot) {
 
       await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
-      const res = await generatePresentationDoc({
+      const res = await generateAcademicDocument({
+        workType: "presentation",
         userId: user.id,
         userPlan: sub.plan,
         topic: session.topic,
         slidesCount,
+        taskId,
+        telegramId: tgId,
+        releaseLockOnExit: false,
       });
 
       if (res.success) {
@@ -797,7 +796,10 @@ if (docnovaAiBot) {
           },
           taskId
         );
-        taskCompleted = true;
+        const finalTask = await getAcademicTask(taskId);
+        if (finalTask?.status === "COMPLETED") {
+          taskCompleted = true;
+        }
       } else {
         await failAcademicTask(
           taskId,
@@ -817,14 +819,7 @@ if (docnovaAiBot) {
     } finally {
       if (!taskCompleted) {
         try {
-          const currentTask = await getAcademicTask(taskId);
-          if (
-            currentTask &&
-            currentTask.status !== "COMPLETED" &&
-            currentTask.status !== "FAILED"
-          ) {
-            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-          }
+          await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
         } catch (e) {
           console.error("[FINALLY_FAIL_TASK_ERR]", e);
         }
@@ -1890,12 +1885,16 @@ if (docnovaAiBot) {
             telegramId: tgId,
           });
 
-          const res = await generateCourseworkDoc({
+          const res = await generateAcademicDocument({
+            workType: "coursework",
             userId: user.id,
             userPlan: sub.plan,
             topic,
             subject,
             studentName: user.name || undefined,
+            taskId,
+            telegramId: tgId,
+            releaseLockOnExit: false,
           });
 
           logAcademicStage({
@@ -1920,7 +1919,10 @@ if (docnovaAiBot) {
               },
               taskId
             );
-            taskCompleted = true;
+            const finalTask = await getAcademicTask(taskId);
+            if (finalTask?.status === "COMPLETED") {
+              taskCompleted = true;
+            }
           } else {
             await failAcademicTask(
               taskId,
@@ -1946,14 +1948,7 @@ if (docnovaAiBot) {
         } finally {
           if (!taskCompleted) {
             try {
-              const currentTask = await getAcademicTask(taskId);
-              if (
-                currentTask &&
-                currentTask.status !== "COMPLETED" &&
-                currentTask.status !== "FAILED"
-              ) {
-                await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-              }
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
             } catch (err) {
               console.error("[FINALLY_FAIL_TASK_ERR]", err);
             }
@@ -2048,12 +2043,16 @@ if (docnovaAiBot) {
 
           await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
-          const res = await generateBmiDoc({
+          const res = await generateAcademicDocument({
+            workType: "bmi",
             userId: user.id,
             userPlan: sub.plan,
             topic,
             specialty,
             studentName: user.name || undefined,
+            taskId,
+            telegramId: tgId,
+            releaseLockOnExit: false,
           });
 
           if (res.success) {
@@ -2069,7 +2068,10 @@ if (docnovaAiBot) {
               },
               taskId
             );
-            taskCompleted = true;
+            const finalTask = await getAcademicTask(taskId);
+            if (finalTask?.status === "COMPLETED") {
+              taskCompleted = true;
+            }
           } else {
             await failAcademicTask(
               taskId,
@@ -2089,14 +2091,7 @@ if (docnovaAiBot) {
         } finally {
           if (!taskCompleted) {
             try {
-              const currentTask = await getAcademicTask(taskId);
-              if (
-                currentTask &&
-                currentTask.status !== "COMPLETED" &&
-                currentTask.status !== "FAILED"
-              ) {
-                await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-              }
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
             } catch (e) {
               console.error("[FINALLY_FAIL_TASK_ERR]", e);
             }
@@ -2158,10 +2153,14 @@ if (docnovaAiBot) {
 
         await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
-        const res = await generateEssayDoc({
+        const res = await generateAcademicDocument({
+          workType: "essay",
           userId: user.id,
           userPlan: sub.plan,
           topic,
+          taskId,
+          telegramId: tgId,
+          releaseLockOnExit: false,
         });
 
         if (res.success) {
@@ -2176,7 +2175,10 @@ if (docnovaAiBot) {
             },
             taskId
           );
-          taskCompleted = true;
+          const finalTask = await getAcademicTask(taskId);
+          if (finalTask?.status === "COMPLETED") {
+            taskCompleted = true;
+          }
         } else {
           await failAcademicTask(taskId, res.error || "Esse generatsiyasi muvaffaqiyatsiz bo'ldi.");
           await ctx.reply(
@@ -2193,14 +2195,7 @@ if (docnovaAiBot) {
       } finally {
         if (!taskCompleted) {
           try {
-            const currentTask = await getAcademicTask(taskId);
-            if (
-              currentTask &&
-              currentTask.status !== "COMPLETED" &&
-              currentTask.status !== "FAILED"
-            ) {
-              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-            }
+            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
           } catch (e) {
             console.error("[FINALLY_FAIL_TASK_ERR]", e);
           }
@@ -2240,10 +2235,14 @@ if (docnovaAiBot) {
 
         await updateAcademicTaskStage(taskId, "GEMINI_GEN");
 
-        const res = await generateExamDoc({
+        const res = await generateAcademicDocument({
+          workType: "exam",
           userId: user.id,
           userPlan: sub.plan,
           topic,
+          taskId,
+          telegramId: tgId,
+          releaseLockOnExit: false,
         });
 
         if (res.success) {
@@ -2258,7 +2257,10 @@ if (docnovaAiBot) {
             },
             taskId
           );
-          taskCompleted = true;
+          const finalTask = await getAcademicTask(taskId);
+          if (finalTask?.status === "COMPLETED") {
+            taskCompleted = true;
+          }
         } else {
           await failAcademicTask(
             taskId,
@@ -2278,14 +2280,7 @@ if (docnovaAiBot) {
       } finally {
         if (!taskCompleted) {
           try {
-            const currentTask = await getAcademicTask(taskId);
-            if (
-              currentTask &&
-              currentTask.status !== "COMPLETED" &&
-              currentTask.status !== "FAILED"
-            ) {
-              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-            }
+            await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
           } catch (e) {
             console.error("[FINALLY_FAIL_TASK_ERR]", e);
           }
@@ -2307,10 +2302,9 @@ if (docnovaAiBot) {
       return;
     }
 
-    // 1. Debounce guard: prevent concurrent duplicate taps
+    // 1. Debounce guard: prevent concurrent duplicate taps without sending warning message
     const lock = await acquireUserLock(ctx.from.id, 20);
     if (!lock.acquired) {
-      await ctx.reply("⏳ Hujjat yuborilmoqda, iltimos kuting...");
       return;
     }
 

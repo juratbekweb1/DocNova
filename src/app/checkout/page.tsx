@@ -1,47 +1,47 @@
-'use client';
+"use client";
 
-import { useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
-import { CreditCard, ShieldCheck, CheckCircle, Loader2, Lock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useLanguage } from '@/components/providers/language-provider';
+import { useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { motion } from "motion/react";
+import { CreditCard, ShieldCheck, CheckCircle, Loader2, Lock } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 function CheckoutContent() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const _router = useRouter();
-  const { data: session, status } = useSession();
-  
-  const plan = searchParams?.get('plan') === 'premium' ? 'premium' : 'pro';
-  
+  const { status } = useSession();
+
+  const plan = searchParams?.get("plan") === "premium" ? "premium" : "pro";
+
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [name, setName] = useState("");
+  const [provider, setProvider] = useState<"click" | "payme" | "payx">("click");
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // If not logged in, redirect to login
-  if (status === 'unauthenticated') {
+  if (status === "unauthenticated") {
     _router.push(`/login?callbackUrl=/checkout?plan=${plan}`);
     return null;
   }
-  
-  const isPremium = plan === 'premium';
+
+  const isPremium = plan === "premium";
   const planName = isPremium ? t.premiumPlan : t.proPlan;
   const planPrice = isPremium ? t.pricePremium : t.pricePro;
   const planDesc = isPremium ? t.premiumPlanDesc : t.proPlanDesc;
 
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [name, setName] = useState('');
-
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
     const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
+    const match = (matches && matches[0]) || "";
     const parts = [];
     for (let i = 0, len = match.length; i < len; i += 4) {
       parts.push(match.substring(i, i + 4));
     }
     if (parts.length) {
-      return parts.join(' ');
+      return parts.join(" ");
     } else {
       return value;
     }
@@ -50,150 +50,198 @@ function CheckoutContent() {
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    
+
     try {
-      const res = await fetch('/api/checkout/payx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: plan })
+      const endpoint = provider === "payx" ? "/api/checkout/payx" : "/api/payments/checkout";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: provider === "payx" ? plan : plan.toUpperCase(),
+          provider,
+        }),
       });
-      
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || "Failed to generate payment url");
       }
-      
+
       const data = await res.json();
-      
-      if (data.pay_url) {
-        window.location.href = data.pay_url;
+      const targetUrl = data.pay_url || data.paymentUrl || data.url;
+
+      if (targetUrl) {
+        window.location.href = targetUrl;
       } else {
         throw new Error("No payment url returned");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "To'lov tizimi bilan bog'lanishda xatolik yuz berdi";
       console.error(err);
       setIsProcessing(false);
-      alert(`Xatolik: ${err.message || "To'lov tizimi bilan bog'lanishda xatolik yuz berdi"}`);
+      alert(`Xatolik: ${errorMsg}`);
     }
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-foreground relative overflow-hidden">
-      
-      <main className="max-w-7xl mx-auto px-6 py-12 lg:py-24 relative z-10">
+    <div className="text-foreground relative min-h-screen overflow-hidden bg-transparent">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-12 lg:py-24">
         <div className="mb-12">
           <h1 className="text-3xl font-extrabold sm:text-4xl">{t.checkoutTitle}</h1>
-          <p className="mt-4 text-foreground-secondary max-w-2xl">{t.checkoutDesc}</p>
+          <p className="text-foreground-secondary mt-4 max-w-2xl">{t.checkoutDesc}</p>
         </div>
 
-        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-24">
+        <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-24">
           {/* Payment Form */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="mb-6 flex items-center gap-2 text-xl font-bold">
+              <CreditCard className="text-primary h-5 w-5" />
               {t.paymentMethod}
             </h2>
-            
-            <form onSubmit={handlePayment} className="space-y-6 bg-surface-elevated/50 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-border shadow-lg">
+
+            <form
+              onSubmit={handlePayment}
+              className="bg-surface-elevated/50 border-border space-y-6 rounded-3xl border p-6 shadow-lg backdrop-blur-xl sm:p-8"
+            >
+              <div className="grid grid-cols-3 gap-2">
+                {(["click", "payme", "payx"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setProvider(p)}
+                    className={`cursor-pointer rounded-xl border py-2.5 text-xs font-bold uppercase transition-all ${
+                      provider === p
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-border bg-surface text-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.cardNumber}</label>
+                  <label className="text-foreground-secondary mb-2 block text-sm font-semibold">
+                    {t.cardNumber}
+                  </label>
                   <div className="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       placeholder="0000 0000 0000 0000"
                       maxLength={19}
                       value={cardNumber}
                       onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 pl-12 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="bg-surface border-border text-foreground placeholder-foreground-secondary/50 focus:border-primary focus:ring-primary w-full rounded-xl border px-4 py-3.5 pl-12 transition-all focus:ring-1 focus:outline-none"
                     />
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-secondary" />
+                    <CreditCard className="text-foreground-secondary absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.cardHolder}</label>
-                  <input 
-                    type="text" 
+                  <label className="text-foreground-secondary mb-2 block text-sm font-semibold">
+                    {t.cardHolder}
+                  </label>
+                  <input
+                    type="text"
                     required
                     placeholder="John Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="bg-surface border-border text-foreground placeholder-foreground-secondary/50 focus:border-primary focus:ring-primary w-full rounded-xl border px-4 py-3.5 transition-all focus:ring-1 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-foreground-secondary mb-2">{t.expiryDate}</label>
-                  <input 
-                    type="text" 
+                  <label className="text-foreground-secondary mb-2 block text-sm font-semibold">
+                    {t.expiryDate}
+                  </label>
+                  <input
+                    type="text"
                     required
                     placeholder="MM/YY"
                     maxLength={5}
                     value={expiry}
                     onChange={(e) => {
-                      let val = e.target.value.replace(/[^0-9]/g, '');
-                      if (val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
+                      let val = e.target.value.replace(/[^0-9]/g, "");
+                      if (val.length > 2) val = val.substring(0, 2) + "/" + val.substring(2, 4);
                       setExpiry(val);
                     }}
-                    className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-foreground placeholder-foreground-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="bg-surface border-border text-foreground placeholder-foreground-secondary/50 focus:border-primary focus:ring-primary w-full rounded-xl border px-4 py-3.5 transition-all focus:ring-1 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={isProcessing}
-                className="w-full mt-8 relative group overflow-hidden rounded-xl bg-primary p-px font-bold text-primary-foreground transition-all hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.5)] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
+                className="group bg-primary text-primary-foreground relative mt-8 w-full overflow-hidden rounded-xl p-px font-bold shadow-lg transition-all hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.5)] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <div className="relative flex items-center justify-center gap-2 bg-primary px-6 py-4 rounded-xl">
+                <div className="bg-primary relative flex items-center justify-center gap-2 rounded-xl px-6 py-4">
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                       {t.processing}
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4" />
+                      <Lock className="h-4 w-4" />
                       {t.payNow} — {planPrice}
                     </>
                   )}
                 </div>
               </button>
-              <p className="text-center text-xs text-foreground-secondary mt-4 flex items-center justify-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
+              <p className="text-foreground-secondary mt-4 flex items-center justify-center gap-1.5 text-center text-xs">
+                <ShieldCheck className="h-3.5 w-3.5" />
                 Payments are secure and encrypted
               </p>
             </form>
           </motion.div>
 
           {/* Order Summary */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-            <div className={`relative p-8 rounded-3xl border overflow-hidden shadow-lg ${isPremium ? 'bg-surface-elevated/40 border-violet-500/30' : 'bg-surface-elevated/40 border-primary/30'}`}>
-              <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none ${isPremium ? 'bg-violet-500/10' : 'bg-primary/10'}`} />
-              
-              <h2 className="text-xl font-bold mb-6 relative z-10 text-foreground">{t.orderSummary}</h2>
-              
-              <div className="relative z-10 pb-6 border-b border-border mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-lg text-foreground-secondary font-medium">{planName}</span>
-                  <span className="text-3xl font-black text-foreground">{planPrice}</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div
+              className={`relative overflow-hidden rounded-3xl border p-8 shadow-lg ${isPremium ? "bg-surface-elevated/40 border-violet-500/30" : "bg-surface-elevated/40 border-primary/30"}`}
+            >
+              <div
+                className={`pointer-events-none absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${isPremium ? "bg-violet-500/10" : "bg-primary/10"}`}
+              />
+
+              <h2 className="text-foreground relative z-10 mb-6 text-xl font-bold">
+                {t.orderSummary}
+              </h2>
+
+              <div className="border-border relative z-10 mb-6 border-b pb-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-foreground-secondary text-lg font-medium">{planName}</span>
+                  <span className="text-foreground text-3xl font-black">{planPrice}</span>
                 </div>
-                <p className="text-sm text-foreground-secondary">{planDesc}</p>
+                <p className="text-foreground-secondary text-sm">{planDesc}</p>
               </div>
 
-              <ul className="space-y-4 relative z-10">
+              <ul className="relative z-10 space-y-4">
                 {[
                   t.featAiWritingTitle,
                   t.featAtsTitle,
                   t.featExportTitle,
                   t.featPreviewTitle,
                   t.featTemplatesTitle,
-                  t.featVersionsTitle
+                  t.featVersionsTitle,
                 ].map((feat, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className={`w-5 h-5 shrink-0 ${isPremium ? 'text-violet-500' : 'text-primary'}`} />
+                    <CheckCircle
+                      className={`h-5 w-5 shrink-0 ${isPremium ? "text-violet-500" : "text-primary"}`}
+                    />
                     <span className="text-foreground text-sm font-medium">{feat}</span>
                   </li>
                 ))}

@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fulfillPaymentTransaction, cancelPaymentTransaction } from "@/lib/billing/provider";
 import crypto from "crypto";
+
+async function parseClickBody(req: Request): Promise<Record<string, string>> {
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const json = await req.json().catch(() => ({}));
+    const result: Record<string, string> = {};
+    for (const [k, v] of Object.entries(json || {})) {
+      if (v !== undefined && v !== null) result[k] = String(v);
+    }
+    return result;
+  }
+  const formData = await req.formData();
+  const result: Record<string, string> = {};
+  for (const [k, v] of formData.entries()) {
+    result[k] = String(v);
+  }
+  return result;
+}
 
 export async function POST(req: Request) {
   try {
@@ -15,19 +34,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const formData = await req.formData();
-    const body = Object.fromEntries(formData.entries());
+    const body = await parseClickBody(req);
 
-    const clickTransId = body.click_trans_id as string;
-    const serviceId = body.service_id as string;
-    const _clickPaydocId = body.click_paydoc_id as string;
-    const merchantTransId = body.merchant_trans_id as string; // transaction.id in our DB
-    const amount = body.amount as string;
-    const action = body.action as string; // 0 = Prepare, 1 = Complete
-    const error = body.error as string;
-    const errorNote = body.error_note as string;
-    const signTime = body.sign_time as string;
-    const signString = body.sign_string as string;
+    const clickTransId = body.click_trans_id || "";
+    const serviceId = body.service_id || "";
+    const merchantTransId = body.merchant_trans_id || "";
+    const merchantPrepareId = body.merchant_prepare_id || "";
+    const amount = body.amount || "";
+    const action = body.action || ""; // 0 = Prepare, 1 = Complete
+    const error = body.error || "0";
+    const errorNote = body.error_note || "";
+    const signTime = body.sign_time || "";
+    const signString = (body.sign_string || "").toLowerCase();
 
     // 2. Validate Click Service ID if configured
     const configuredServiceId = process.env.CLICK_SERVICE_ID;
@@ -36,17 +54,31 @@ export async function POST(req: Request) {
     }
 
     // 3. Validate Digital Signature (MD5 hash according to Click specification)
-    const mySignString = `${clickTransId}${serviceId}${clickSecretKey}${merchantTransId}${amount}${action}${signTime}`;
-    const generatedSign = crypto.createHash("md5").update(mySignString).digest("hex");
+    // Click Prepare (action=0): md5(click_trans_id + service_id + SECRET_KEY + merchant_trans_id + amount + action + sign_time)
+    // Click Complete (action=1): md5(click_trans_id + service_id + SECRET_KEY + merchant_trans_id + merchant_prepare_id + amount + action + sign_time)
+    const signWithoutPrepare = crypto
+      .createHash("md5")
+      .update(
+        `${clickTransId}${serviceId}${clickSecretKey}${merchantTransId}${amount}${action}${signTime}`
+      )
+      .digest("hex")
+      .toLowerCase();
 
-    if (generatedSign !== signString) {
+    const signWithPrepare = crypto
+      .createHash("md5")
+      .update(
+        `${clickTransId}${serviceId}${clickSecretKey}${merchantTransId}${merchantPrepareId}${amount}${action}${signTime}`
+      )
+      .digest("hex")
+      .toLowerCase();
+
+    if (signString !== signWithoutPrepare && signString !== signWithPrepare) {
       return NextResponse.json({ error: "-1", error_note: "SIGN CHECK FAILED" });
     }
 
     // 4. Find Transaction in Database
     const transaction = await prisma.transaction.findUnique({
       where: { id: merchantTransId },
-      include: { user: true },
     });
 
     if (!transaction) {
@@ -54,12 +86,20 @@ export async function POST(req: Request) {
     }
 
     // 5. Amount check
-    if (parseFloat(amount) !== transaction.amount) {
-      return NextResponse.json({ error: "-2", error_note: "Incorrect amount" });
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || Math.abs(numericAmount - transaction.amount) > 0.01) {
+      return NextResponse.json({ error: "-2", error_note: "Incorrect parameter amount" });
     }
 
     if (action === "0") {
       // PREPARE
+      if (transaction.status === "PAID" || transaction.status === "COMPLETED") {
+        return NextResponse.json({ error: "-4", error_note: "Already paid" });
+      }
+      if (transaction.status === "CANCELED" || transaction.status === "FAILED") {
+        return NextResponse.json({ error: "-9", error_note: "Transaction cancelled" });
+      }
+
       return NextResponse.json({
         click_trans_id: clickTransId,
         merchant_trans_id: merchantTransId,
@@ -69,6 +109,17 @@ export async function POST(req: Request) {
       });
     } else if (action === "1") {
       // COMPLETE
+      if (parseInt(error, 10) < 0 || error !== "0") {
+        await cancelPaymentTransaction(transaction.id, "FAILED");
+        return NextResponse.json({
+          click_trans_id: clickTransId,
+          merchant_trans_id: merchantTransId,
+          merchant_confirm_id: transaction.id,
+          error: -9,
+          error_note: errorNote || "Transaction cancelled",
+        });
+      }
+
       // Idempotency: if already paid or completed, return success immediately without re-granting
       if (transaction.status === "PAID" || transaction.status === "COMPLETED") {
         return NextResponse.json({
@@ -80,43 +131,25 @@ export async function POST(req: Request) {
         });
       }
 
-      if (error === "0") {
-        // Successful payment
-        await prisma.$transaction(async (tx) => {
-          await tx.transaction.update({
-            where: { id: merchantTransId },
-            data: { status: "PAID" },
-          });
-
-          const planName = transaction.amount >= 60000 ? "PREMIUM" : "PRO";
-          const endDate = new Date();
-          endDate.setDate(endDate.getDate() + 30); // Add 30 days
-
-          await tx.user.update({
-            where: { id: transaction.userId },
-            data: {
-              plan: planName,
-              paymentStatus: "PAID",
-              subscriptionEndDate: endDate,
-            },
-          });
-        });
-
+      if (transaction.status === "CANCELED") {
         return NextResponse.json({
           click_trans_id: clickTransId,
           merchant_trans_id: merchantTransId,
           merchant_confirm_id: transaction.id,
-          error: 0,
-          error_note: "Success",
+          error: -9,
+          error_note: "Transaction cancelled",
         });
-      } else {
-        // Payment failed
-        await prisma.transaction.update({
-          where: { id: merchantTransId },
-          data: { status: "FAILED" },
-        });
-        return NextResponse.json({ error: "-9", error_note: errorNote });
       }
+
+      await fulfillPaymentTransaction(transaction.id, "CLICK");
+
+      return NextResponse.json({
+        click_trans_id: clickTransId,
+        merchant_trans_id: merchantTransId,
+        merchant_confirm_id: transaction.id,
+        error: 0,
+        error_note: "Success",
+      });
     }
 
     return NextResponse.json({ error: "-3", error_note: "Action not found" });

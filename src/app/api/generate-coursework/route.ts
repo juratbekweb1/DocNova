@@ -598,7 +598,7 @@ export function generateAcademicPages(
   } = data;
 
   const currentYear = year || new Date().getFullYear().toString();
-  const targetPages = Math.max(10, Math.min(100, parseInt(pageCount || "19", 10) || 19));
+  const targetPages = Math.max(1, Math.min(500, parseInt(pageCount || "19", 10) || 19));
 
   const isRu = language === "ru";
   const isCyrl = language === "uz-cyrl";

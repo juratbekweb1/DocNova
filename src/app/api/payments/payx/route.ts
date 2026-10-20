@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fulfillPaymentTransaction, cancelPaymentTransaction } from "@/lib/billing/provider";
 
 export async function POST(req: Request) {
   try {
@@ -35,11 +36,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    console.log("[PAYX_WEBHOOK_VERIFIED]", {
-      order_id: body.payer_reference || body.reference,
-      status: body.status,
-    });
-
     const reference = body.payer_reference || body.reference || body.order_id;
     const status = (body.status || "").toString().toLowerCase();
     const amount = body.amount !== undefined ? parseFloat(body.amount) : undefined;
@@ -70,7 +66,7 @@ export async function POST(req: Request) {
 
     // 5. Amount integrity check
     if (amount !== undefined && !isNaN(amount)) {
-      if (amount !== transaction.amount) {
+      if (Math.abs(amount - transaction.amount) > 0.01) {
         console.error(
           `[PAYX_AMOUNT_MISMATCH] Transaction ${transaction.id}: Expected ${transaction.amount}, received ${amount}`
         );
@@ -81,95 +77,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // 6. Process payment status
+    // 6. Process payment status idempotently
     const isSuccess = ["paid", "completed", "success", "approved"].includes(status);
 
     if (isSuccess) {
-      const planSlug = transaction.amount >= 60000 ? "premium" : "pro";
-      const planTier = transaction.amount >= 60000 ? "PREMIUM" : "PRO";
-      const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-      await prisma.$transaction(async (tx) => {
-        // A. Mark transaction as COMPLETED
-        await tx.transaction.update({
-          where: { id: transaction.id },
-          data: { status: "COMPLETED" },
-        });
-
-        // B. Activate user plan in User table
-        await tx.user.update({
-          where: { id: transaction.userId },
-          data: {
-            plan: planTier,
-            paymentStatus: "PAID",
-            subscriptionEndDate: nextMonth,
-          },
-        });
-
-        // C. Maintain organization subscription
-        let orgUser = await tx.organizationUser.findFirst({
-          where: { userId: transaction.userId, role: "OWNER" },
-        });
-
-        if (!orgUser) {
-          const org = await tx.organization.create({
-            data: {
-              name: `Personal Workspace`,
-              slug: `personal-${Date.now()}`,
-            },
-          });
-          orgUser = await tx.organizationUser.create({
-            data: {
-              organizationId: org.id,
-              userId: transaction.userId,
-              role: "OWNER",
-            },
-          });
-        }
-
-        let plan = await tx.plan.findUnique({ where: { slug: planSlug } });
-        if (!plan) {
-          plan = await tx.plan.create({
-            data: {
-              name: planSlug === "premium" ? "DocNova Premium" : "DocNova Pro",
-              slug: planSlug,
-              features: {
-                isPremium: true,
-              },
-            },
-          });
-        }
-
-        const existingSub = await tx.subscription.findFirst({
-          where: { organizationId: orgUser.organizationId, status: "active" },
-        });
-
-        if (existingSub) {
-          await tx.subscription.update({
-            where: { id: existingSub.id },
-            data: {
-              planId: plan.id,
-              currentPeriodEnd: nextMonth,
-            },
-          });
-        } else {
-          await tx.subscription.create({
-            data: {
-              organizationId: orgUser.organizationId,
-              planId: plan.id,
-              status: "active",
-              currentPeriodEnd: nextMonth,
-            },
-          });
-        }
-      });
-
+      await fulfillPaymentTransaction(transaction.id, "PAYX");
       return NextResponse.json({ success: true, message: "Payment processed successfully" });
-    } else if (["failed", "cancelled", "rejected"].includes(status)) {
-      await prisma.transaction.update({
-        where: { id: transaction.id },
-        data: { status: "FAILED" },
-      });
+    } else if (["failed", "cancelled", "canceled", "rejected"].includes(status)) {
+      await cancelPaymentTransaction(transaction.id, "FAILED");
       return NextResponse.json({ success: true, message: "Transaction marked as failed" });
     }
 

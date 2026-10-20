@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { buildProviderPaymentUrl } from "@/lib/billing/provider";
 
 export async function POST(req: Request) {
   try {
@@ -10,32 +11,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { plan, provider } = body; // e.g., plan: 'PRO', provider: 'click' | 'payme'
+    const body = await req.json().catch(() => ({}));
+    const rawPlan = (body.plan || "").toString().trim().toUpperCase();
+    const rawProvider = (body.provider || "click").toString().trim().toLowerCase();
+    const billingCycle = body.billingCycle === "yearly" ? "yearly" : "monthly";
 
-    if (!["PRO", "PREMIUM"].includes(plan) || !["click", "payme"].includes(provider)) {
+    if (
+      !["PRO", "PREMIUM"].includes(rawPlan) ||
+      !["click", "payme", "payx"].includes(rawProvider)
+    ) {
       return NextResponse.json({ error: "Invalid plan or provider" }, { status: 400 });
     }
 
-    // Prepare transaction or payment link generation logic here.
-    // E.g., fetch price based on plan, create a transaction record with 'PENDING' status,
-    // and generate a redirect URL to Click or Payme gateway.
+    const isYearly = billingCycle === "yearly";
+    const amount =
+      rawPlan === "PREMIUM" ? (isYearly ? 662_000 : 69_000) : isYearly ? 374_000 : 39_000;
 
     const transaction = await prisma.transaction.create({
       data: {
         userId: session.user.id,
-        amount: plan === "PRO" ? 39000 : 69000, // UZS
-        provider: provider.toUpperCase(),
+        amount,
+        provider: rawProvider.toUpperCase(),
         status: "PENDING",
       },
     });
 
-    const paymentUrl =
-      provider === "click"
-        ? `https://my.click.uz/services/pay?service_id=123&merchant_id=456&amount=${transaction.amount}&transaction_param=${transaction.id}`
-        : `https://checkout.paycom.uz/base64encodedStringHere`; // Payme URL
+    const paymentUrl = buildProviderPaymentUrl({
+      provider: rawProvider as "click" | "payme" | "payx",
+      transactionId: transaction.id,
+      amountUzs: transaction.amount,
+      returnUrl: body.returnUrl,
+    });
 
-    return NextResponse.json({ paymentUrl, transactionId: transaction.id });
+    return NextResponse.json({
+      paymentUrl,
+      pay_url: paymentUrl,
+      transactionId: transaction.id,
+    });
   } catch (error) {
     console.error("Payment API error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
