@@ -3,8 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { fulfillPaymentTransaction, cancelPaymentTransaction } from "@/lib/billing/provider";
 import crypto from "crypto";
 
+function toNumericPrepareId(clickTransId: string, transactionId: string): number {
+  const parsedClickId = parseInt(clickTransId, 10);
+  if (!Number.isNaN(parsedClickId) && parsedClickId > 0) {
+    return parsedClickId;
+  }
+  let hash = 0;
+  for (let i = 0; i < transactionId.length; i++) {
+    hash = (hash * 31 + transactionId.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) || 1;
+}
+
 async function parseClickBody(req: Request): Promise<Record<string, string>> {
-  const contentType = req.headers.get("content-type") || "";
+  const contentType = (req.headers.get("content-type") || "").toLowerCase();
   if (contentType.includes("application/json")) {
     const json = await req.json().catch(() => ({}));
     const result: Record<string, string> = {};
@@ -13,12 +25,29 @@ async function parseClickBody(req: Request): Promise<Record<string, string>> {
     }
     return result;
   }
-  const formData = await req.formData();
-  const result: Record<string, string> = {};
-  for (const [k, v] of formData.entries()) {
-    result[k] = String(v);
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    const result: Record<string, string> = {};
+    for (const [k, v] of formData.entries()) {
+      result[k] = String(v);
+    }
+    return result;
   }
-  return result;
+  // Default: application/x-www-form-urlencoded or fallback text/formData
+  try {
+    const rawText = await req.text();
+    const params = new URLSearchParams(rawText);
+    const result: Record<string, string> = {};
+    for (const [k, v] of params.entries()) {
+      result[k] = v;
+    }
+    if (Object.keys(result).length > 0) {
+      return result;
+    }
+  } catch {
+    // ignore
+  }
+  return {};
 }
 
 export async function POST(req: Request) {
@@ -91,6 +120,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "-2", error_note: "Incorrect parameter amount" });
     }
 
+    const numericPrepareId = toNumericPrepareId(clickTransId, transaction.id);
+
     if (action === "0") {
       // PREPARE
       if (transaction.status === "PAID" || transaction.status === "COMPLETED") {
@@ -103,7 +134,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         click_trans_id: clickTransId,
         merchant_trans_id: merchantTransId,
-        merchant_prepare_id: transaction.id,
+        merchant_prepare_id: numericPrepareId,
         error: 0,
         error_note: "Success",
       });
@@ -114,7 +145,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           click_trans_id: clickTransId,
           merchant_trans_id: merchantTransId,
-          merchant_confirm_id: transaction.id,
+          merchant_confirm_id: numericPrepareId,
           error: -9,
           error_note: errorNote || "Transaction cancelled",
         });
@@ -125,7 +156,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           click_trans_id: clickTransId,
           merchant_trans_id: merchantTransId,
-          merchant_confirm_id: transaction.id,
+          merchant_confirm_id: numericPrepareId,
           error: 0,
           error_note: "Already paid",
         });
@@ -135,7 +166,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           click_trans_id: clickTransId,
           merchant_trans_id: merchantTransId,
-          merchant_confirm_id: transaction.id,
+          merchant_confirm_id: numericPrepareId,
           error: -9,
           error_note: "Transaction cancelled",
         });
@@ -146,7 +177,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         click_trans_id: clickTransId,
         merchant_trans_id: merchantTransId,
-        merchant_confirm_id: transaction.id,
+        merchant_confirm_id: numericPrepareId,
         error: 0,
         error_note: "Success",
       });

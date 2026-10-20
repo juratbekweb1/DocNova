@@ -18,6 +18,7 @@ function CheckoutContent() {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [provider, setProvider] = useState<"click" | "payme" | "payx">("click");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -52,6 +53,8 @@ function CheckoutContent() {
     setIsProcessing(true);
 
     try {
+      const cleanCard = cardNumber.replace(/\s+/g, "");
+      const detectedCardType = cleanCard.startsWith("9860") ? "humo" : "uzcard";
       const endpoint = provider === "payx" ? "/api/checkout/payx" : "/api/payments/checkout";
       const res = await fetch(endpoint, {
         method: "POST",
@@ -59,6 +62,8 @@ function CheckoutContent() {
         body: JSON.stringify({
           plan: provider === "payx" ? plan : plan.toUpperCase(),
           provider,
+          cardType: detectedCardType,
+          phoneNumber,
         }),
       });
 
@@ -128,13 +133,25 @@ function CheckoutContent() {
               <div className="space-y-4">
                 <div>
                   <label className="text-foreground-secondary mb-2 block text-sm font-semibold">
+                    Telefon raqami (Click / SMS tasdiqlash)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+998 90 123 45 67"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="bg-surface border-border text-foreground placeholder-foreground-secondary/50 focus:border-primary focus:ring-primary w-full rounded-xl border px-4 py-3.5 transition-all focus:ring-1 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-foreground-secondary mb-2 block text-sm font-semibold">
                     {t.cardNumber}
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      required
-                      placeholder="0000 0000 0000 0000"
+                      placeholder="8600 / 9860 **** **** ****"
                       maxLength={19}
                       value={cardNumber}
                       onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
@@ -150,7 +167,6 @@ function CheckoutContent() {
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="John Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -164,7 +180,6 @@ function CheckoutContent() {
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="MM/YY"
                     maxLength={5}
                     value={expiry}

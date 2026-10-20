@@ -299,18 +299,36 @@ export function buildProviderPaymentUrl(params: {
   transactionId: string;
   amountUzs: number;
   returnUrl?: string;
+  cardType?: "uzcard" | "humo";
 }): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.docnova.uz";
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.docnova.uz").replace(/\/$/, "");
   const redirectUrl = params.returnUrl || `${appUrl}/dashboard?payment=success`;
 
   if (params.provider === "click") {
-    const serviceId = process.env.CLICK_SERVICE_ID || "123";
-    const merchantId = process.env.CLICK_MERCHANT_ID || "456";
-    return `https://my.click.uz/services/pay?service_id=${encodeURIComponent(serviceId)}&merchant_id=${encodeURIComponent(merchantId)}&amount=${params.amountUzs}&transaction_param=${encodeURIComponent(params.transactionId)}&return_url=${encodeURIComponent(redirectUrl)}`;
+    const serviceId = (process.env.CLICK_SERVICE_ID || "").trim();
+    const merchantId = (process.env.CLICK_MERCHANT_ID || "").trim();
+    const merchantUserId = (process.env.CLICK_MERCHANT_USER_ID || "").trim();
+
+    const query = new URLSearchParams({
+      service_id: serviceId,
+      merchant_id: merchantId,
+      amount: Number(params.amountUzs).toFixed(2),
+      transaction_param: params.transactionId,
+      return_url: redirectUrl,
+    });
+
+    if (merchantUserId) {
+      query.set("merchant_user_id", merchantUserId);
+    }
+    if (params.cardType) {
+      query.set("card_type", params.cardType);
+    }
+
+    return `https://my.click.uz/services/pay?${query.toString()}`;
   }
 
   if (params.provider === "payme") {
-    const merchantId = process.env.PAYME_MERCHANT_ID || "docnova_merchant";
+    const merchantId = (process.env.PAYME_MERCHANT_ID || "").trim();
     const amountTiyin = Math.round(params.amountUzs * 100);
     const payload = `m=${merchantId};ac.transaction_id=${params.transactionId};a=${amountTiyin};c=${redirectUrl}`;
     const encoded = Buffer.from(payload, "utf-8").toString("base64");
@@ -318,6 +336,54 @@ export function buildProviderPaymentUrl(params: {
   }
 
   return `${redirectUrl}&transaction_id=${encodeURIComponent(params.transactionId)}`;
+}
+
+/**
+ * Direct Click Shop API Invoice fallback (sends invoice directly to user's phone number / Click app
+ * when QR scan is unavailable or under maintenance).
+ */
+export async function createClickPhoneInvoice(params: {
+  transactionId: string;
+  amountUzs: number;
+  phoneNumber: string;
+}): Promise<{ ok: boolean; invoiceId?: number; errorNote?: string }> {
+  const serviceId = Number(process.env.CLICK_SERVICE_ID);
+  const merchantUserId = (process.env.CLICK_MERCHANT_USER_ID || "").trim();
+  const secretKey = (process.env.CLICK_SECRET_KEY || "").trim();
+
+  if (!serviceId || !merchantUserId || !secretKey) {
+    return { ok: false, errorNote: "Click API credentials missing" };
+  }
+
+  const cleanPhone = params.phoneNumber.replace(/\D/g, "");
+  const normalizedPhone = cleanPhone.startsWith("998") ? cleanPhone : `998${cleanPhone}`;
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const digest = crypto.createHash("sha1").update(`${timestamp}${secretKey}`).digest("hex");
+
+  const res = await fetch("https://api.click.uz/v2/merchant/invoice/create", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Auth: `${merchantUserId}:${digest}:${timestamp}`,
+    },
+    body: JSON.stringify({
+      service_id: serviceId,
+      amount: Number(params.amountUzs),
+      phone_number: normalizedPhone,
+      merchant_trans_id: params.transactionId,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.error_code === 0) {
+    return { ok: true, invoiceId: data.invoice_id };
+  }
+  return {
+    ok: false,
+    errorNote: data.error_note || `HTTP ${res.status}`,
+  };
 }
 
 class DocNovaPaymentProvider implements PaymentProvider {
