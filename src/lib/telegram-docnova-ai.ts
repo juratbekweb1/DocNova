@@ -10,11 +10,29 @@ const botToken = process.env.DOCNOVA_AI_BOT_TOKEN;
 export const docnovaAiBot = botToken ? new Bot(botToken) : null;
 
 export interface BotWizardState {
-  type: "coursework" | "referat" | "bmi" | "presentation" | "essay" | "exam";
-  step: "topic" | "subject" | "length" | "slidesCount" | "confirm" | "editing" | "editing_input";
+  type:
+    | "coursework"
+    | "referat"
+    | "bmi"
+    | "presentation"
+    | "essay"
+    | "exam"
+    | "feedback"
+    | "pdf_to_word";
+  step:
+    | "topic"
+    | "subject"
+    | "length"
+    | "slidesCount"
+    | "confirm"
+    | "editing"
+    | "editing_input"
+    | "feedback_input"
+    | "pdf_wait";
   topic?: string;
   subject?: string;
   length?: string;
+  pageCount?: string;
   slidesCount?: number;
   language?: "uz" | "ru";
   specialty?: string;
@@ -172,10 +190,12 @@ export async function getLinkedUser(telegramId: string | number) {
 export function getMainReplyKeyboard() {
   return new Keyboard()
     .text("🎓 Talabalar uchun")
+    .text("📄 PDF → Word (.doc)")
     .row()
     .text("💎 Tarif va limitlar")
     .text("👤 Mening akkauntim")
     .row()
+    .text("💬 Fikr bildirish")
     .text("🌐 DocNova sayti")
     .text("❓ Yordam")
     .resized();
@@ -191,6 +211,25 @@ export function getStudentInlineMenu() {
     .row()
     .text("✍️ Insho / Esse", "wiz_essay")
     .text("📝 Imtihon biletlari", "wiz_exam")
+    .row()
+    .text("📄 PDF → Word (.doc)", "wiz_pdf_to_word")
+    .text("💬 Fikr bildirish", "wiz_feedback")
+    .row()
+    .text("❌ Bekor qilish", "wiz_cancel");
+}
+
+/**
+ * Keyboard for selecting initial page count (15, 25, 50, 100, 200, 300 or custom)
+ */
+export function getInitialPageCountKeyboard(prefix: "cw_pages" | "ref_pages" | "bmi_pages") {
+  return new InlineKeyboard()
+    .text("📄 15 bet", `${prefix}:15`)
+    .text("📄 25 bet", `${prefix}:25`)
+    .text("📄 50 bet", `${prefix}:50`)
+    .row()
+    .text("📄 100 bet", `${prefix}:100`)
+    .text("📄 200 bet", `${prefix}:200`)
+    .text("📄 300 bet", `${prefix}:300`)
     .row()
     .text("❌ Bekor qilish", "wiz_cancel");
 }
@@ -304,9 +343,13 @@ export function getLengthOptionsKeyboard() {
     .text("📄 10-15 bet", "len_10_15")
     .text("📄 20-25 bet", "len_20_25")
     .row()
-    .text("📄 30+ bet (To'liq hajm)", "len_30_plus")
+    .text("📄 50 bet", "len_50")
+    .text("📄 100 bet", "len_100")
     .row()
-    .text("✏️ Aniq bet sonini kiritish", "len_custom")
+    .text("📄 200 bet", "len_200")
+    .text("📄 300 bet", "len_300")
+    .row()
+    .text("✏️ Xohlagan bet sonini kiritish (1-500)", "len_custom")
     .row()
     .text("⬅️ Orqaga", "ed_menu");
 }

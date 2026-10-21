@@ -11,6 +11,7 @@ import {
   getLinkedUser,
   getMainReplyKeyboard,
   getStudentInlineMenu,
+  getInitialPageCountKeyboard,
   getDocumentEditKeyboard,
   getRewriteOptionsKeyboard,
   getPartSelectionKeyboard,
@@ -619,6 +620,140 @@ if (docnovaAiBot) {
         `_Masalan: Ehtimollar nazariyasi va matematik statistika_`,
       { parse_mode: "Markdown" }
     );
+  });
+
+  docnovaAiBot.callbackQuery("wiz_pdf_to_word", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    await setBotSession(ctx.from.id, { type: "pdf_to_word", step: "pdf_wait" });
+    await ctx.reply(
+      `📄 *PDF dan Word (.doc) ga o'tkazish*\n\n` +
+        `Marhamat, o'zingizdagi *.pdf* faylni shu chatga yuboring (maksimal 20 MB).\n\n` +
+        `🤖 Bot PDF ichidagi barcha matnlarni o'qib olib, sizga tayyor *Microsoft Word (.doc)* formatida qaytarib beradi!`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  docnovaAiBot.callbackQuery("wiz_feedback", async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    await setBotSession(ctx.from.id, { type: "feedback", step: "feedback_input" });
+    await ctx.reply(
+      `💬 *Fikr, taklif va kamchiliklarni bildirish*\n\n` +
+        `Sayt yoki bot ishlashida qandaydir kamchilik, tushunmovchilik yoki taklifingiz bo'lsa, marhamat, shu yerga yozib yuboring.\n\n` +
+        `📬 _Xabaringiz to'g'ridan-to'g'ri DocNova loyiha rahbariyatiga yetkaziladi:_`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  docnovaAiBot.command(["feedback", "fikr"], async (ctx) => {
+    if (!ctx.from) return;
+    await setBotSession(ctx.from.id, { type: "feedback", step: "feedback_input" });
+    await ctx.reply(
+      `💬 *Fikr, taklif va kamchiliklarni bildirish*\n\n` +
+        `Sayt yoki bot ishlashida qandaydir kamchilik, tushunmovchilik yoki taklifingiz bo'lsa, marhamat, shu yerga yozib yuboring.\n\n` +
+        `📬 _Xabaringiz to'g'ridan-to'g'ri DocNova loyiha rahbariyatiga yetkaziladi:_`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  // Page count callbacks for Coursework, Referat, and BMI (15, 25, 50, 100, 200, 300)
+  docnovaAiBot.callbackQuery(/^(cw_pages|ref_pages|bmi_pages):(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    if (!ctx.from) return;
+    const tgId = ctx.from.id;
+    const prefix = ctx.match[1];
+    const selectedPages = ctx.match[2];
+    const session = await getBotSession(tgId);
+    const user = await getLinkedUser(tgId);
+
+    if (!session || !user || !session.topic) {
+      await ctx.reply("Sessiya muddati tugagan. Qaytadan /start bosing.");
+      return;
+    }
+
+    const lock = await acquireUserLock(tgId);
+    if (!lock.acquired) {
+      return;
+    }
+
+    const taskId = lock.jobId!;
+    let taskCompleted = false;
+    const workType =
+      prefix === "cw_pages" ? "coursework" : prefix === "bmi_pages" ? "bmi" : "referat";
+
+    try {
+      const sub = await getUserSubscription(user.id);
+      await createAcademicTask({
+        taskId,
+        telegramId: tgId,
+        userId: user.id,
+        workType,
+        topic: session.topic,
+        subject: session.subject || session.specialty,
+      });
+
+      await ctx.reply(
+        `⏳ *Hujjat tayyorlanmoqda...*\n\n` +
+          `📌 *Mavzu:* ${session.topic}\n` +
+          `📚 *Fan / Yo'nalish:* ${session.subject || session.specialty || "Standart"}\n` +
+          `📄 *Tanlangan hajm:* ${selectedPages} bet\n\n` +
+          `🤖 _Gemini AI MOVSO RUz standartlari bo'yicha to'liq matn va mundarijani shakllantirmoqda. Iltimos 20-45 soniya kuting..._`,
+        { parse_mode: "Markdown" }
+      );
+
+      await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
+      const res = await generateAcademicDocument({
+        workType,
+        userId: user.id,
+        userPlan: sub.plan,
+        topic: session.topic,
+        subject: session.subject,
+        specialty: session.specialty,
+        pageCount: selectedPages,
+        lengthOption: Number(selectedPages) >= 10 ? "extended" : "standard",
+        studentName: user.name || undefined,
+        taskId,
+        telegramId: tgId,
+        releaseLockOnExit: false,
+      });
+
+      if (res.success) {
+        await handleInitialDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          {
+            workType,
+            topic: session.topic,
+            subject: session.subject,
+            specialty: session.specialty,
+            length: `${selectedPages} bet`,
+          },
+          taskId
+        );
+        const finalTask = await getAcademicTask(taskId);
+        if (finalTask?.status === "COMPLETED") {
+          taskCompleted = true;
+        }
+      } else {
+        await failAcademicTask(taskId, res.error || "Generatsiya xatoligi");
+        await ctx.reply(`❌ ${res.error || "Hujjat yaratishda xatolik yuz berdi."}`);
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      await failAcademicTask(taskId, errorMsg);
+      await ctx.reply("❌ Hujjat yaratishda kutilmagan xatolik yuz berdi.");
+    } finally {
+      if (!taskCompleted) {
+        try {
+          await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+        } catch {}
+      }
+      await releaseUserLock(tgId, taskId);
+    }
   });
 
   // Length callbacks for Referat
@@ -1241,70 +1376,73 @@ if (docnovaAiBot) {
   });
 
   // Length option buttons
-  docnovaAiBot.callbackQuery(/^len_(expand_2x|shorten_2x|10_15|20_25|30_plus)$/, async (ctx) => {
-    await ctx.answerCallbackQuery();
-    if (!ctx.from) return;
-    const tgId = ctx.from.id;
-    const session = await getBotSession(tgId);
-    const user = await getLinkedUser(tgId);
-    if (!session || !session.docId || !user) {
-      await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
-      return;
-    }
-
-    const lock = await acquireUserLock(tgId);
-    if (!lock.acquired) {
-      console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
-      return;
-    }
-
-    try {
-      const lengthOption = ctx.match[1] as
-        "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus";
-      await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
-
-      await ctx.reply(
-        `⏳ *Hujjat hajmi o'zgartirilmoqda...*\n\n` +
-          `🤖 _Mantiqiy tuzilma va GOST standartlari saqlangan holda yangi hajm shakllantirilmoqda. Iltimos 25-45 soniya kuting..._`,
-        { parse_mode: "Markdown" }
-      );
-
-      const snapshot = await getDocumentVersionData({
-        docId: session.docId,
-        userId: user.id,
-        version: session.currentVersion || 1,
-      });
-
-      if (!snapshot) {
-        await setBotSession(tgId, { ...session, inProgress: false });
-        await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+  docnovaAiBot.callbackQuery(
+    /^len_(expand_2x|shorten_2x|10_15|20_25|30_plus|50|100|200|300)$/,
+    async (ctx) => {
+      await ctx.answerCallbackQuery();
+      if (!ctx.from) return;
+      const tgId = ctx.from.id;
+      const session = await getBotSession(tgId);
+      const user = await getLinkedUser(tgId);
+      if (!session || !session.docId || !user) {
+        await ctx.reply("Sessiya topilmadi. /start buyrug'ini bosing.");
         return;
       }
 
-      const sub = await getUserSubscription(user.id);
-      const res = await adjustAcademicLength({
-        userId: user.id,
-        userPlan: sub.plan,
-        currentMarkdown: snapshot.markdown,
-        lengthOption,
-        workType: session.type,
-        topic: session.topic,
-        subject: session.subject || session.specialty,
-      });
+      const lock = await acquireUserLock(tgId);
+      if (!lock.acquired) {
+        console.warn(`[PARALLEL_RETRY_SUPPRESSED] Task already running for tgId ${tgId}`);
+        return;
+      }
 
-      await handleUpdatedDocSuccess(
-        ctx,
-        user.id,
-        tgId,
-        res,
-        session,
-        `Hajm o'zgartirildi: ${lengthOption}`,
-        lock.jobId
-      );
-    } finally {
-      await releaseUserLock(tgId, lock.jobId!);
+      try {
+        const lengthOption = ctx.match[1] as
+          "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus" | "50" | "100" | "200" | "300";
+        await setBotSession(tgId, { ...session, inProgress: true, activeJobId: lock.jobId });
+
+        await ctx.reply(
+          `⏳ *Hujjat hajmi o'zgartirilmoqda...*\n\n` +
+            `🤖 _Mantiqiy tuzilma va GOST standartlari saqlangan holda yangi hajm shakllantirilmoqda. Iltimos 25-45 soniya kuting..._`,
+          { parse_mode: "Markdown" }
+        );
+
+        const snapshot = await getDocumentVersionData({
+          docId: session.docId,
+          userId: user.id,
+          version: session.currentVersion || 1,
+        });
+
+        if (!snapshot) {
+          await setBotSession(tgId, { ...session, inProgress: false });
+          await ctx.reply("❌ Hujjat ma'lumotlari topilmadi.");
+          return;
+        }
+
+        const sub = await getUserSubscription(user.id);
+        const res = await adjustAcademicLength({
+          userId: user.id,
+          userPlan: sub.plan,
+          currentMarkdown: snapshot.markdown,
+          lengthOption,
+          workType: session.type,
+          topic: session.topic,
+          subject: session.subject || session.specialty,
+        });
+
+        await handleUpdatedDocSuccess(
+          ctx,
+          user.id,
+          tgId,
+          res,
+          session,
+          `Hajm o'zgartirildi: ${lengthOption}`,
+          lock.jobId
+        );
+      } finally {
+        await releaseUserLock(tgId, lock.jobId!);
+      }
     }
-  });
+  );
 
   docnovaAiBot.callbackQuery("len_custom", async (ctx) => {
     await ctx.answerCallbackQuery();
@@ -1568,6 +1706,98 @@ if (docnovaAiBot) {
   });
 
   // =========================================================================
+  // DOCUMENT MESSAGE HANDLER (PDF to Word .doc Conversion directly in Bot)
+  // =========================================================================
+  docnovaAiBot.on("message:document", async (ctx) => {
+    if (!ctx.from || !ctx.message?.document) return;
+    const tgId = ctx.from.id;
+    const doc = ctx.message.document;
+    const fileName = doc.file_name || "Hujjat.pdf";
+    const isPdf = doc.mime_type === "application/pdf" || fileName.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      await ctx.reply(
+        "⚠️ Iltimos, faqat *.pdf* formatidagi fayl yuboring. Bot PDF fayl ichidagi matnlarni o'qib, *Microsoft Word (.doc)* formatiga o'girib beradi.",
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
+    if (doc.file_size && doc.file_size > 20 * 1024 * 1024) {
+      await ctx.reply("⚠️ Fayl hajmi 20 MB dan kichik bo'lishi kerak.");
+      return;
+    }
+
+    const lock = await acquireUserLock(tgId, 30);
+    if (!lock.acquired) return;
+
+    try {
+      await ctx.reply(`⏳ *«${fileName}» o'qilmoqda va Word (.doc) formatiga o'tkazilmoqda...*`, {
+        parse_mode: "Markdown",
+      });
+
+      const fileInfo = await ctx.api.getFile(doc.file_id);
+      if (!fileInfo.file_path) {
+        throw new Error("Telegram fayl manzili topilmadi");
+      }
+
+      const token = process.env.DOCNOVA_AI_BOT_TOKEN;
+      const fileUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) {
+        throw new Error("Faylni yuklab olishda xatolik");
+      }
+
+      const arrayBuffer = await fileRes.arrayBuffer();
+      const pdfBuffer = Buffer.from(arrayBuffer);
+
+      // Parse PDF text using pdf-parse
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require("pdf-parse");
+      const pdfData = await pdfParse(pdfBuffer);
+      const extractedText = String(pdfData?.text || "").trim();
+
+      if (!extractedText || extractedText.length < 5) {
+        await ctx.reply(
+          "⚠️ Ushbu PDF fayldan matn topilmadi (fayl skanerlangan rasm bo'lishi mumkin). Iltimos, matnli PDF yuboring."
+        );
+        return;
+      }
+
+      const cleanBaseName = fileName
+        .replace(/\.pdf$/i, "")
+        .replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, "_");
+      const wordBuffer = generateWordDocumentBuffer({
+        title: cleanBaseName || "PDF_to_Word",
+        bodyContent: `# ${fileName.replace(/\.pdf$/i, "")}\n\n${extractedText}`,
+        workType: "PDF dan Word ga o'tkazilgan hujjat",
+      });
+
+      const wordCount = extractedText.split(/\s+/).filter(Boolean).length;
+      const outFileName = `${cleanBaseName || "DocNova_Converted"}.doc`;
+
+      await ctx.replyWithDocument(new InputFile(wordBuffer, outFileName), {
+        caption:
+          `✅ *PDF muvaffaqiyatli Word (.doc) formatiga o'tkazildi!*\n\n` +
+          `📄 *Asl fayl:* ${fileName}\n` +
+          `📑 *Sahifalar:* ${pdfData?.numpages || 1} bet\n` +
+          `📝 *So'zlar soni:* ${wordCount.toLocaleString()} ta so'z\n` +
+          `🏛 *Format:* Microsoft Word (.doc)`,
+        parse_mode: "Markdown",
+      });
+
+      await clearBotSession(tgId);
+    } catch (err) {
+      console.error("[BOT_PDF_TO_WORD_ERR]", err);
+      await ctx.reply(
+        "❌ PDF faylni Word formatiga o'tkazishda xatolik yuz berdi. Fayl shikastlanmagan va parollanmaganligini tekshiring."
+      );
+    } finally {
+      await releaseUserLock(tgId, lock.jobId!);
+    }
+  });
+
+  // =========================================================================
   // TEXT MESSAGE HANDLER (Wizard Steps + Editing Text Input + Main Menu)
   // =========================================================================
   docnovaAiBot.on("message:text", async (ctx) => {
@@ -1671,10 +1901,32 @@ if (docnovaAiBot) {
       return;
     }
 
+    if (text === "📄 PDF → Word (.doc)") {
+      await setBotSession(tgId, { type: "pdf_to_word", step: "pdf_wait" });
+      await ctx.reply(
+        `📄 *PDF dan Word (.doc) ga o'tkazish*\n\n` +
+          `Marhamat, o'zingizdagi *.pdf* faylni shu chatga yuboring (maksimal 20 MB).\n\n` +
+          `🤖 Bot PDF ichidagi barcha matnlarni o'qib olib, sizga tayyor *Microsoft Word (.doc)* formatida qaytarib beradi!`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
+    if (text === "💬 Fikr bildirish") {
+      await setBotSession(tgId, { type: "feedback", step: "feedback_input" });
+      await ctx.reply(
+        `💬 *Fikr, taklif va kamchiliklarni bildirish*\n\n` +
+          `Sayt yoki bot ishlashida qandaydir kamchilik, tushunmovchilik yoki taklifingiz bo'lsa, marhamat, shu yerga yozib yuboring.\n\n` +
+          `📬 _Xabaringiz to'g'ridan-to'g'ri DocNova loyiha rahbariyatiga yetkaziladi:_`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
     if (text === "❓ Yordam") {
       await ctx.reply(
         `❓ *Yordam va qo'llab-quvvatlash:*\n\n` +
-          `Har qanday savol yoki takliflar bo'yicha biz bilan bog'laning:\n` +
+          `Har qanday savol yoki takliflar bo'yicha «💬 Fikr bildirish» tugmasini bosing yoki biz bilan bog'laning:\n` +
           `💬 Qo'llab-quvvatlash: @docnova_support\n` +
           `🌐 Sayt: https://www.docnova.uz`,
         { parse_mode: "Markdown" }
@@ -1688,6 +1940,44 @@ if (docnovaAiBot) {
       await ctx.reply("Iltimos, pastdagi menyudan kerakli bo'limni tanlang:", {
         reply_markup: getMainReplyKeyboard(),
       });
+      return;
+    }
+
+    // Handle feedback submission (works even if user has not linked Google account yet)
+    if (session.type === "feedback" && session.step === "feedback_input") {
+      const linkedUser = await getLinkedUser(tgId);
+      const adminToken = process.env.TELEGRAM_BOT_TOKEN || process.env.DOCNOVA_AI_BOT_TOKEN;
+      const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+      const uzTime = new Date(Date.now() + 5 * 60 * 60 * 1000)
+        .toISOString()
+        .replace("T", " ")
+        .slice(0, 16);
+
+      if (adminToken && adminChatId) {
+        const fbReport =
+          `📬 *YANGI FIKR VA MUROJAAT (TELEGRAM BOTDAN)*\n\n` +
+          `👤 *Ism:* ${linkedUser?.name || ctx.from.first_name || "Foydalanuvchi"}\n` +
+          `📧 *Email:* \`${linkedUser?.email || "Ulanmagan"}\`\n` +
+          `🔗 *Telegram:* ${ctx.from.username ? `@${ctx.from.username}` : "Username yo'q"} (ID: \`${tgId}\`)\n` +
+          `🕒 *Vaqt:* ${uzTime} (Toshkent)\n\n` +
+          `💬 *Xabar matni:*\n${text}`;
+
+        await fetch(`https://api.telegram.org/bot${adminToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: adminChatId,
+            text: fbReport,
+            parse_mode: "Markdown",
+          }),
+        }).catch((err) => console.error("[BOT_FEEDBACK_SEND_ERR]", err));
+      }
+
+      await clearBotSession(tgId);
+      await ctx.reply(
+        `✅ *Rahmat! Fikr va murojaatingiz qabul qilindi.*\n\nXabaringiz loyiha rahbariyatiga to'g'ridan-to'g'ri yetkazildi.`,
+        { parse_mode: "Markdown", reply_markup: getMainReplyKeyboard() }
+      );
       return;
     }
 
@@ -1833,27 +2123,31 @@ if (docnovaAiBot) {
       }
 
       if (session.step === "subject") {
+        const subject = text.toLowerCase() === "standart" ? undefined : text;
+        await setBotSession(tgId, { ...session, subject, step: "length" });
+        await ctx.reply(
+          `📄 *Kurs ishining kerakli sahifalar sonini (hajmini) tanlang*\n\n` +
+            `Pastdagi tugmalardan birini bosing yoki *o'zingiz xohlagan sahifa sonini* (masalan: \`35\`, \`75\`, \`100\`, \`200\`, \`300\`) yozib yuboring:`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: getInitialPageCountKeyboard("cw_pages"),
+          }
+        );
+        return;
+      }
+
+      if (session.step === "length") {
+        const parsedPages = Math.min(500, Math.max(1, parseInt(text.replace(/\D/g, ""), 10) || 25));
+        const pageCountStr = String(parsedPages);
+
         const lock = await acquireUserLock(tgId);
-        if (!lock.acquired) {
-          console.warn(
-            `[PARALLEL_RETRY_SUPPRESSED] Coursework generation already in progress for tgId ${tgId}`
-          );
-          return;
-        }
+        if (!lock.acquired) return;
 
         const taskId = lock.jobId!;
-        const startTime = Date.now();
         let taskCompleted = false;
 
-        logAcademicStage({
-          requestId: taskId,
-          stage: "INIT",
-          status: "START",
-          telegramId: tgId,
-        });
-
         try {
-          const subject = text.toLowerCase() === "standart" ? undefined : text;
+          const subject = session.subject;
           const topic = session.topic || "Kurs ishi";
 
           await createAcademicTask({
@@ -1868,22 +2162,13 @@ if (docnovaAiBot) {
           await ctx.reply(
             `⏳ *Kurs ishi tayyorlanmoqda...*\n\n` +
               `📌 *Mavzu:* ${topic}\n` +
-              `📚 *Fan:* ${subject || "Standart"}\n\n` +
-              `1️⃣ Titul varag'i va mundarija...\n` +
-              `2️⃣ Kirish (dolzarblik, ilmiy apparat)...\n` +
-              `3️⃣ Nazariy va tahliliy boblar (jadval bilan)...\n` +
-              `4️⃣ Takliflar, xulosa va 15+ adabiyotlar...\n\n` +
-              `🤖 _Gemini AI ilmiy apparat va boblarni shakllantirmoqda. Bu taxminan 15-25 soniya vaqt oladi, iltimos kuting..._`,
+              `📚 *Fan:* ${subject || "Standart"}\n` +
+              `📄 *Hajm:* ${pageCountStr} bet\n\n` +
+              `🤖 _Gemini AI ilmiy apparat va boblarni shakllantirmoqda. Iltimos 15-30 soniya kuting..._`,
             { parse_mode: "Markdown" }
           );
 
           await updateAcademicTaskStage(taskId, "GEMINI_GEN");
-          logAcademicStage({
-            requestId: taskId,
-            stage: "GEMINI_GEN",
-            status: "START",
-            telegramId: tgId,
-          });
 
           const res = await generateAcademicDocument({
             workType: "coursework",
@@ -1891,19 +2176,11 @@ if (docnovaAiBot) {
             userPlan: sub.plan,
             topic,
             subject,
+            pageCount: pageCountStr,
             studentName: user.name || undefined,
             taskId,
             telegramId: tgId,
             releaseLockOnExit: false,
-          });
-
-          logAcademicStage({
-            requestId: taskId,
-            stage: "GEMINI_GEN",
-            status: res.success ? "SUCCESS" : "FAILED",
-            telegramId: tgId,
-            durationMs: Date.now() - startTime,
-            error: res.error,
           });
 
           if (res.success) {
@@ -1916,6 +2193,7 @@ if (docnovaAiBot) {
                 workType: "coursework",
                 topic,
                 subject,
+                length: `${pageCountStr} bet`,
               },
               taskId
             );
@@ -1933,34 +2211,15 @@ if (docnovaAiBot) {
             );
           }
         } catch (genErr) {
-          logAcademicStage({
-            requestId: taskId,
-            stage: "HANDLER",
-            status: "FAILED",
-            telegramId: tgId,
-            durationMs: Date.now() - startTime,
-            error: genErr instanceof Error ? genErr.message : String(genErr),
-          });
           await failAcademicTask(taskId, genErr instanceof Error ? genErr.message : String(genErr));
-          await ctx.reply(
-            "❌ Kurs ishini yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
-          );
+          await ctx.reply("❌ Kurs ishini yaratishda kutilmagan xatolik yuz berdi.");
         } finally {
           if (!taskCompleted) {
             try {
               await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-            } catch (err) {
-              console.error("[FINALLY_FAIL_TASK_ERR]", err);
-            }
+            } catch {}
           }
           await releaseUserLock(tgId, taskId);
-          logAcademicStage({
-            requestId: taskId,
-            stage: "LOCK_RELEASE",
-            status: "SUCCESS",
-            telegramId: tgId,
-            durationMs: Date.now() - startTime,
-          });
         }
         return;
       }
@@ -1981,18 +2240,106 @@ if (docnovaAiBot) {
         await setBotSession(tgId, { ...session, subject, step: "length" });
 
         const kb = new InlineKeyboard()
-          .text("📄 3-5 bet (Qisqa)", "ref_len_short")
+          .text("📄 3-5 bet", "ref_len_short")
+          .text("📄 5-8 bet", "ref_len_standard")
+          .text("📄 10-15 bet", "ref_len_extended")
           .row()
-          .text("📄 5-8 bet (Standart)", "ref_len_standard")
+          .text("📄 25 bet", "ref_pages:25")
+          .text("📄 50 bet", "ref_pages:50")
+          .text("📄 100 bet", "ref_pages:100")
           .row()
-          .text("📄 10-15 bet (Kengaytirilgan)", "ref_len_extended")
+          .text("📄 200 bet", "ref_pages:200")
+          .text("📄 300 bet", "ref_pages:300")
           .row()
           .text("❌ Bekor qilish", "wiz_cancel");
 
-        await ctx.reply("📄 Referat yoki mustaqil ishning kerakli *hajmini* tanlang:", {
-          reply_markup: kb,
-          parse_mode: "Markdown",
-        });
+        await ctx.reply(
+          "📄 Referat yoki mustaqil ishning kerakli *hajmini (sahifalar sonini)* tanlang yoki *o'zingiz xohlagan bet sonini* (masalan: `40`, `120`, `250`) yozib yuboring:",
+          {
+            reply_markup: kb,
+            parse_mode: "Markdown",
+          }
+        );
+        return;
+      }
+
+      if (session.step === "length") {
+        const parsedPages = Math.min(500, Math.max(1, parseInt(text.replace(/\D/g, ""), 10) || 10));
+        const pageCountStr = String(parsedPages);
+
+        const lock = await acquireUserLock(tgId);
+        if (!lock.acquired) return;
+        const taskId = lock.jobId!;
+        let taskCompleted = false;
+
+        try {
+          await createAcademicTask({
+            taskId,
+            telegramId: tgId,
+            userId: user.id,
+            workType: "referat",
+            topic: session.topic || "Referat",
+            subject: session.subject,
+          });
+
+          await ctx.reply(
+            `⏳ *Referat / Mustaqil ish tayyorlanmoqda...*\n\n` +
+              `📌 *Mavzu:* ${session.topic}\n` +
+              `📚 *Fan:* ${session.subject || "Umumiy"}\n` +
+              `📄 *Hajm:* ${pageCountStr} bet\n\n` +
+              `🤖 _Gemini AI MOVSO standartlari bo'yicha to'liq matn shakllantirmoqda..._`,
+            { parse_mode: "Markdown" }
+          );
+
+          await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
+          const res = await generateAcademicDocument({
+            workType: "referat",
+            userId: user.id,
+            userPlan: sub.plan,
+            topic: session.topic || "Referat",
+            subject: session.subject,
+            pageCount: pageCountStr,
+            lengthOption: parsedPages >= 10 ? "extended" : "standard",
+            studentName: user.name || undefined,
+            taskId,
+            telegramId: tgId,
+            releaseLockOnExit: false,
+          });
+
+          if (res.success) {
+            await handleInitialDocSuccess(
+              ctx,
+              user.id,
+              tgId,
+              res,
+              {
+                workType: "referat",
+                topic: session.topic || "Referat",
+                subject: session.subject,
+                length: `${pageCountStr} bet`,
+              },
+              taskId
+            );
+            const finalTask = await getAcademicTask(taskId);
+            if (finalTask?.status === "COMPLETED") {
+              taskCompleted = true;
+            }
+          } else {
+            await failAcademicTask(taskId, res.error || "Xatolik");
+            await ctx.reply(`❌ ${res.error || "Referat yaratishda xatolik yuz berdi."}`);
+          }
+        } catch (err) {
+          await failAcademicTask(taskId, err instanceof Error ? err.message : String(err));
+          await ctx.reply("❌ Referat yaratishda kutilmagan xatolik yuz berdi.");
+        } finally {
+          if (!taskCompleted) {
+            try {
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+            } catch {}
+          }
+          await releaseUserLock(tgId, taskId);
+        }
         return;
       }
     }
@@ -2009,19 +2356,42 @@ if (docnovaAiBot) {
       }
 
       if (session.step === "subject") {
+        const specialty = text;
+        await setBotSession(tgId, { ...session, specialty, subject: specialty, step: "length" });
+        const kb = new InlineKeyboard()
+          .text("📄 50 bet", "bmi_pages:50")
+          .text("📄 70 bet", "bmi_pages:70")
+          .text("📄 100 bet", "bmi_pages:100")
+          .row()
+          .text("📄 150 bet", "bmi_pages:150")
+          .text("📄 200 bet", "bmi_pages:200")
+          .text("📄 300 bet", "bmi_pages:300")
+          .row()
+          .text("❌ Bekor qilish", "wiz_cancel");
+
+        await ctx.reply(
+          `📄 *BMI / Diplom ishining kerakli hajmini (sahifalar sonini) tanlang*\n\n` +
+            `Tugmalardan birini bosing yoki *o'zingiz xohlagan sahifa sonini* (masalan: \`80\`, \`120\`, \`250\`, \`300\`) yozib yuboring:`,
+          { parse_mode: "Markdown", reply_markup: kb }
+        );
+        return;
+      }
+
+      if (session.step === "length") {
+        const parsedPages = Math.min(
+          500,
+          Math.max(10, parseInt(text.replace(/\D/g, ""), 10) || 70)
+        );
+        const pageCountStr = String(parsedPages);
+
         const lock = await acquireUserLock(tgId);
-        if (!lock.acquired) {
-          console.warn(
-            `[PARALLEL_RETRY_SUPPRESSED] BMI generation already in progress for tgId ${tgId}`
-          );
-          return;
-        }
+        if (!lock.acquired) return;
 
         const taskId = lock.jobId!;
         let taskCompleted = false;
 
         try {
-          const specialty = text;
+          const specialty = session.specialty || session.subject || "Umumiy";
           const topic = session.topic || "BMI";
 
           await createAcademicTask({
@@ -2036,7 +2406,8 @@ if (docnovaAiBot) {
           await ctx.reply(
             `⏳ *Bitiruv malakaviy ishi (BMI) majmuasi tayyorlanmoqda...*\n\n` +
               `📌 *Mavzu:* ${topic}\n` +
-              `🏛 *Yo'nalish:* ${specialty}\n\n` +
+              `🏛 *Yo'nalish:* ${specialty}\n` +
+              `📄 *Hajm:* ${pageCountStr} bet\n\n` +
               `🤖 _MOVSO RUz standartidagi to'liq ilmiy apparat, boblar va statistik tahlil shakllantirilmoqda. Iltimos 35-50 soniya kuting..._`,
             { parse_mode: "Markdown" }
           );
@@ -2049,6 +2420,7 @@ if (docnovaAiBot) {
             userPlan: sub.plan,
             topic,
             specialty,
+            pageCount: pageCountStr,
             studentName: user.name || undefined,
             taskId,
             telegramId: tgId,
@@ -2065,6 +2437,7 @@ if (docnovaAiBot) {
                 workType: "bmi",
                 topic,
                 specialty,
+                length: `${pageCountStr} bet`,
               },
               taskId
             );
@@ -2083,18 +2456,13 @@ if (docnovaAiBot) {
           }
         } catch (err: unknown) {
           const errorMsg = err instanceof Error ? err.message : String(err);
-          console.error("[TELEGRAM_BMI_ERR]", err);
           await failAcademicTask(taskId, errorMsg);
-          await ctx.reply(
-            "❌ BMI yaratishda kutilmagan xatolik yuz berdi. Iltimos qaytadan urinib ko'ring."
-          );
+          await ctx.reply("❌ BMI yaratishda kutilmagan xatolik yuz berdi.");
         } finally {
           if (!taskCompleted) {
             try {
               await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
-            } catch (e) {
-              console.error("[FINALLY_FAIL_TASK_ERR]", e);
-            }
+            } catch {}
           }
           await releaseUserLock(tgId, taskId);
         }
@@ -2109,16 +2477,96 @@ if (docnovaAiBot) {
         const kb = new InlineKeyboard()
           .text("8 ta slayd", "pres_slides_8")
           .text("10 ta slayd", "pres_slides_10")
-          .row()
-          .text("12 ta slayd", "pres_slides_12")
           .text("15 ta slayd", "pres_slides_15")
+          .row()
+          .text("20 ta slayd", "pres_slides_20")
+          .text("30 ta slayd", "pres_slides_30")
+          .text("50 ta slayd", "pres_slides_50")
           .row()
           .text("❌ Bekor qilish", "wiz_cancel");
 
-        await ctx.reply("📊 Taqdimot uchun kerakli *slaydlar sonini* tanlang:", {
-          reply_markup: kb,
-          parse_mode: "Markdown",
-        });
+        await ctx.reply(
+          "📊 Taqdimot uchun kerakli *slaydlar sonini* tanlang yoki *o'zingiz xohlagan slayd sonini* yozib yuboring:",
+          {
+            reply_markup: kb,
+            parse_mode: "Markdown",
+          }
+        );
+        return;
+      }
+
+      if (session.step === "slidesCount") {
+        const parsedSlides = Math.min(
+          100,
+          Math.max(3, parseInt(text.replace(/\D/g, ""), 10) || 10)
+        );
+        const lock = await acquireUserLock(tgId);
+        if (!lock.acquired) return;
+        const taskId = lock.jobId!;
+        let taskCompleted = false;
+
+        try {
+          await createAcademicTask({
+            taskId,
+            telegramId: tgId,
+            userId: user.id,
+            workType: "presentation",
+            topic: session.topic || "Taqdimot",
+          });
+
+          await ctx.reply(
+            `⏳ *Taqdimot slaydlari tayyorlanmoqda...*\n\n` +
+              `📌 *Mavzu:* ${session.topic}\n` +
+              `📑 *Slaydlar:* ${parsedSlides} ta\n\n` +
+              `🤖 _Gemini AI slaydlar matni va ma'ruzachi nutqini shakllantirmoqda..._`,
+            { parse_mode: "Markdown" }
+          );
+
+          await updateAcademicTaskStage(taskId, "GEMINI_GEN");
+
+          const res = await generateAcademicDocument({
+            workType: "presentation",
+            userId: user.id,
+            userPlan: sub.plan,
+            topic: session.topic || "Taqdimot",
+            slidesCount: parsedSlides,
+            taskId,
+            telegramId: tgId,
+            releaseLockOnExit: false,
+          });
+
+          if (res.success) {
+            await handleInitialDocSuccess(
+              ctx,
+              user.id,
+              tgId,
+              res,
+              {
+                workType: "presentation",
+                topic: session.topic || "Taqdimot",
+                slidesCount: parsedSlides,
+              },
+              taskId
+            );
+            const finalTask = await getAcademicTask(taskId);
+            if (finalTask?.status === "COMPLETED") {
+              taskCompleted = true;
+            }
+          } else {
+            await failAcademicTask(taskId, res.error || "Xatolik");
+            await ctx.reply(`❌ ${res.error || "Taqdimot yaratishda xatolik yuz berdi."}`);
+          }
+        } catch (err) {
+          await failAcademicTask(taskId, err instanceof Error ? err.message : String(err));
+          await ctx.reply("❌ Taqdimot yaratishda kutilmagan xatolik yuz berdi.");
+        } finally {
+          if (!taskCompleted) {
+            try {
+              await failAcademicTask(taskId, "Jarayon to'xtatildi yoki uzildi");
+            } catch {}
+          }
+          await releaseUserLock(tgId, taskId);
+        }
         return;
       }
     }

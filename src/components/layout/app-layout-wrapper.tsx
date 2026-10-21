@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import { LimitPaywallModal } from "@/components/modals/limit-paywall-modal";
+import { FeedbackWidget } from "@/components/modals/feedback-widget";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -67,6 +68,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
         {authBanner}
         <main className="w-full max-w-full min-w-0 flex-1 overflow-x-hidden">{children}</main>
         <LimitPaywallModal />
+        <FeedbackWidget />
         <Toaster />
       </>
     );
@@ -80,6 +82,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <LimitPaywallModal />
+      <FeedbackWidget />
       <Toaster />
     </>
   );

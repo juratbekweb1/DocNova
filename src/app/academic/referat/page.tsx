@@ -450,21 +450,42 @@ export default function AcademicReferatPage() {
               </div>
 
               <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Kutilayotgan hajm
+                <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                  Kutilayotgan hajm (Sahifalar soni: 1 — 500 betgacha)
                 </label>
-                <select
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {[
+                    { label: "5 bet", val: "3-5 bet (Qisqa hisobot)" },
+                    { label: "10 bet", val: "5-8 bet (Klassik)" },
+                    { label: "15 bet", val: "10-15 bet (Kengaytirilgan)" },
+                    { label: "30 bet", val: "30 bet" },
+                    { label: "50 bet", val: "50 bet" },
+                    { label: "100 bet", val: "100 bet" },
+                    { label: "200 bet", val: "200 bet" },
+                    { label: "300 bet", val: "300 bet" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, length: preset.val }))}
+                      className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                        formData.length === preset.val
+                          ? "border-emerald-500 bg-emerald-600 text-white shadow-sm"
+                          : "border-border bg-background text-foreground-secondary hover:text-foreground hover:border-emerald-500/50"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
                   name="length"
                   value={formData.length}
                   onChange={handleChange}
+                  placeholder="Yoki o'zingiz xohlagan sahifa sonini yozing (masalan: 75 bet, 150 bet, 300 bet)..."
                   className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-emerald-400 focus:outline-none sm:text-sm"
-                >
-                  <option value="3-5 bet (Qisqa hisobot)">3-5 bet (Qisqa mustaqil ish)</option>
-                  <option value="5-8 bet (Klassik)">5-8 bet (Klassik referat)</option>
-                  <option value="10-15 bet (Kengaytirilgan)">
-                    10-15 bet (Kengaytirilgan referat)
-                  </option>
-                </select>
+                />
               </div>
 
               <button

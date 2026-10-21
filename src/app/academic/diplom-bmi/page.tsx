@@ -308,6 +308,7 @@ export default function DiplomBmiPage() {
     teacherName: "",
     language: "uz" as "uz" | "ru",
     part: "To'liq BMI majmuasi (Barcha boblar va 30 ta adabiyot)",
+    pageCount: "70",
   });
 
   const [loading, setLoading] = useState(false);
@@ -793,6 +794,39 @@ export default function DiplomBmiPage() {
                     Xulosa va 25–30 ta GOST adabiyotlar ro&apos;yxati
                   </option>
                 </select>
+              </div>
+
+              {/* Sahifalar soni (Hajm) */}
+              <div>
+                <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                  Kutilayotgan hajm (Sahifalar soni: 50 — 500 betgacha)
+                </label>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {["50", "70", "100", "150", "200", "300"].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, pageCount: cnt }))}
+                      className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                        formData.pageCount === cnt
+                          ? "border-amber-500 bg-amber-600 text-white shadow-sm"
+                          : "border-border bg-background text-foreground-secondary hover:text-foreground hover:border-amber-500/50"
+                      }`}
+                    >
+                      {cnt} bet
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min={10}
+                  max={500}
+                  name="pageCount"
+                  value={formData.pageCount}
+                  onChange={handleChange}
+                  placeholder="Yoki ixtiyoriy sahifa sonini kiriting (masalan: 120, 250, 300)..."
+                  className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2 text-xs focus:border-amber-400 focus:outline-none sm:text-sm"
+                />
               </div>
 
               {/* Submit button */}

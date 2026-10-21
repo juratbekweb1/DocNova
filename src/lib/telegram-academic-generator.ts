@@ -33,6 +33,7 @@ export async function generateCourseworkDoc(params: {
   topic: string;
   subject?: string;
   studentName?: string;
+  pageCount?: string;
 }): Promise<AcademicGenResult> {
   const startTime = Date.now();
   const limitCheck = await checkUserLimit(params.userId, "coursework");
@@ -47,17 +48,19 @@ export async function generateCourseworkDoc(params: {
   const currentYear = new Date().getFullYear();
   const subjectName = params.subject || "Umumkasbiy va mutaxassislik fanlari";
   const authorName = params.studentName || "DocNova talabasi";
+  const targetPageCount = params.pageCount || "25";
 
   const prompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) talablariga to'liq javob beradigan professor va ilmiy ekspertsiz.
 Quyidagi parametrlar bo'yicha eng yuqori darajadagi KURs ISHIni to'liq matn sifatida yozib bering:
 - Fan: "${subjectName}"
 - Kurs ishi mavzusi: "${params.topic}"
 - Bajaruvchi: "${authorName}"
+- Kutilayotgan hajm: ${targetPageCount} bet
 - Yil: ${currentYear}
 
 QAT'IY STRUKTURA VA TALABLAR:
 1. TITUL VARAG'I (Vazirlik, OTM, Kafedra, Fan, Mavzu, Bajaruvchi, Ilmiy rahbar, Toshkent - ${currentYear})
-2. MUNDARIJA (Kirish, I Bob 3 ta fasl bilan, II Bob 3 ta fasl bilan, III Bob 3 ta fasl bilan, Xulosa, Foydalanilgan adabiyotlar)
+2. MUNDARIJA (Kirish, I Bob 3 ta fasl bilan, II Bob 3 ta fasl bilan, III Bob 3 ta fasl bilan, Xulosa, Foydalanilgan adabiyotlar — sahifa raqamlari ${targetPageCount} betlik hajmga mos taqsimlansin)
 3. KIRISH:
    - Mavzuning dolzarbligi ("O'zbekiston - 2030" strategiyasi bilan bog'langan);
    - Muammoning ilmiy o'rganilganlik darajasi;
@@ -123,7 +126,7 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
       docBuffer: buffer,
       fileName,
       markdownContent: content,
-      summaryText: `📘 *Kurs ishi muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+      summaryText: `📘 *Kurs ishi muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📏 *Hajm:* ${targetPageCount} bet\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
     console.error("[TELEGRAM_COURSEWORK_GEN_ERR]", err);
@@ -142,7 +145,8 @@ export async function generateReferatDoc(params: {
   userPlan: string;
   topic: string;
   subject?: string;
-  lengthOption?: "short" | "standard" | "extended"; // 3-5, 5-8, 10-15
+  lengthOption?: "short" | "standard" | "extended" | string;
+  pageCount?: string;
   language?: "uz" | "ru";
   studentName?: string;
 }): Promise<AcademicGenResult> {
@@ -162,11 +166,18 @@ export async function generateReferatDoc(params: {
   const isRu = params.language === "ru";
 
   let lengthGuide = "5-8 sahifaga mo'ljallangan to'liq akademik hajm (kamida 2500 so'z)";
-  if (params.lengthOption === "short") {
+  if (params.pageCount) {
+    lengthGuide = `${params.pageCount} sahifaga mo'ljallangan keng qamrovli akademik hajm (mundarija sahifalari ${params.pageCount} betga mos taqsimlansin)`;
+  } else if (params.lengthOption === "short") {
     lengthGuide = "3-5 sahifaga mo'ljallangan ixcham hajm (kamida 1500 so'z)";
   } else if (params.lengthOption === "extended") {
     lengthGuide =
       "10-15 sahifaga mo'ljallangan kengaytirilgan batafsil hajm (kamida 4000-5000 so'z, chuqur tahlil)";
+  } else if (
+    params.lengthOption &&
+    !["short", "standard", "extended"].includes(params.lengthOption)
+  ) {
+    lengthGuide = `${params.lengthOption} betlik to'liq akademik hajm`;
   }
 
   const prompt = isRu
@@ -252,6 +263,7 @@ export async function generateBmiDoc(params: {
   topic: string;
   specialty?: string;
   studentName?: string;
+  pageCount?: string;
 }): Promise<AcademicGenResult> {
   const startTime = Date.now();
   const limitCheck = await checkUserLimit(params.userId, "coursework");
@@ -266,16 +278,18 @@ export async function generateBmiDoc(params: {
   const currentYear = new Date().getFullYear();
   const specialtyName = params.specialty || "Axborot texnologiyalari va iqtisodiyot";
   const authorName = params.studentName || "Bitiruvchi talaba";
+  const targetPageCount = params.pageCount || "70";
 
   const prompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi standartlariga to'liq javob beradigan professor va dissertatsiya rahbari sifatida, quyidagi mavzuda eng yuqori ilmiy darajadagi BITIRUV MALAKAVIY ISHI (BMI) / DIPLOM ISHIning to'liq kompleksini yozib bering:
 - Tadqiqot mavzusi: "${params.topic}"
 - Mutaxassislik: "${specialtyName}"
 - Bajaruvchi: "${authorName}"
+- Kutilayotgan hajm: ${targetPageCount} bet
 - Yil: ${currentYear}
 
 TALABLAR:
 1. TITUL VARAG'I (To'liq rasmiy O'zbekiston OTM formati)
-2. MUNDARIJA (Nuqtalar va sahifalar bilan)
+2. MUNDARIJA (Nuqtalar va sahifalar bilan — sahifa raqamlari umumiy ${targetPageCount} betlik hajmga mos taqsimlansin)
 3. KIRISH (To'liq ilmiy apparat: Dolzarblik, "O'zbekiston-2030" strategiyasi, O'rganilganlik darajasi, Obyekt, Predmet, Maqsad, 5 ta vazifa, Metodologiya, Ilmiy yangilik, Amaliy ahamiyat)
 4. I BOB. NAZARIY-METODOLOGIK ASOSLAR (1.1, 1.2, 1.3 fasllar)
 5. II BOB. AMALIY VA TAHLILIY TADQIQOT (2.1, 2.2, 2.3 fasllar + Kamida bitta qiyosiy tahliliy jadval)
@@ -807,7 +821,17 @@ export async function adjustAcademicLength(params: {
   userId: string;
   userPlan: string;
   currentMarkdown: string;
-  lengthOption: "expand_2x" | "shorten_2x" | "10_15" | "20_25" | "30_plus" | "custom";
+  lengthOption:
+    | "expand_2x"
+    | "shorten_2x"
+    | "10_15"
+    | "20_25"
+    | "30_plus"
+    | "50"
+    | "100"
+    | "200"
+    | "300"
+    | "custom";
   customPages?: string;
   workType?: string;
   topic?: string;
@@ -826,11 +850,17 @@ export async function adjustAcademicLength(params: {
   } else if (params.lengthOption === "20_25") {
     instruction =
       "Hujjatni 20-25 betlik to'liq kurs ishi hajmiga (taxminan 6000-7500 so'z) moslab chuqur tahlillar va statistik jadvallar bilan kengaytiring.";
-  } else if (params.lengthOption === "30_plus") {
-    instruction =
-      "Hujjatni 30+ betlik to'liq ilmiy ish (BMI / diplom) darajasida maksimal darajada batafsil, keng qamrovli tahlillar va 25+ adabiyotlar bilan shakllantiring.";
+  } else if (
+    params.lengthOption === "30_plus" ||
+    params.lengthOption === "50" ||
+    params.lengthOption === "100" ||
+    params.lengthOption === "200" ||
+    params.lengthOption === "300"
+  ) {
+    const pagesLabel = params.lengthOption === "30_plus" ? "30+" : params.lengthOption;
+    instruction = `Hujjatni ${pagesLabel} betlik to'liq ilmiy ish darajasida maksimal darajada batafsil, keng qamrovli tahlillar, mundarijada ${pagesLabel} betga mos sahifa raqamlari va 25+ adabiyotlar bilan shakllantiring.`;
   } else if (params.lengthOption === "custom") {
-    instruction = `Hujjatni aynan foydalanuvchi so'ragan hajmda (${params.customPages || "belgilangan hajmda"}) tayyorlang. Akademik talablarga to'liq rioya qiling.`;
+    instruction = `Hujjatni aynan foydalanuvchi so'ragan hajmda (${params.customPages || "belgilangan hajmda"}) tayyorlang va mundarija sahifa raqamlarini ushbu hajmga moslashtiring. Akademik talablarga to'liq rioya qiling.`;
   }
 
   return rewriteAcademicDoc({
@@ -1000,7 +1030,8 @@ export async function generateAcademicDocument(params: {
   topic: string;
   subject?: string;
   specialty?: string;
-  lengthOption?: "short" | "standard" | "extended";
+  lengthOption?: "short" | "standard" | "extended" | string;
+  pageCount?: string;
   slidesCount?: number;
   studentName?: string;
   taskId?: string;
@@ -1046,6 +1077,7 @@ export async function generateAcademicDocument(params: {
             topic: params.topic,
             subject: params.subject,
             studentName: params.studentName,
+            pageCount: params.pageCount,
           });
         case "referat":
           return generateReferatDoc({
@@ -1054,6 +1086,7 @@ export async function generateAcademicDocument(params: {
             topic: params.topic,
             subject: params.subject,
             lengthOption: params.lengthOption,
+            pageCount: params.pageCount,
             studentName: params.studentName,
           });
         case "bmi":
@@ -1063,6 +1096,7 @@ export async function generateAcademicDocument(params: {
             topic: params.topic,
             specialty: params.specialty || params.subject || "Umumiy",
             studentName: params.studentName,
+            pageCount: params.pageCount,
           });
         case "presentation":
           return generatePresentationDoc({

@@ -90,6 +90,9 @@ export async function POST(req: Request) {
     const currentYear = new Date().getFullYear();
     const isRu = language === "ru";
     const selectedPart = part || "To'liq BMI majmuasi (Barcha boblar va 30 ta adabiyot)";
+    const bmiPages = String(body.pageCount || "70")
+      .trim()
+      .slice(0, 10);
 
     // 1. BMI / DIPLOM ISHI GENERATION
     if (action === "generate-bmi") {
@@ -104,10 +107,11 @@ export async function POST(req: Request) {
 - Научный руководитель: "${teacherName || "Научный руководитель, к.т.н., доцент"}"
 - Тип работы: "${workType || "Выпускная квалификационная работа (ВКР / BMI)"}"
 - Формируемая часть: "${selectedPart}"
+- Целевой объем работы (в оглавлении и структуре): ${bmiPages} страниц
 
 ТРЕБОВАНИЯ К СОДЕРЖАНИЮ (По стандартам вузов Узбекистана и ГОСТ):
 1. ТИТУЛЬНЫЙ ЛИСТ: Министерство высшего образования, науки и инноваций РУз, ВУЗ, кафедра, тема, исполнитель, научный руководитель, Ташкент - ${currentYear}.
-2. СОДЕРЖАНИЕ (РЕЖА): С точками и номерами страниц для каждого раздела.
+2. СОДЕРЖАНИЕ (РЕЖА): С точками и номерами страниц для каждого раздела (масштабируйте нумерацию страниц под общий объем ${bmiPages} страниц).
 3. ВВЕДЕНИЕ (ПОЛНЫЙ НАУЧНЫЙ АППАРАТ):
    - Актуальность темы (с обязательной увязкой со Стратегией «Узбекистан — 2030», указами и постановлениями Президента РУз по модернизации отрасли);
    - Степень научной разработанности проблемы (анализ фундаментальных работ отечественных и зарубежных ученых);
@@ -133,10 +137,11 @@ Quyidagi parametrlar bo'yicha eng yuqori akademik darajadagi Bitiruv Malakaviy I
 - Ilmiy rahbar: "${teacherName || "Ilmiy rahbar, dotsent"}"
 - Ish turi: "${workType || "Bakalavr Bitiruv Malakaviy Ishi (BMI)"}"
 - Shakllantiriladigan qism: "${selectedPart}"
+- Kutilayotgan hajm (sahifalar soni): ${bmiPages} bet
 
 QAT'IY TALABLAR (O'zbekiston OTM standartlari va GOST bo'yicha):
 1. TITUL VARAG'I: O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi, OTM, Kafedra, Ish turi, Mavzu, Bajaruvchi, Ilmiy rahbar, Toshkent - ${currentYear}.
-2. MUNDARIJA (REJA): Nuqtalar va sahifa raqamlari bilan har bir bo'lim ko'rsatilgan mundarija.
+2. MUNDARIJA (REJA): Nuqtalar va sahifa raqamlari bilan har bir bo'lim ko'rsatilgan mundarija (sahifa raqamlari umumiy ${bmiPages} betlik hajmga mutanosib taqsimlansin).
 3. KIRISH (TO'LIQ ILMIY APPARAT):
    - Mavzuning dolzarbligi ("O'zbekiston - 2030" strategiyasi, Prezident Farmonlari va davlat dasturlari bilan bog'langan holda kamida 3-4 ta to'liq abzas);
    - Muammoning o'rganilganlik darajasi (O'zbekistonlik va xorijiy olimlar izlanishlari tahlili);
@@ -602,8 +607,15 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
 
     // 2. REFERAT VA MUSTAQIL ISH GENERATION
     if (action === "generate-referat") {
-      const isExtended = String(length || "").includes("10-15");
-      const isShort = String(length || "").includes("3-5");
+      const rawLen = String(length || "5-8 bet").trim();
+      const parsedCustomNum = parseInt(rawLen, 10);
+      const isLargeCustom =
+        !isNaN(parsedCustomNum) &&
+        parsedCustomNum >= 10 &&
+        !rawLen.includes("3-5") &&
+        !rawLen.includes("5-8");
+      const isExtended = rawLen.includes("10-15") || isLargeCustom;
+      const isShort = rawLen.includes("3-5") || (!isNaN(parsedCustomNum) && parsedCustomNum <= 5);
       const isMedium = !isExtended && !isShort;
 
       const domainRefs = getDomainReferences(
@@ -612,8 +624,21 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
         isRu ? "ru" : "uz"
       );
 
-      const targetWordCount = isExtended ? "2800-3800" : isMedium ? "1600-2200" : "900-1400";
-      const targetPages = isExtended ? "10-15" : isMedium ? "5-8" : "3-5";
+      const targetWordCount =
+        isLargeCustom && parsedCustomNum >= 30
+          ? "4500-6500"
+          : isExtended
+            ? "2800-3800"
+            : isMedium
+              ? "1600-2200"
+              : "900-1400";
+      const targetPages = isLargeCustom
+        ? `${Math.min(500, parsedCustomNum)}`
+        : isExtended
+          ? "10-15"
+          : isMedium
+            ? "5-8"
+            : "3-5";
 
       // 2A. PARALLEL TWO-STAGE GENERATION FOR EXTENDED 10-15 PAGES
       if (isExtended) {

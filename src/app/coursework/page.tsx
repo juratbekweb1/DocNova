@@ -1224,14 +1224,16 @@ export default function CourseworkGenerator() {
                   {/* Hajm */}
                   <div>
                     <label className="text-foreground mb-1.5 block text-xs font-bold">
-                      Hajm (sahifalar soni)
+                      Hajm (sahifalar soni: 1 — 500 betgacha)
                     </label>
                     <div className="flex flex-wrap items-center gap-2">
                       {[
                         { cnt: "15", label: "15 bet" },
-                        { cnt: "19", label: "19 bet" },
                         { cnt: "25", label: "25 bet" },
-                        { cnt: "30", label: "30 bet" },
+                        { cnt: "50", label: "50 bet" },
+                        { cnt: "100", label: "100 bet" },
+                        { cnt: "200", label: "200 bet" },
+                        { cnt: "300", label: "300 bet" },
                       ].map((item) => (
                         <button
                           key={item.cnt}
@@ -1255,18 +1257,18 @@ export default function CourseworkGenerator() {
                         max={500}
                         value={
                           isCustomPageCount ||
-                          !["15", "19", "25", "30"].includes(formData.pageCount)
+                          !["15", "25", "50", "100", "200", "300"].includes(formData.pageCount)
                             ? formData.pageCount
                             : ""
                         }
                         onFocus={() => setIsCustomPageCount(true)}
                         onChange={(e) => handleCustomPageCountChange(e.target.value)}
-                        placeholder="Boshqa..."
+                        placeholder="Ixtiyoriy (masalan: 75)"
                         aria-label="Boshqa sahifalar soni (1-500)"
                         title="O'zingiz xohlagan sahifalar sonini kiriting (1 dan 500 gacha)"
-                        className={`h-10 max-w-[120px] rounded-xl border px-3 text-center text-xs font-bold transition-all focus:outline-none ${
+                        className={`h-10 max-w-[160px] rounded-xl border px-3 text-center text-xs font-bold transition-all focus:outline-none ${
                           isCustomPageCount ||
-                          (!["15", "19", "25", "30"].includes(formData.pageCount) &&
+                          (!["15", "25", "50", "100", "200", "300"].includes(formData.pageCount) &&
                             formData.pageCount !== "")
                             ? "border-primary bg-primary/10 text-primary ring-primary/40 ring-1"
                             : "bg-surface-elevated border-border text-foreground hover:border-primary/50 focus:border-primary"
