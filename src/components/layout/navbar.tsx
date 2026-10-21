@@ -196,7 +196,7 @@ export function Navbar() {
           ) : (
             <div className="hidden items-center gap-4 lg:flex">
               <button
-                onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                onClick={() => signIn("google", { callbackUrl: "/?auth=success" })}
                 className="border-primary/30 bg-background/50 text-foreground hover:bg-surface-elevated flex cursor-pointer items-center gap-3 rounded-full border py-1.5 pr-1.5 pl-5 text-sm font-semibold shadow-sm transition-colors"
               >
                 <span>{t.login}</span>

@@ -51,8 +51,13 @@ export async function POST(req: Request) {
             errorCode: "LIMIT_EXCEEDED",
           });
           return NextResponse.json(
-            { error: limitCheck.error, code: limitCheck.code },
-            { status: 429 }
+            {
+              error: "Limit reached",
+              requireUpgrade: true,
+              upgradeMessage: limitCheck.error,
+              code: limitCheck.code,
+            },
+            { status: 403 }
           );
         }
       }

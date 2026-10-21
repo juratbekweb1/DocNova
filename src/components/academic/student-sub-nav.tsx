@@ -104,24 +104,25 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
   return (
     <div
       className={cn(
-        "border-border/80 bg-background/80 sticky top-16 z-30 w-full border-b backdrop-blur-xl transition-all",
+        "border-border/80 bg-background/95 relative z-30 mb-4 w-full border-b backdrop-blur-xl transition-all sm:mb-0 md:sticky md:top-20",
         className
       )}
     >
-      <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center justify-between gap-3 px-3 py-2 sm:gap-4 sm:px-6 sm:py-2.5 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-2.5 lg:px-8">
         {/* Left: Quick Back to Hub */}
-        <Link
-          href="/academic"
-          className="group text-foreground-secondary hover:bg-surface-elevated hover:text-foreground flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-all sm:px-2.5"
-        >
-          <ChevronLeft className="text-primary h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          <span className="hidden sm:inline">Talabalar markazi</span>
-          <span className="text-[11px] sm:hidden">Markaz</span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/academic"
+            className="group text-foreground-secondary hover:bg-surface-elevated hover:text-foreground flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-all sm:px-2.5"
+          >
+            <ChevronLeft className="text-primary h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <span>Talabalar markazi</span>
+          </Link>
+        </div>
 
-        {/* Center/Right: 5 Sections Navigation Pills */}
+        {/* Center/Right: Sections Navigation Pills in horizontal scroll container */}
         <nav
-          className="no-scrollbar flex w-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5"
+          className="no-scrollbar flex w-full min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-2 whitespace-nowrap"
           aria-label="Student Navigation"
         >
           {STUDENT_SECTIONS.map((item) => {

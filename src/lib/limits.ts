@@ -174,10 +174,118 @@ export async function checkUserLimit(
     remaining: Math.max(0, limit - usageCount),
     totalLimit: limit,
     ...(!allowed && {
-      error: `Ushbu oy uchun ${featureType === "coursework" ? "akademik hujjatlar (Kurs ishi, Referat, BMI)" : featureType} limitingiz tugadi. Pro yoki Premium tarifga o'tib ko'proq foydalanishingiz mumkin.`,
+      error: "Limitingiz tugadi! Generatsiyani davom ettirish uchun iltimos obuna sotib oling.",
       code: "LIMIT_EXCEEDED",
     }),
   };
+}
+
+export interface SectionLimitStat {
+  id: FeatureType;
+  title: string;
+  used: number;
+  total: number;
+  remaining: number;
+  unlimited: boolean;
+  href: string;
+}
+
+export async function getAllUserSectionLimits(userId: string): Promise<SectionLimitStat[]> {
+  const [sub, apiLimit, usageGroup] = await Promise.all([
+    getUserSubscription(userId),
+    prisma.userApiLimit.findUnique({ where: { userId } }),
+    prisma.aIUsage.groupBy({
+      by: ["feature"],
+      where: {
+        userId,
+        status: "SUCCESS",
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const plan = sub.plan || "FREE";
+  const limits = PLAN_LIMITS[plan];
+  const unlimited = sub.isSuperAdmin;
+
+  const countMap = new Map<string, number>();
+  for (const row of usageGroup) {
+    countMap.set(row.feature, row._count._all);
+  }
+
+  const sumFeatures = (keys: string[]) => keys.reduce((acc, k) => acc + (countMap.get(k) || 0), 0);
+
+  const courseworkUsed = sumFeatures([
+    "COURSEWORK",
+    "REFERAT",
+    "REFERAT_EXTENDED",
+    "BMI_DIPLOM",
+    "EXAM_PREP",
+    "ACADEMIC_GENERATION",
+  ]);
+  const presentationUsed = sumFeatures(["PRESENTATION"]);
+  const docGenUsed = Math.max(sumFeatures(["DOCUMENT_GENERATION"]), apiLimit?.count || 0);
+  const cvUsed = Math.max(sumFeatures(["RESUME_ANALYSIS"]), apiLimit?.cvCount || 0);
+  const rewriteUsed = sumFeatures(["REWRITE"]);
+  const mockTestUsed = Math.max(sumFeatures(["MOCK_TEST"]), apiLimit?.ieltsCount || 0);
+
+  const buildStat = (
+    id: FeatureType,
+    title: string,
+    used: number,
+    total: number,
+    href: string
+  ): SectionLimitStat => ({
+    id,
+    title,
+    used,
+    total,
+    remaining: unlimited ? total : Math.max(0, total - used),
+    unlimited,
+    href,
+  });
+
+  return [
+    buildStat(
+      "coursework",
+      "Kurs ishi, Referat va BMI",
+      courseworkUsed,
+      limits.coursework,
+      "/academic/coursework"
+    ),
+    buildStat(
+      "presentation",
+      "Taqdimot (Slaydlar)",
+      presentationUsed,
+      limits.presentation,
+      "/academic/presentation"
+    ),
+    buildStat(
+      "document_generation",
+      "AI Yaratishlar (Rezyume & Xat)",
+      docGenUsed,
+      limits.document_generation,
+      "/tools/resume-builder"
+    ),
+    buildStat(
+      "resume_analysis",
+      "CV va ATS Tahlili",
+      cvUsed,
+      limits.resume_analysis,
+      "/tools/cv-analyzer"
+    ),
+    buildStat("rewrite", "AI Tahrirlash va Insho", rewriteUsed, limits.rewrite, "/tools/ai-writer"),
+    buildStat(
+      "mock_test",
+      "IELTS / Mock Testlar",
+      mockTestUsed,
+      limits.mock_test,
+      "/academic/mock-test"
+    ),
+  ];
 }
 
 export async function trackAIUsage({

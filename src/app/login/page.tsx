@@ -9,11 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [_error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (data: {
-    email: string;
-    password: string;
-    rememberMe?: boolean;
-  }) => {
+  const handleLogin = async (data: { email: string; password: string; rememberMe?: boolean }) => {
     try {
       const result = await signIn("credentials", {
         email: data.email,
@@ -26,7 +22,7 @@ export default function LoginPage() {
         return { error: result.error };
       }
 
-      router.push("/dashboard");
+      router.push("/?auth=success");
       router.refresh();
       return {};
     } catch (_error) {
@@ -40,7 +36,7 @@ export default function LoginPage() {
   };
 
   const handleOAuthProviderClick = (provider: string) => {
-    signIn(provider, { callbackUrl: "/dashboard" });
+    signIn(provider, { callbackUrl: "/?auth=success" });
   };
 
   return (

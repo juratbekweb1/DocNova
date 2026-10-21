@@ -20,6 +20,29 @@ export const authConfig = {
     signIn: "/login",
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const target = url.startsWith("/") ? `${baseUrl}${url}` : url;
+      if (!target.startsWith(baseUrl)) {
+        return `${baseUrl}/?auth=success`;
+      }
+      const parsed = new URL(target);
+      if (
+        parsed.pathname.startsWith("/telegram/connect") ||
+        parsed.pathname.startsWith("/checkout") ||
+        parsed.pathname.startsWith("/reset-password")
+      ) {
+        return target;
+      }
+      if (
+        parsed.pathname === "/dashboard" ||
+        parsed.pathname === "/login" ||
+        parsed.pathname === "/register" ||
+        parsed.pathname === "/"
+      ) {
+        return `${baseUrl}/?auth=success`;
+      }
+      return target;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
