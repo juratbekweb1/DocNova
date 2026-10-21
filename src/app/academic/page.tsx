@@ -194,11 +194,11 @@ export default function AcademicHubPage() {
       <StudentSubNav />
 
       {/* Hero Section */}
-      <div className="border-border/60 bg-surface/30 relative mt-2 overflow-hidden border-b pt-8 pb-12 sm:mt-0 sm:py-12 md:py-16">
+      <div className="border-border/60 bg-surface/30 relative mt-6 overflow-hidden border-b pt-10 pb-12 sm:mt-8 sm:pt-14 sm:pb-16 md:py-16">
         <div className="from-primary/5 pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
-            <div className="border-primary/30 bg-primary/10 text-primary mb-2 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-sm">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center">
+            <div className="border-primary/30 bg-primary/10 text-primary mt-2 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-sm">
               <Sparkles className="h-3.5 w-3.5" />
               <span>DocNova Talabalar Portali 2026</span>
             </div>

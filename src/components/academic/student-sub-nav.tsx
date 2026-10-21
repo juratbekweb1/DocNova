@@ -104,25 +104,25 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
   return (
     <div
       className={cn(
-        "border-border/80 bg-background/95 relative z-30 mb-4 w-full border-b backdrop-blur-xl transition-all sm:mb-0 md:sticky md:top-20",
+        "border-border/80 bg-background relative z-30 block w-full border-b",
         className
       )}
     >
-      <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-2.5 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-3.5 lg:px-8">
         {/* Left: Quick Back to Hub */}
-        <div className="flex items-center justify-between">
+        <div className="flex shrink-0 items-center">
           <Link
             href="/academic"
-            className="group text-foreground-secondary hover:bg-surface-elevated hover:text-foreground flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition-all sm:px-2.5"
+            className="group text-foreground-secondary hover:bg-surface-elevated hover:text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all"
           >
             <ChevronLeft className="text-primary h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             <span>Talabalar markazi</span>
           </Link>
         </div>
 
-        {/* Center/Right: Sections Navigation Pills in horizontal scroll container */}
+        {/* Center/Right: Horizontal Scroll Navigation Pills */}
         <nav
-          className="no-scrollbar flex w-full min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-2 whitespace-nowrap"
+          className="no-scrollbar flex w-full min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-1.5 whitespace-nowrap"
           aria-label="Student Navigation"
         >
           {STUDENT_SECTIONS.map((item) => {
@@ -134,15 +134,15 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
                 key={item.id}
                 href={item.href}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium whitespace-nowrap transition-all",
+                  "relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-all",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-primary/25 font-semibold shadow-md"
-                    : "text-foreground-secondary hover:text-foreground hover:bg-surface-elevated hover:border-border/60 border border-transparent"
+                    : "text-foreground-secondary hover:text-foreground hover:bg-surface-elevated border-border/60 bg-surface/40 border"
                 )}
               >
                 <Icon
                   className={cn(
-                    "h-3.5 w-3.5",
+                    "h-3.5 w-3.5 shrink-0",
                     isActive ? "text-primary-foreground" : "text-primary"
                   )}
                 />
@@ -151,7 +151,7 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
                 {item.isFeatured ? (
                   <span
                     className={cn(
-                      "py-0.2 hidden items-center gap-1 rounded-full px-1.5 text-[10px] font-bold tracking-wider uppercase md:inline-flex",
+                      "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase",
                       isActive
                         ? "bg-white/20 text-white"
                         : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
