@@ -8,7 +8,7 @@ import { PDFDocument, rgb } from "pdf-lib";
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
-    
+
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,17 +22,43 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       return NextResponse.json({ error: "Telegram not linked" }, { status: 400 });
     }
 
-    // Generate a simple PDF using pdf-lib (In production, render the actual user's resume data)
+    const doc = await prisma.document.findFirst({
+      where: { id, userId: user.id },
+    });
+
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });
+    }
+
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([600, 800]);
-    page.drawText(`Resume Preview (ID: ${id})`, { x: 50, y: 700, size: 24, color: rgb(0, 0.53, 0.71) });
+    page.drawText(`Resume Preview (ID: ${doc.id})`, {
+      x: 50,
+      y: 700,
+      size: 24,
+      color: rgb(0, 0.53, 0.71),
+    });
+    page.drawText(`Title: ${(doc.title || "Document").slice(0, 60)}`, {
+      x: 50,
+      y: 675,
+      size: 14,
+    });
     page.drawText(`Generated for ${user.name || "User"}`, { x: 50, y: 650, size: 14 });
-    page.drawText("This document was sent directly to your Telegram via DocNova bot.", { x: 50, y: 600, size: 12 });
+    page.drawText("This document was sent directly to your Telegram via DocNova bot.", {
+      x: 50,
+      y: 600,
+      size: 12,
+    });
 
     const pdfBytes = await pdfDoc.save();
     const fileBuffer = Buffer.from(pdfBytes);
 
-    await sendDocumentToTelegram(user.telegramChatId, fileBuffer, `DocNova_Resume_${id}.pdf`, "Here is your generated document!");
+    await sendDocumentToTelegram(
+      user.telegramChatId,
+      fileBuffer,
+      `DocNova_Resume_${doc.id}.pdf`,
+      "Here is your generated document!"
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

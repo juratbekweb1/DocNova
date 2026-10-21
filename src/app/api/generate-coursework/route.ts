@@ -1513,8 +1513,24 @@ export async function POST(req: Request) {
       outline: clientOutline,
     } = body;
 
-    const cleanTopic = (topic || "").trim();
-    const cleanSubject = (subject || "").trim();
+    const cleanTopic = String(topic || "")
+      .trim()
+      .slice(0, 300);
+    const cleanSubject = String(subject || "")
+      .trim()
+      .slice(0, 200);
+    const cleanFaculty = String(faculty || "")
+      .trim()
+      .slice(0, 200);
+    const cleanUniversity = String(university || "")
+      .trim()
+      .slice(0, 200);
+    const cleanStudentName = String(studentName || "")
+      .trim()
+      .slice(0, 150);
+    const cleanTeacherName = String(teacherName || "")
+      .trim()
+      .slice(0, 150);
 
     if (!cleanTopic || !cleanSubject) {
       return NextResponse.json({ error: "Fan nomi va Mavzu kiritilishi shart." }, { status: 400 });
@@ -1527,7 +1543,7 @@ export async function POST(req: Request) {
     // ACTION: OUTLINE ONLY (Step 2 Preview & Editing)
     // ----------------------------------------------------
     if (action === "outline") {
-      const baseOutline = buildDefaultOutline(cleanTopic, cleanSubject, faculty?.trim(), lang);
+      const baseOutline = buildDefaultOutline(cleanTopic, cleanSubject, cleanFaculty, lang);
 
       try {
         const outlinePrompt = `
@@ -1605,17 +1621,17 @@ Faqat quyidagi JSON formatida qaytaring:
 
     const chosenOutline = isClientOutlineValid
       ? clientOutline
-      : buildDefaultOutline(cleanTopic, cleanSubject, faculty?.trim(), lang);
+      : buildDefaultOutline(cleanTopic, cleanSubject, cleanFaculty, lang);
 
     const data: CourseworkData = {
       subject: cleanSubject,
       topic: cleanTopic,
-      faculty: faculty?.trim() || "",
-      university: university?.trim() || "",
-      studentName: studentName?.trim() || "",
-      teacherName: teacherName?.trim() || "",
-      year: year || new Date().getFullYear().toString(),
-      pageCount: pageCount || "19",
+      faculty: cleanFaculty,
+      university: cleanUniversity,
+      studentName: cleanStudentName,
+      teacherName: cleanTeacherName,
+      year: String(year || new Date().getFullYear()).slice(0, 10),
+      pageCount: String(pageCount || "19").slice(0, 10),
       language: lang,
       outline: chosenOutline,
     };

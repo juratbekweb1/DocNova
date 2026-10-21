@@ -57,22 +57,33 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const {
-      action,
-      topic,
-      subject,
-      specialty,
-      university,
-      faculty,
-      studentName,
-      teacherName,
-      workType,
-      part,
-      length,
-      language = "uz",
-    } = body;
+    const { action, part, length, language = "uz" } = body;
+    const topic = String(body.topic || "")
+      .trim()
+      .slice(0, 300);
+    const subject = String(body.subject || "")
+      .trim()
+      .slice(0, 200);
+    const specialty = String(body.specialty || "")
+      .trim()
+      .slice(0, 200);
+    const university = String(body.university || "")
+      .trim()
+      .slice(0, 200);
+    const faculty = String(body.faculty || "")
+      .trim()
+      .slice(0, 200);
+    const studentName = String(body.studentName || "")
+      .trim()
+      .slice(0, 150);
+    const teacherName = String(body.teacherName || "")
+      .trim()
+      .slice(0, 150);
+    const workType = String(body.workType || "")
+      .trim()
+      .slice(0, 150);
 
-    if (!topic || !topic.trim()) {
+    if (!topic) {
       return NextResponse.json({ error: "Mavzu kiritilishi shart" }, { status: 400 });
     }
 
