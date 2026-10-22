@@ -520,61 +520,401 @@ function PresentationContent() {
     }
   };
 
-  // Export genuine Presentation PDF (All slides with speaker notes in A4 landscape)
+  const triggerPrintFallback = () => {
+    setPresentationViewMode("all");
+
+    const styleId = "dynamic-presentation-print-style";
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+
+    styleEl.innerHTML = `
+      @media print {
+        @page {
+          size: A4 landscape;
+          margin: 0;
+        }
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background-color: #0B192C !important;
+          color: #FFFFFF !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        body * {
+          visibility: hidden;
+        }
+        .presentation-pdf-deck,
+        .presentation-pdf-deck * {
+          visibility: visible !important;
+        }
+        .presentation-pdf-deck {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .presentation-pdf-slide {
+          width: 297mm !important;
+          height: 210mm !important;
+          max-height: 210mm !important;
+          margin: 0 !important;
+          padding: 16mm 20mm !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          page-break-after: always !important;
+          break-after: page !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+          overflow: hidden !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .presentation-pdf-slide:last-child {
+          page-break-after: auto !important;
+          break-after: auto !important;
+        }
+        nav, header, footer, button, form, .print-hidden {
+          display: none !important;
+        }
+      }
+    `;
+
+    setTimeout(() => {
+      window.print();
+    }, 350);
+  };
+
+  // Export genuine Presentation PDF with mobile fallback & dynamic print stylesheet
   const handleExportPdf = async () => {
     if (slides.length === 0) return;
     setIsExportingPdf(true);
 
-    const prevMode = presentationViewMode;
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
+    const cleanFilename =
+      topic
+        .replace(/[^a-zA-Z0-9\u0400-\u04FF_\-]/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 40) || "Prezentatsiya";
+
     try {
-      if (prevMode !== "all") {
-        setPresentationViewMode("all");
-        await new Promise((resolve) => setTimeout(resolve, 250));
+      if (!isMobile && deckExportRef.current) {
+        const deckEl = deckExportRef.current;
+        const wasHidden = deckEl.classList.contains("hidden");
+        if (wasHidden) {
+          deckEl.classList.remove("hidden");
+          deckEl.classList.add("block");
+        }
+        try {
+          const html2pdfModule = await import("html2pdf.js");
+          const html2pdf = html2pdfModule.default || html2pdfModule;
+          await html2pdf()
+            .set({
+              margin: 0,
+              filename: `Prezentatsiya_${cleanFilename}.pdf`,
+              image: { type: "jpeg", quality: 0.95 },
+              html2canvas: { scale: 1.5, useCORS: true, logging: false },
+              jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+            })
+            .from(deckEl)
+            .save();
+
+          toast({
+            title: "PDF muvaffaqiyatli yuklab olindi! 📄",
+            description: `Barcha ${slides.length} ta slayd PDF formatida saqlandi.`,
+          });
+          return;
+        } catch (html2pdfErr) {
+          console.warn("[HTML2PDF_FALLBACK_TO_PRINT]", html2pdfErr);
+        } finally {
+          if (wasHidden && presentationViewMode === "single") {
+            deckEl.classList.remove("block");
+            deckEl.classList.add("hidden");
+          }
+        }
       }
 
-      const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default || html2pdfModule;
+      if (isMobile) {
+        triggerPrintFallback();
+        toast({
+          title: "PDF chop etish oynasi ochildi 🖨️",
+          description: "«Save as PDF» (PDF sifatida saqlash) tugmasini bosing.",
+        });
+        return;
+      }
 
-      const element = deckExportRef.current;
-      if (!element) throw new Error("Slaydlar maydoni topilmadi");
+      // High-reliability Canvas 2D + pdf-lib generator (works on mobile & desktop)
+      const { PDFDocument } = await import("pdf-lib");
+      const pdfDoc = await PDFDocument.create();
 
-      element.classList.add("presentation-pdf-mode");
+      const W = isMobile ? 1280 : 1600;
+      const H = isMobile ? 720 : 900;
+      const scaleFactor = W / 1600;
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas 2D konteksti yaratilmadi");
 
-      const cleanFilename = topic.replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 40) || "Prezentatsiya";
+      const fontStack = "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
 
-      const opt = {
-        margin: 0,
-        filename: `Prezentatsiya_${cleanFilename}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          scrollY: 0,
-        },
-        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "landscape" as const },
-        pagebreak: { mode: ["css", "legacy"], after: ".presentation-pdf-slide" },
+      const wrapText = (text: string, maxWidth: number, font: string): string[] => {
+        ctx.font = font;
+        const words = text.replace(/\s+/g, " ").trim().split(" ");
+        const lines: string[] = [];
+        let currentLine = "";
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
       };
 
-      await html2pdf().from(element).set(opt).save();
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
 
-      element.classList.remove("presentation-pdf-mode");
+      const palette =
+        selectedStyle === "academic"
+          ? {
+              bgStops: ["#0B192C", "#102A43", "#1E3E62"],
+              accent: "#FBBF24",
+              badgeBg: "rgba(245, 158, 11, 0.22)",
+              badgeBorder: "rgba(245, 158, 11, 0.45)",
+              badgeText: "#FCD34D",
+            }
+          : selectedStyle === "modern"
+            ? {
+                bgStops: ["#0F172A", "#1E1B4B", "#312E81"],
+                accent: "#22D3EE",
+                badgeBg: "rgba(6, 182, 212, 0.22)",
+                badgeBorder: "rgba(6, 182, 212, 0.45)",
+                badgeText: "#67E8F9",
+              }
+            : {
+                bgStops: ["#09090B", "#18181B", "#27272A"],
+                accent: "#34D399",
+                badgeBg: "rgba(39, 39, 42, 0.9)",
+                badgeBorder: "rgba(82, 82, 91, 0.8)",
+                badgeText: "#D4D4D8",
+              };
+
+      for (const s of slides) {
+        ctx.save();
+        ctx.scale(scaleFactor, scaleFactor);
+        const V_W = 1600;
+        const V_H = 900;
+        ctx.clearRect(0, 0, V_W, V_H);
+
+        const grad = ctx.createLinearGradient(0, 0, V_W, V_H);
+        grad.addColorStop(0, palette.bgStops[0]);
+        grad.addColorStop(0.5, palette.bgStops[1]);
+        grad.addColorStop(1, palette.bgStops[2]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, V_W, V_H);
+
+        const padX = 88;
+        let cursorY = 64;
+
+        const badgeText = (s.badge || `0${s.slideNumber} / MODUL`).toUpperCase();
+        ctx.font = `bold 18px ${fontStack}`;
+        const badgeW = ctx.measureText(badgeText).width + 36;
+        const badgeH = 40;
+
+        drawRoundRect(padX, cursorY, badgeW, badgeH, 10);
+        ctx.fillStyle = palette.badgeBg;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = palette.badgeBorder;
+        ctx.stroke();
+
+        ctx.fillStyle = palette.badgeText;
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, padX + 18, cursorY + badgeH / 2 + 1);
+
+        if (s.subtitle) {
+          ctx.font = `italic 20px ${fontStack}`;
+          ctx.fillStyle = "rgba(203, 213, 225, 0.85)";
+          const subText = `• ${s.subtitle}`;
+          const maxSubW = V_W - padX * 2 - badgeW - 260;
+          const subLines = wrapText(subText, Math.max(200, maxSubW), `italic 20px ${fontStack}`);
+          ctx.fillText(subLines[0] || "", padX + badgeW + 18, cursorY + badgeH / 2 + 1);
+        }
+
+        if (s.highlightMetric) {
+          ctx.font = `bold 21px ${fontStack}`;
+          const metricW = ctx.measureText(s.highlightMetric).width + 40;
+          const metricX = V_W - padX - metricW;
+          drawRoundRect(metricX, cursorY, metricW, badgeH, 12);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+          ctx.stroke();
+
+          ctx.fillStyle = palette.accent;
+          ctx.fillText(s.highlightMetric, metricX + 20, cursorY + badgeH / 2 + 1);
+        }
+
+        cursorY += 86;
+
+        const hasNotes = Boolean(showSpeakerNotes && s.speakerNotes);
+        const titleFontSize = s.title.length > 85 ? 36 : 42;
+        const titleFont = `bold ${titleFontSize}px ${fontStack}`;
+        const titleLines = wrapText(s.title, V_W - padX * 2, titleFont).slice(0, 3);
+
+        ctx.font = titleFont;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textBaseline = "top";
+        for (const line of titleLines) {
+          ctx.fillText(line, padX, cursorY);
+          cursorY += titleFontSize * 1.28;
+        }
+
+        cursorY += 22;
+
+        const maxBulletsAreaBottom = hasNotes ? V_H - 235 : V_H - 105;
+        const bulletFontSize = s.bulletPoints.length > 4 || hasNotes ? 24 : 27;
+        const bulletFont = `normal ${bulletFontSize}px ${fontStack}`;
+        const bulletLineHeight = bulletFontSize * 1.42;
+
+        for (const point of s.bulletPoints) {
+          if (cursorY + bulletLineHeight > maxBulletsAreaBottom) break;
+          const pointLines = wrapText(point, V_W - padX * 2 - 38, bulletFont);
+
+          ctx.beginPath();
+          ctx.arc(padX + 10, cursorY + bulletFontSize * 0.55, 6.5, 0, Math.PI * 2);
+          ctx.fillStyle = palette.accent;
+          ctx.fill();
+
+          ctx.font = bulletFont;
+          ctx.fillStyle = "#E2E8F0";
+          for (const pLine of pointLines) {
+            if (cursorY + bulletLineHeight > maxBulletsAreaBottom + 10) break;
+            ctx.fillText(pLine, padX + 34, cursorY);
+            cursorY += bulletLineHeight;
+          }
+          cursorY += 12;
+        }
+
+        if (hasNotes && s.speakerNotes) {
+          const notesFont = `italic 19px ${fontStack}`;
+          const prefix = "Nutq matni: ";
+          const fullNotes = `${prefix}"${s.speakerNotes.trim()}"`;
+          const noteLines = wrapText(fullNotes, V_W - padX * 2 - 44, notesFont).slice(0, 3);
+          const boxH = noteLines.length * 27 + 28;
+          const boxY = V_H - 86 - boxH;
+
+          drawRoundRect(padX, boxY, V_W - padX * 2, boxH, 14);
+          ctx.fillStyle = "rgba(245, 158, 11, 0.12)";
+          ctx.fill();
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = "rgba(245, 158, 11, 0.35)";
+          ctx.stroke();
+
+          ctx.font = notesFont;
+          ctx.fillStyle = "#FDE68A";
+          let ny = boxY + 14;
+          for (const nLine of noteLines) {
+            ctx.fillText(nLine, padX + 22, ny);
+            ny += 27;
+          }
+        }
+
+        const footerY = V_H - 64;
+        ctx.beginPath();
+        ctx.moveTo(padX, footerY);
+        ctx.lineTo(V_W - padX, footerY);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = `normal 18px ${fontStack}`;
+        ctx.fillStyle = "#94A3B8";
+        ctx.textBaseline = "top";
+        const cleanTopicShort = topic.length > 55 ? `${topic.slice(0, 55)}...` : topic;
+        ctx.fillText(`DocNova Academic Studio • ${cleanTopicShort}`, padX, footerY + 18);
+
+        const pageLabel = `Slayd ${s.slideNumber} / ${slides.length}`;
+        const pageLabelW = ctx.measureText(pageLabel).width;
+        ctx.fillText(pageLabel, V_W - padX - pageLabelW, footerY + 18);
+        ctx.restore();
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        const base64Data = dataUrl.split(",")[1];
+        const binaryStr = window.atob(base64Data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+
+        const jpgImage = await pdfDoc.embedJpg(bytes);
+        const pageWidth = 841.89;
+        const pageHeight = 595.28;
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+        page.drawImage(jpgImage, {
+          x: 0,
+          y: 0,
+          width: pageWidth,
+          height: pageHeight,
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Prezentatsiya_${cleanFilename}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
 
       toast({
         title: "PDF muvaffaqiyatli yuklab olindi! 📄",
-        description: `Barcha ${slides.length} ta slayd va ma'ruzachi nutqi A4 Landscape formatida saqlandi.`,
+        description: `Barcha ${slides.length} ta slayd A4 Landscape PDF formatida saqlandi.`,
       });
     } catch (err: unknown) {
-      console.error("[PDF_EXPORT_ERROR]", err);
+      console.error("[PDF_EXPORT_FALLBACK_PRINT]", err);
       toast({
-        title: "PDF yaratishda xatolik",
-        description: "Prezentatsiya PDF faylini saqlashda muammo yuz berdi.",
-        variant: "destructive",
+        title: "PDF chop etish oynasi ochildi 🖨️",
+        description: "Mobil qurilmada «Save as PDF» (PDF sifatida saqlash) tugmasini bosing.",
       });
+      triggerPrintFallback();
     } finally {
-      if (prevMode !== "all") {
-        setPresentationViewMode(prevMode);
-      }
       setIsExportingPdf(false);
     }
   };
@@ -1186,88 +1526,93 @@ function PresentationContent() {
                   </div>
                 )}
 
-                {/* VIEW MODE: ALL SLIDES (Grid / Printable Stack with deckExportRef) */}
-                {presentationViewMode === "all" ? (
-                  <div ref={deckExportRef} className="presentation-pdf-deck space-y-6">
-                    {slides.map((s, idx) => (
-                      <div
-                        key={idx}
-                        className={`presentation-pdf-slide border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-xl sm:p-8 ${activeStyleConfig.canvasBg}`}
-                        style={{ pageBreakAfter: "always", breakAfter: "page" }}
-                      >
-                        {/* Top Bar */}
-                        <div className="relative z-10 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`rounded-md border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase sm:text-xs ${activeStyleConfig.badgeClass}`}
-                            >
-                              {s.badge || `0${s.slideNumber} / Modul`}
-                            </span>
-                            {s.subtitle && (
-                              <span className="text-[11px] font-medium text-slate-300/80 italic sm:text-xs">
-                                • {s.subtitle}
-                              </span>
-                            )}
-                          </div>
-
-                          {s.highlightMetric && (
-                            <span
-                              className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
-                            >
-                              {s.highlightMetric}
+                {/* VIEW MODE: ALL SLIDES (Always mounted in DOM for reliable PDF/Print capture) */}
+                <div
+                  ref={deckExportRef}
+                  className={`presentation-pdf-deck space-y-6 ${
+                    presentationViewMode === "all" ? "block" : "hidden print:block"
+                  }`}
+                >
+                  {slides.map((s, idx) => (
+                    <div
+                      key={idx}
+                      className={`presentation-pdf-slide border-border/80 relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-xl sm:p-8 ${activeStyleConfig.canvasBg}`}
+                      style={{ pageBreakAfter: "always", breakAfter: "page" }}
+                    >
+                      {/* Top Bar */}
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-md border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase sm:text-xs ${activeStyleConfig.badgeClass}`}
+                          >
+                            {s.badge || `0${s.slideNumber} / Modul`}
+                          </span>
+                          {s.subtitle && (
+                            <span className="text-[11px] font-medium text-slate-300/80 italic sm:text-xs">
+                              • {s.subtitle}
                             </span>
                           )}
                         </div>
 
-                        {/* Slide Content */}
-                        <div className="relative z-10 my-auto py-3">
-                          <h2
-                            className={`text-lg font-extrabold tracking-tight sm:text-2xl ${activeStyleConfig.textColor} mb-3 leading-tight`}
+                        {s.highlightMetric && (
+                          <span
+                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
                           >
-                            {s.title}
-                          </h2>
-
-                          <div className="space-y-2">
-                            {s.bulletPoints.map((point, pIdx) => (
-                              <div key={pIdx} className="flex items-start gap-2.5">
-                                <span
-                                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                                    selectedStyle === "academic"
-                                      ? "bg-amber-400"
-                                      : selectedStyle === "modern"
-                                        ? "bg-cyan-400"
-                                        : "bg-emerald-400"
-                                  }`}
-                                />
-                                <p className="text-xs leading-relaxed font-normal text-slate-200/95 sm:text-sm">
-                                  {point}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Speaker Notes */}
-                        {showSpeakerNotes && s.speakerNotes && (
-                          <div className="relative z-10 mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200/90 italic">
-                            <span className="font-bold text-amber-300 not-italic">
-                              🎤 Nutq matni:{" "}
-                            </span>
-                            &quot;{s.speakerNotes}&quot;
-                          </div>
-                        )}
-
-                        {/* Footer */}
-                        <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2.5 text-[10px] text-slate-400">
-                          <span>DocNova Academic Studio • {topic.slice(0, 45)}</span>
-                          <span>
-                            Slayd {s.slideNumber} / {slides.length}
+                            {s.highlightMetric}
                           </span>
+                        )}
+                      </div>
+
+                      {/* Slide Content */}
+                      <div className="relative z-10 my-auto py-3">
+                        <h2
+                          className={`text-lg font-extrabold tracking-tight sm:text-2xl ${activeStyleConfig.textColor} mb-3 leading-tight`}
+                        >
+                          {s.title}
+                        </h2>
+
+                        <div className="space-y-2">
+                          {s.bulletPoints.map((point, pIdx) => (
+                            <div key={pIdx} className="flex items-start gap-2.5">
+                              <span
+                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                                  selectedStyle === "academic"
+                                    ? "bg-amber-400"
+                                    : selectedStyle === "modern"
+                                      ? "bg-cyan-400"
+                                      : "bg-emerald-400"
+                                }`}
+                              />
+                              <p className="text-xs leading-relaxed font-normal text-slate-200/95 sm:text-sm">
+                                {point}
+                              </p>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
+
+                      {/* Speaker Notes */}
+                      {showSpeakerNotes && s.speakerNotes && (
+                        <div className="relative z-10 mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200/90 italic">
+                          <span className="font-bold text-amber-300 not-italic">
+                            🎤 Nutq matni:{" "}
+                          </span>
+                          &quot;{s.speakerNotes}&quot;
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2.5 text-[10px] text-slate-400">
+                        <span>DocNova Academic Studio • {topic.slice(0, 45)}</span>
+                        <span>
+                          Slayd {s.slideNumber} / {slides.length}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {presentationViewMode === "single" && (
                   <>
                     {/* ACTIVE SLIDE CANVAS (16:9 Aspect Ratio on desktop, adaptive on mobile) */}
                     <div
@@ -1478,18 +1823,61 @@ function PresentationContent() {
             size: A4 landscape;
             margin: 0;
           }
+          html,
           body {
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: #0b192c !important;
             color: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .print\\:hidden {
-            display: none !important;
+          body * {
+            visibility: hidden;
+          }
+          .presentation-pdf-deck,
+          .presentation-pdf-deck * {
+            visibility: visible !important;
+          }
+          .presentation-pdf-deck {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
           }
           .presentation-pdf-slide {
+            width: 297mm !important;
+            height: 210mm !important;
+            max-height: 210mm !important;
+            margin: 0 !important;
+            padding: 16mm 20mm !important;
             box-shadow: none !important;
             border: none !important;
+            border-radius: 0 !important;
             page-break-after: always !important;
             break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .presentation-pdf-slide:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          nav,
+          header,
+          footer,
+          button,
+          form,
+          .print\\:hidden {
+            display: none !important;
           }
         }
         .presentation-pdf-mode .presentation-pdf-slide {
