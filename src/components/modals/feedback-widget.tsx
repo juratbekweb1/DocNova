@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import { MessageSquarePlus, X, Send, Loader2, CheckCircle2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,6 +13,7 @@ const CATEGORIES = [
 ];
 
 export function FeedbackWidget() {
+  const pathname = usePathname();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState(CATEGORIES[0].id);
@@ -74,17 +76,21 @@ export function FeedbackWidget() {
     }
   };
 
+  const isChatPage = pathname?.startsWith("/chat");
+
   return (
     <div className="print:hidden">
-      {/* Floating Trigger Button */}
+      {/* Floating Trigger Button: Repositioned away from chat input on mobile chat pages */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="border-primary/40 bg-surface/95 text-foreground hover:border-primary hover:bg-primary/10 fixed bottom-5 left-5 z-40 flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-xs font-bold shadow-xl backdrop-blur-md transition-all hover:scale-105"
+        className={`border-primary/40 bg-surface/95 text-foreground hover:border-primary hover:bg-primary/10 z-40 flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold shadow-xl backdrop-blur-md transition-all hover:scale-105 sm:px-4 sm:py-2.5 ${
+          isChatPage ? "fixed top-20 right-4 sm:top-24 sm:right-6" : "fixed bottom-5 left-5"
+        }`}
         title="Kamchilik yoki taklif bildirish"
       >
         <MessageSquarePlus className="text-primary h-4 w-4" />
-        <span>Fikr bildirish</span>
+        <span className={isChatPage ? "hidden sm:inline" : ""}>Fikr bildirish</span>
       </button>
 
       {/* Modal Overlay */}

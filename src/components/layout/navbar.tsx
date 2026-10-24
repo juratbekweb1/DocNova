@@ -41,8 +41,9 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: "/login" });
+  const handleLogout = async () => {
+    setUserDropdownOpen(false);
+    await signOut({ callbackUrl: "/login", redirect: true });
   };
 
   const currentLang = languages.find((l) => l.code === lang) || languages[0];

@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status } = useSession();
   const [_error, setError] = useState<string | null>(null);
+
+  const callbackUrl = searchParams.get("callbackUrl") || "/?auth=success";
+
+  // Auto redirect if already authenticated or OAuth completes
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push(callbackUrl);
+    }
+  }, [status, callbackUrl, router]);
 
   const handleLogin = async (data: { email: string; password: string; rememberMe?: boolean }) => {
     try {
@@ -36,7 +47,7 @@ export default function LoginPage() {
   };
 
   const handleOAuthProviderClick = (provider: string) => {
-    signIn(provider, { callbackUrl: "/?auth=success" });
+    signIn(provider, { callbackUrl });
   };
 
   return (

@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { RegisterForm } from "@/components/auth/RegisterForm";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { status } = useSession();
   const [_error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/?auth=success");
+    }
+  }, [status, router]);
 
   const handleRegister = async (data: {
     firstName: string;
