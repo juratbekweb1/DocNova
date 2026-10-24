@@ -58,6 +58,7 @@
     "html2pdf.js": "^0.14.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.25.0",
+    "mammoth": "^1.13.0",
     "motion": "^12.42.2",
     "next": "16.2.10",
     "next-auth": "^4.24.14",

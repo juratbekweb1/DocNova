@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
+import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 import {
   StaleBuildError,
   deliverPdf,
@@ -146,6 +147,7 @@ export default function AcademicReferatPage() {
     studentName: "",
     teacherName: "",
     length: "5-8 bet (Klassik)",
+    templateText: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -531,6 +533,25 @@ export default function AcademicReferatPage() {
                   onChange={handleChange}
                   placeholder="Yoki o'zingiz xohlagan sahifa sonini yozing (masalan: 75 bet, 150 bet, 300 bet)..."
                   className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-emerald-400 focus:outline-none sm:text-sm"
+                />
+              </div>
+
+              {/* Namuna Fayli Yuklash */}
+              <div>
+                <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+                  Namuna yoki adabiyot fayli (Ixtiyoriy)
+                </label>
+                <SecureFileUploadZone
+                  onTextExtracted={(text, fileName) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      templateText: text,
+                      topic: prev.topic || fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+                    }));
+                  }}
+                  onClear={() => setFormData((prev) => ({ ...prev, templateText: "" }))}
+                  title="Referat namunasi yoki tayyor konspektni yuklash"
+                  description=".TXT, .DOCX yoki .PDF (max 10 MB). AI ushbu matnga asoslanib yozadi."
                 />
               </div>
 

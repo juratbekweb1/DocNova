@@ -37,6 +37,7 @@ export interface CourseworkData {
   year?: string;
   pageCount?: string;
   language?: "uz" | "uz-cyrl" | "ru";
+  workTypeTitle?: string;
   outline?: CourseworkOutline;
 }
 
@@ -594,6 +595,7 @@ export function generateAcademicPages(
     year,
     pageCount,
     language = "uz",
+    workTypeTitle,
     outline: customOutline,
   } = data;
 
@@ -602,6 +604,9 @@ export function generateAcademicPages(
 
   const isRu = language === "ru";
   const isCyrl = language === "uz-cyrl";
+  const docHeading = (
+    workTypeTitle || (isRu ? "КУРСОВАЯ РАБОТА" : isCyrl ? "КУРС ИШИ" : "KURS ISHI")
+  ).toUpperCase();
 
   // DEFECT 5 FIX: Honest, editable placeholders when user did not supply real data.
   // Never fabricate real-sounding institutions like National University or fake student group 301.
@@ -734,19 +739,15 @@ export function generateAcademicPages(
 
 ### ПО ДИСЦИПЛИНЕ "${subject.toUpperCase()}"
 
-# КУРСОВАЯ РАБОТА
+# ${docHeading}
 
 ### **Тема:** "${topic}"
-
----
 
 **Выполнил(а):** ${sName}  
 **Научный руководитель:** ${tName}  
 **Факультет / Кафедра:** ${facName}  
 **Направление образования:** Бакалавриат  
 **Курс / Группа:** ${groupLabel}  
-
----
 
 **Ташкент — ${currentYear}**`,
     });
@@ -761,19 +762,15 @@ export function generateAcademicPages(
 
 ### "${subject.toUpperCase()}" ФАНИДАН
 
-# КУРС ИШИ
+# ${docHeading}
 
 ### **Мавзу:** "${topic}"
-
----
 
 **Бажарди:** ${sName}  
 **Илмий раҳбар:** ${tName}  
 **Факультет / Кафедра:** ${facName}  
 **Таълим йўналиши:** Бакалавриат  
 **Гуруҳ:** ${groupLabel}  
-
----
 
 **Тошкент — ${currentYear}**`,
     });
@@ -788,19 +785,15 @@ export function generateAcademicPages(
 
 ### "${subject.toUpperCase()}" FANIDAN
 
-# KURS ISHI
+# ${docHeading}
 
 ### **Mavzu:** "${topic}"
-
----
 
 **Bajardi:** ${sName}  
 **Ilmiy rahbar:** ${tName}  
 **Fakultet / Kafedra:** ${facName}  
 **Ta'lim yo'nalishi:** Bakalavriat mutaxassisligi  
 **Guruh:** ${groupLabel}  
-
----
 
 **Toshkent — ${currentYear}**`,
     });
@@ -966,29 +959,54 @@ Mazkur tadqiqotda qo'llanilgan metodlar majmuasi ilmiy dalillarning ishonchlilig
     const isFirst = i === 0;
     const subTitle = ch1Info.subsections[0] || "1.1. Nazariy asoslar va tushunchalar";
 
-    let ch1_1_content = "";
-    if (aiChapters?.sub1_1) {
-      ch1_1_content = `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}${aiChapters.sub1_1}`;
-    } else {
-      ch1_1_content = isRu
-        ? `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Продолжение)\n\n`}Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
+    let ch1_1_content = `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi — ${i + 1}-qism)\n\n`}`;
+    if (isFirst && aiChapters?.sub1_1) {
+      ch1_1_content += aiChapters.sub1_1;
+      if (aiChapters.sub1_1.split(/\s+/).length < 150) {
+        ch1_1_content += isRu
+          ? `\n\nВ теоретическом плане категория «${topic}» в рамках дисциплины «${subject}» выступает системообразующим ядром, определяющим вектор развития методологических и прикладных инструментов. Глубокая проработка понятийного аппарата позволяет разграничить базовые и производные дефиниции, исключить терминологическую неоднозначность и выстроить строгую логическую иерархию исследования.`
+          : `\n\nNazariy jihatdan «${topic}» tushunchasi «${subject}» fanining tayanch kategoriyasi bo'lib, sohadagi ilmiy-uslubiy va amaliy mexanizmlar rivojlanish yo'nalishini belgilab beradi. Atamalar apparatining chuqur tizimlashtirilishi asosiy va hosilaviy tushunchalar o'rtasidagi chegaralarni aniqlashtirish hamda tadqiqotning mantiqiy iyerarxiyasini shakllantirish imkonini beradi.`;
+      }
+    } else if (isFirst) {
+      ch1_1_content += isRu
+        ? `Исследование проблематики **"${topic}"** в контексте дисциплины "${subject}" требует детального анализа сущности ключевых понятий. В современной научной литературе данный феномен рассматривается как многоуровневая система, объединяющая организационные, технологические и аналитические компоненты.
 
 Фундаментальные принципы функционирования исследуемого направления базируются на следующих критериях:
 1. **Принцип системности:** гармоничное взаимодействие всех составных элементов для достижения синергетического эффекта;
 2. **Принцип адаптивности:** способность оперативно реагировать на внешние изменения конъюнктуры;
-3. **Принцип результативности:** максимизация практической отдачи при оптимизации используемых ресурсов.`
-        : `${isFirst ? `# ${ch1Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
+3. **Принцип результативности:** максимизация практической отдачи при оптимизации используемых ресурсов.
+
+В академической практике особое значение придается эволюции терминологической базы и формированию единых методологических стандартов оценки исследуемого объекта.`
+        : `"${topic}" tushunchasi zamonaviy "${subject}" fanining eng muhim nazariy kategoriyalaridan biri hisoblanadi. Ilmiy adabiyotlarda mazkur tushuncha turli ilmiy maktablar tomonidan o'rganilgan bo'lib, uning tizimli va ko'p qirrali tabiati e'tirof etiladi.
 
 Fundamental nazariyaga binoan, mazkur jarayon alohida texnik yoki boshqaruv funksiyasi bo'lmay, balki barcha tarkibiy bo'g'inlarni yagona maqsad atrofida birlashtiruvchi integrallashgan mexanizmdir.
 
 Nazariy tahlillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi fundamental qoidalarga tayanadi:
 1. **Tizimlilik tamoyili:** Barcha quyi elementlarning yaxlit umumiy maqsadga xizmat qilishi;
 2. **Moslashuvchanlik tamoyili:** Tashqi muhit o'zgarishlariga nisbatan barqarorlikni saqlab qolish;
-3. **Optimallik tamoyili:** Minimal resurs sarfi evaziga eng yuqori ilmiy va amaliy natijaga erishish.`;
+3. **Optimallik tamoyili:** Minimal resurs sarfi evaziga eng yuqori ilmiy va amaliy natijaga erishish.
 
-      if (aiChapters?.chapter1Content && isFirst) {
+Zamonaviy akademik izlanishlarda ushbu kategoriyaning institutsional, funksional va axborot-tahliliy jihatlarini o'zaro bog'liq holda o'rganish ustuvor ahamiyat kasb etadi.`;
+
+      if (aiChapters?.chapter1Content) {
         ch1_1_content += `\n\n### Chuqur nazariy-konseptual tahlil\n${aiChapters.chapter1Content}`;
       }
+    } else {
+      ch1_1_content += isRu
+        ? `Продолжая анализ категориального аппарата темы **"${topic}"**, необходимо выделить структурно-функциональные уровни исследуемой системы. На макроуровне определяются стратегические ориентиры и нормативно-правовые рамки функционирования, тогда как на микроуровне формируются конкретные прикладные операции и регламенты взаимодействия субъектов.
+
+Важнейшим теоретическим аспектом выступает классификация факторов, оказывающих прямое и косвенное влияние на динамику развития объекта в рамках дисциплины "${subject}":
+- **Эндогенные (внутренние) факторы:** ресурсный потенциал, квалификационный уровень специалистов, степень технологической зрелости и качество внутренней координации;
+- **Экзогенные (внешние) факторы:** макроэкономическая конъюнктура, институциональная среда, нормативные требования и темпы научно-технического прогресса.
+
+Комплексный учет указанных детерминант позволяет сформировать объективную теоретическую базу для последующего эмпирического анализа.`
+        : `**"${topic}"** mavzusining kategorial apparati tahlilini davom ettirgan holda, tadqiq etilayotgan tizimning tarkibiy-funksional pog'onalarini ajratib ko'rsatish lozim. Makrodarajada sohaning strategik maqsadlari va me'yoriy-huquqiy chegaralari belgilansa, mikrodarajada subyektlar o'rtasidagi aniq amaliy jarayonlar va operatsion reglamentlar shakllanadi.
+
+"${subject}" fani doirasida o'rganilayotgan obyektning rivojlanish dinamikasiga bevosita va bilvosita ta'sir ko'rsatuvchi omillarni ilmiy tasniflash muhim nazariy ahamiyatga ega:
+- **Ichki (endogen) omillar:** tashkiliy-resurs salohiyati, mutaxassislarning kasbiy malakasi, texnologik bazaning yetuklik darajasi va ichki muvofiqlashtirish sifati;
+- **Tashqi (ekzogen) omillar:** institutsional muhit, davlatning normativ-huquqiy siyosati, bozor konyunkturasi va ilmiy-texnik taraqqiyot sur'atlari.
+
+Mazkur omillar majmuasini tizimli hisobga olish keyingi boblarda amalga oshiriladigan amaliy va statistik tahlillar uchun mustahkam metodologik poydevor bo'lib xizmat qiladi.`;
     }
 
     pages.push({
@@ -1000,28 +1018,44 @@ Nazariy tahlillar shuni ko'rsatadiki, tizimning barqaror ishlashi quyidagi funda
   }
 
   for (let i = 0; i < ch1_2_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch1Info.subsections[1] || "1.2. Ilmiy qarashlar va modellar";
-    let ch1_2_content = "";
-    if (aiChapters?.sub1_2) {
-      ch1_2_content = `## ${subTitle}\n\n${aiChapters.sub1_2}`;
-    } else {
-      ch1_2_content = isRu
-        ? `## ${subTitle}
-
-В рамках исследования темы **"${topic}"** можно выделить три преобладающих научных направления:
+    let ch1_2_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
+    if (isFirst && aiChapters?.sub1_2) {
+      ch1_2_content += aiChapters.sub1_2;
+      if (aiChapters.sub1_2.split(/\s+/).length < 150) {
+        ch1_2_content += isRu
+          ? `\n\nСравнительная оценка теоретических моделей показывает, что переход от линейных схем управления к адаптивным сетевым архитектурам обеспечивает качественный скачок в устойчивости системы «${topic}».`
+          : `\n\nNazariy modellarning qiyosiy bahosi shuni ko'rsatadiki, chiziqli boshqaruv sxemalaridan moslashuvchan va intellektual arxitekturalarga o'tish «${topic}» tizimining barqarorligini sifat jihatidan yangi bosqichga olib chiqadi.`;
+      }
+    } else if (isFirst) {
+      ch1_2_content += isRu
+        ? `В рамках исследования темы **"${topic}"** можно выделить три преобладающих научных направления:
 - **Классический нормативный подход:** акцентирует внимание на соблюдении регламентов, алгоритмов и стандартов;
 - **Функционально-системный подход:** изучает обратные связи и динамическое распределение ресурсных потоков;
 - **Инновационно-ориентированный подход:** базируется на непрерывном внедрении интеллектуальных цифровых решений.
 
-Интеграция этих подходов позволяет нивелировать недостатки отдельных изолированных методов и выстроить устойчивую модель исследования.`
-        : `## ${subTitle}
-
-"${topic}" mavzusini tadqiq etishda jahon ilmiy hamjamiyatida bir necha yetakchi ilmiy maktablar va konseptual yo'nalishlar shakllangan:
+Интеграция этих подходов позволяет нивелировать недостатки отдельных изолированных методов и выстроить устойчивую модель исследования, отвечающую современным вызовам дисциплины "${subject}".`
+        : `"${topic}" mavzusini tadqiq etishda jahon ilmiy hamjamiyatida bir necha yetakchi ilmiy maktablar va konseptual yo'nalishlar shakllangan:
 1. **Klassik deterministik maktab:** Jarayonlarni qat'iy standartlar va qoidalar asosida tashkil etishni ilgari suradi;
 2. **Kibernetik va tizimli maktab:** Tizimni o'zaro ta'sirlashuvchi ko'p parametrli tarmoq sifatida talqin qiladi;
-3. **Zamonaviy intellektual paradigma:** Sun'iy intellekt va inson omili uyg'unligiga tayanadi.
+3. **Zamonaviy intellektual paradigma:** Sun'iy intellekt, raqamli tahlil va inson omili uyg'unligiga tayanadi.
 
-Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo'llash amaliyotda yuqori samaradorlikni kafolatlaydi.`;
+Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo'llash "${subject}" sohasida yuqori amaliy samaradorlikni kafolatlaydi hamda tizimli xatarlarni oldindan prognozlash imkonini beradi.`;
+    } else {
+      ch1_2_content += isRu
+        ? `Методологический синтез концептуальных моделей по теме **"${topic}"** предполагает использование количественных и качественных критериев верификации. В современной науке моделирование исследуемых процессов осуществляется посредством матричного анализа, когнитивного картирования и многокритериальной оптимизации.
+
+Применение данных методологических инструментов позволяет:
+1. Выявить скрытые причинно-следственные связи между структурными элементами системы;
+2. Оценить эластичность и чувствительность целевых показателей к изменениям управляющих параметров;
+3. Обосновать оптимальные пороговые значения функционирования объекта в условиях неопределенности.`
+        : `**"${topic}"** mavzusi bo'yicha konseptual modellarning metodologik sintezi miqdoriy va sifat mezonlarini birgalikda qo'llashni taqozo etadi. Zamonaviy ilm-fanda o'rganilayotgan jarayonlarni modellashtirish matritsali tahlil, kognitiv xaritalash va ko'p mezonli optimallashtirish usullari yordamida amalga oshiriladi.
+
+Ushbu metodologik vositalarning qo'llanilishi quyidagi ilmiy imkoniyatlarni yaratadi:
+1. Tizimning tarkibiy elementlari o'rtasidagi yashirin sabab-oqibat bog'lanishlarini aniqlash;
+2. Maqsadli ko'rsatkichlarning boshqaruv parametrlari o'zgarishiga nisbatan sezgirlik darajasini baholash;
+3. Noaniqlik sharoitida obyektning eng maqbul va xavfsiz ishlash chegaralarini ilmiy asoslash.`;
     }
 
     pages.push({
@@ -1033,15 +1067,19 @@ Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo
   }
 
   for (let i = 0; i < ch1_3_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch1Info.subsections[2] || "1.3. Xorijiy tajriba tahlili";
-    let ch1_3_content = "";
-    if (aiChapters?.sub1_3) {
-      ch1_3_content = `## ${subTitle}\n\n${aiChapters.sub1_3}`;
-    } else {
-      ch1_3_content = isRu
-        ? `## ${subTitle}
-
-Анализ международного опыта показывает, что ведущие страны мира уделяют приоритетное внимание институциональной поддержке исследуемой темы.
+    let ch1_3_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
+    if (isFirst && aiChapters?.sub1_3) {
+      ch1_3_content += aiChapters.sub1_3;
+      if (aiChapters.sub1_3.split(/\s+/).length < 150) {
+        ch1_3_content += isRu
+          ? `\n\nОбобщение передовой зарубежной практики доказывает, что успешная модернизация сферы «${topic}» опирается на гармонизацию национальных стандартов с международными регламентами.`
+          : `\n\nIlg'or xorijiy amaliyotni umumlashtirish shuni isbotlaydiki, «${topic}» sohasini muvaffaqiyatli modernizatsiya qilish milliy standartlarni xalqaro reglamentlar bilan uyg'unlashtirishga tayanadi.`;
+      }
+    } else if (isFirst) {
+      ch1_3_content += isRu
+        ? `Анализ международного опыта показывает, что ведущие страны мира уделяют приоритетное внимание институциональной поддержке исследуемой темы **"${topic}"**.
 
 Ключевые уроки зарубежной практики:
 - Системное внедрение цифровых платформ и автоматизация рутинных операций;
@@ -1049,14 +1087,22 @@ Ushbu nazariy modellarning eng kuchli elementlarini integratsiyalashgan holda qo
 - Государственно-частное партнерство при масштабировании лучших технологических решений.
 
 Адаптация данных решений с учетом специфики экономики Узбекистана позволяет существенно сократить время внедрения реформ.`
-        : `## ${subTitle}
-
-Rivojlangan xorijiy davlatlar tajribasi shuni ko'rsatadiki, "${topic}" masalasi innovatsion ekotizimning eng muhim ustuni sifatida davlat strategiyalari darajasida qo'llab-quvvatlanmoqda.
+        : `Rivojlangan xorijiy davlatlar tajribasi shuni ko'rsatadiki, "${topic}" masalasi innovatsion ekotizimning eng muhim ustuni sifatida davlat strategiyalari darajasida qo'llab-quvvatlanmoqda.
 
 Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
 1. **Bosqichma-bosqich joriy etish:** O'zgarishlarni avval tajriba-sinov (pilot) hududlarida tekshirish;
 2. **Kadrlar tayyorlash dasturlari:** Yangi tizimlar bo'yicha mutaxassislar malakasini oshirish;
-3. **Davlat-xususiy sherikligi:** Xususiy sektor salohiyati va investitsiyalarini faol jalb etish.`;
+3. **Davlat-xususiy sherikligi:** Xususiy sektor salohiyati va investitsiyalarini faol jalb etish.
+
+Xorijiy modellarni O'zbekistonning milliy-institutsional xususiyatlariga moslashtirgan holda tatbiq etish islohotlar samaradorligini sezilarli darajada oshiradi.`;
+    } else {
+      ch1_3_content += isRu
+        ? `Сравнительный анализ региональных моделей развития темы **"${topic}"** (североамериканской, европейской и восточноазиатской) выявляет существенные различия в механизмах регулирования и финансирования. В странах Европейского союза акцент делается на строгой нормативной стандартизации и экологической устойчивости, тогда как в государствах Восточной Азии (Южная Корея, Сингапур, Япония) драйвером выступают государственные технологические кластеры.
+
+Для Республики Узбекистан наибольшую практическую ценность представляет комбинированная модель, сочетающая нормативную гибкость, целевую государственную поддержку инноваций и активное вовлечение научно-образовательных учреждений в решение прикладных задач отрасли "${subject}".`
+        : `**"${topic}"** yo'nalishini rivojlantirishning mintaqaviy modellarini (Shimoliy Amerika, Yevropa Ittifoqi va Sharqiy Osiyo tajribasi) qiyosiy tahlil qilish tartibga solish va moliyalashtirish mexanizmlarida o'ziga xos yondashuvlar mavjudligini ko'rsatadi. Yevropa mamlakatlarida qat'iy sifat standartlari va institutsional nazorat ustuvor bo'lsa, Sharqiy Osiyo davlatlarida (Janubiy Koreya, Singapur, Yaponiya) yuqori texnologiyali innovatsion klasterlar asosiy lokomotiv vazifasini bajaradi.
+
+O'zbekiston Respublikasi sharoitida mazkur xalqaro tajribalarning eng samarali qirralarini uyg'unlashtirgan gibrid modelni shakllantirish, ya'ni davlatning maqsadli dasturlarini oliy ta'lim va ilmiy-tadqiqot muassasalarining amaliy ishlanmalari bilan integratsiya qilish yuqori natija beradi.`;
     }
 
     pages.push({
@@ -1078,22 +1124,22 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
     const isFirst = i === 0;
     const subTitle = ch2Info.subsections[0] || "2.1. Hozirgi holat va amaliy tahlil";
 
-    let ch2_1_content = `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}`;
+    let ch2_1_content = `${isFirst ? `# ${ch2Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi — ${i + 1}-qism)\n\n`}`;
 
-    if (aiChapters?.sub2_1) {
-      ch2_1_content += `${aiChapters.sub2_1}\n\n`;
-    } else {
-      ch2_1_content += isRu
-        ? `Практическое исследование сферы **"${topic}"** в Республике Узбекистан демонстрирует устойчивую положительную динамику. Регуляторные инициативы и модернизация инфраструктуры позволили сформировать базовые институциональные предпосылки для качественного развития.\n\n`
-        : `Kurs ishining ushbu bo'limida O'zbekiston Respublikasida **"${topic}"** yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari tizimli o'rganildi. So'nggi yillarda amalga oshirilgan me'yoriy-huquqiy islohotlar tizimni sifat jihatidan yangi bosqichga ko'tarish uchun mustahkam zamin yaratdi.\n\n`;
-
-      if (aiChapters?.chapter2Content && isFirst) {
-        ch2_1_content += `${aiChapters.chapter2Content}\n\n`;
-      }
-    }
-
-    // DEFECT 3 FIX: Render topic-grounded verifiable table without unsupported 70%, 85%, 98% stats
     if (isFirst) {
+      if (aiChapters?.sub2_1) {
+        ch2_1_content += `${aiChapters.sub2_1}\n\n`;
+      } else {
+        ch2_1_content += isRu
+          ? `Практическое исследование сферы **"${topic}"** в Республике Узбекистан демонстрирует устойчивую положительную динамику. Регуляторные инициативы и модернизация инфраструктуры позволили сформировать базовые институциональные предпосылки для качественного развития.\n\n`
+          : `Kurs ishining ushbu bo'limida O'zbekiston Respublikasida **"${topic}"** yo'nalishining bugungi kundagi real holati, dinamikasi va amaliy ko'rsatkichlari tizimli o'rganildi. So'nggi yillarda amalga oshirilgan me'yoriy-huquqiy islohotlar tizimni sifat jihatidan yangi bosqichga ko'tarish uchun mustahkam zamin yaratdi.\n\n`;
+
+        if (aiChapters?.chapter2Content) {
+          ch2_1_content += `${aiChapters.chapter2Content}\n\n`;
+        }
+      }
+
+      // DEFECT 3 FIX: Render topic-grounded verifiable table without unsupported 70%, 85%, 98% stats
       if (aiChapters?.sub2_table) {
         ch2_1_content += renderTableMarkdown(aiChapters.sub2_table);
       } else if (aiChapters?.sub2_table_md) {
@@ -1101,6 +1147,24 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
       } else {
         ch2_1_content += buildDefaultDomainTable(topic, subject, language);
       }
+    } else {
+      ch2_1_content += isRu
+        ? `Детальная интерпретация приведенных аналитических показателей по теме **"${topic}"** свидетельствует о наличии выраженной корреляции между уровнем институционально-технического оснащения и итоговой результативностью профильных организаций.
+
+В ходе эмпирического мониторинга в рамках дисциплины "${subject}" установлены следующие практические закономерности:
+1. Внедрение единых цифровых регламентов сокращает время на межуровневое согласование операций и минимизирует вероятность технических ошибок;
+2. Систематизация первичного учета и аналитической отчетности повышает достоверность управленческого прогнозирования;
+3. Региональные подразделения, внедрившие комплексный контроль качества, демонстрируют более высокую устойчивость к внешним колебаниям.
+
+Таким образом, текущий этап развития характеризуется переходом от точечной модернизации к формированию целостного отраслевого контура.`
+        : `**"${topic}"** mavzusi bo'yicha keltirilgan tahliliy va jadval ko'rsatkichlarining chuqur talqini shuni ko'rsatadiki, tashkiliy-texnik jihozlanganlik darajasi bilan soha muassasalarining yakuniy natijadorligi o'rtasida bevosita uzviy bog'liqlik mavjud.
+
+"${subject}" fani doirasida o'tkazilgan empirik monitoring jarayonida quyidagi amaliy qonuniyatlar aniqlandi:
+1. Yagona raqamli va uslubiy reglamentlarning joriy etilishi bo'g'inlararo muvofiqlashtirish vaqtini qisqartiradi hamda texnik xatoliklar ehtimolini kamaytiradi;
+2. Birlamchi ma'lumotlar bazasi va tahliliy hisobotlarning tizimlashtirilishi boshqaruv qarorlarini qabul qilishda prognozlar ishonchliligini oshiradi;
+3. Kompleks sifat nazoratini yo'lga qo'ygan muassasalar tashqi o'zgarishlarga nisbatan yuqori barqarorlikni namoyon etmoqda.
+
+Demak, O'zbekistonda sohaning joriy rivojlanish bosqichi lokal yangilanishlardan yaxlit tizimli transformatsiyaga o'tish bilan tavsiflanadi.`;
     }
 
     pages.push({
@@ -1113,29 +1177,39 @@ Xalqaro amaliyotdan mamlakatimiz uchun quyidagi darslar muhim hisoblanadi:
 
   // DEFECT 2 FIX: Sections 2.2 and 2.3 must have unique, non-duplicated content
   for (let i = 0; i < ch2_2_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch2Info.subsections[1] || "2.2. Mavjud tizimli muammolar";
-    let ch2_2_content = "";
+    let ch2_2_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
 
-    if (aiChapters?.sub2_2) {
-      ch2_2_content = `## ${subTitle}\n\n${aiChapters.sub2_2}`;
-    } else {
-      ch2_2_content = isRu
-        ? `## ${subTitle}
-
-Несмотря на достигнутые положительные результаты, детальный анализ выявил ряд сдерживающих факторов в развитии темы **"${topic}"**:
+    if (isFirst && aiChapters?.sub2_2) {
+      ch2_2_content += aiChapters.sub2_2;
+      if (aiChapters.sub2_2.split(/\s+/).length < 150) {
+        ch2_2_content += isRu
+          ? `\n\nСвоевременная диагностика перечисленных проблемных зон позволяет предотвратить накопление системных диспропорций и сфокусировать ресурсы на приоритетных участках.`
+          : `\n\nSanab o'tilgan muammoli nuqtalarning o'z vaqtida diagnostika qilinishi tizimli nomutanosibliklarning oldini olish va resurslarni eng ustuvor yo'nalishlarga yo'naltirish imkonini beradi.`;
+      }
+    } else if (isFirst) {
+      ch2_2_content += isRu
+        ? `Несмотря на достигнутые положительные результаты, детальный анализ выявил ряд сдерживающих факторов в развитии темы **"${topic}"**:
 1. **Институциональные и нормативные барьеры:** необходимость актуализации действующих отраслевых стандартов и регламентов в соответствии с международной практикой;
 2. **Неравномерность материально-технического оснащения:** сохраняющийся разрыв в уровне обеспеченности современными ресурсами между центральными и региональными структурами;
 3. **Методическое и кадровое обеспечение:** потребность в специализированных образовательных программах и практических руководствах для специалистов на местах.
 
 Комплексное устранение данных узких мест является ключевым условием устойчивого масштабирования позитивного опыта.`
-        : `## ${subTitle}
-
-Erishilgan dastlabki ijobiy natijalarga qaramay, **"${topic}"** yo'nalishini jadal rivojlantirishda quyidagi tizimli to'siqlar va muammolar saqlanib qolmoqda:
+        : `Erishilgan dastlabki ijobiy natijalarga qaramay, **"${topic}"** yo'nalishini jadal rivojlantirishda quyidagi tizimli to'siqlar va muammolar saqlanib qolmoqda:
 1. **Me'yoriy-huquqiy va uslubiy bo'shliqlar:** amaldagi sohaviy standartlar va yo'riqnomalarni zamonaviy talablar bilan uyg'unlashtirish zarurati;
 2. **Infratuzilma va moddiy-texnik ta'minotdagi tafovutlar:** markaz va hududiy bo'g'inlar o'rtasida zamonaviy resurslar bilan ta'minlanganlik darajasining bir xil emasligi;
 3. **Malakali kadrlar va amaliy ko'nikmalar taqchilligi:** yangi vositalardan unumli foydalanishga yo'naltirilgan maqsadli o'quv-amaliy dasturlarning yetishmasligi.
 
 Mazkur tizimli muammolarni bartaraf etish sohani uzoq muddatli istiqbolda barqaror rivojlantirishning bosh omilidir.`;
+    } else {
+      ch2_2_content += isRu
+        ? `Углубленный факторный анализ рисков по теме **"${topic}"** показывает, что игнорирование структурных барьеров может приводить к снижению общей эффективности функционирования системы. В частности, недостаточная интеграция информационных баз данных порождает дублирование функций и увеличивает операционную нагрузку на персонал.
+
+Для минимизации выявленных рисков в рамках дисциплины "${subject}" требуется внедрение превентивных механизмов внутреннего аудита, регулярная верификация нормативных показателей и формирование гибкой системы перераспределения ресурсов.`
+        : `**"${topic}"** yo'nalishidagi xatarlarning chuqurlashtirilgan omilli tahlili shuni ko'rsatadiki, tarkibiy to'siqlarni o'z vaqtida bartaraf etmaslik tizimning umumiy samaradorligini pasaytirishi mumkin. Xususan, axborot ma'lumotlar bazalarining o'zaro yetarli darajada integratsiya qilinmaganligi funksiyalarning takrorlanishiga va xodimlarning ish yuklamasi ortishiga sabab bo'ladi.
+
+"${subject}" sohasida aniqlangan xatarlarni minimallashtirish uchun ichki auditning profilaktik mexanizmlarini joriy etish, me'yoriy ko'rsatkichlarni muntazam verifikatsiya qilish hamda resurslarni moslashuvchan qayta taqsimlash tizimini shakllantirish talab etiladi.`;
     }
 
     pages.push({
@@ -1147,29 +1221,39 @@ Mazkur tizimli muammolarni bartaraf etish sohani uzoq muddatli istiqbolda barqar
   }
 
   for (let i = 0; i < ch2_3_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch2Info.subsections[2] || "2.3. Samaradorlikni oshirish yo'nalishlari";
-    let ch2_3_content = "";
+    let ch2_3_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
 
-    if (aiChapters?.sub2_3) {
-      ch2_3_content = `## ${subTitle}\n\n${aiChapters.sub2_3}`;
-    } else {
-      ch2_3_content = isRu
-        ? `## ${subTitle}
-
-Для преодоления выявленных проблем сформирован комплекс мер по оптимизации и повышению результативности направления **"${topic}"**:
+    if (isFirst && aiChapters?.sub2_3) {
+      ch2_3_content += aiChapters.sub2_3;
+      if (aiChapters.sub2_3.split(/\s+/).length < 150) {
+        ch2_3_content += isRu
+          ? `\n\nКомплексная оптимизация процессов по теме «${topic}» создает прочный фундамент для перехода к проактивному управлению качеством.`
+          : `\n\n«${topic}» mavzusi bo'yicha jarayonlarni kompleks optimallashtirish sifatni proaktiv boshqarish tizimiga o'tish uchun mustahkam zamin yaratadi.`;
+      }
+    } else if (isFirst) {
+      ch2_3_content += isRu
+        ? `Для преодоления выявленных проблем сформирован комплекс мер по оптимизации и повышению результативности направления **"${topic}"**:
 1. **Стандартизация и регламентация процессов:** введение типовых регламентов и критериев оценки качества;
 2. **Внедрение интеллектуального мониторинга:** использование автоматизированных индикаторов для непрерывного контроля ключевых параметров;
 3. **Развитие профессиональных компетенций:** организация модульных курсов повышения квалификации и создание открытых баз знаний.
 
 Реализация этих направлений позволит снизить операционные потери и сформировать устойчивую базу для дальнейшего роста.`
-        : `## ${subTitle}
-
-Aniqlangan muammolarni bartaraf etish va **"${topic}"** yo'nalishida amaliy samaradorlikni oshirish uchun quyidagi asosiy yo'nalishlar taklif etiladi:
+        : `Aniqlangan muammolarni bartaraf etish va **"${topic}"** yo'nalishida amaliy samaradorlikni oshirish uchun quyidagi asosiy yo'nalishlar taklif etiladi:
 1. **Jarayonlarni unifikatsiya qilish va standartlashtirish:** faoliyat sifatini baholovchi aniq KPI va mezonlar tizimini joriy etish;
 2. **Monitoring va diagnostika mexanizmlarini joriy etish:** jarayonlarning borishini doimiy tahlil qiluvchi axborot-tahliliy vositalarni kengaytirish;
 3. **Uzluksiz malaka oshirish tizimini yo'lga qo'yish:** amaliyotchi mutaxassislar uchun modulli treninglar va ochiq metodik qo'llanmalar bazasini yaratish.
 
 Ushbu chora-tadbirlarning amaliyotga tatbiq etilishi resurs sarfini minimallashtirish va xizmat sifatini oshirishga xizmat qiladi.`;
+    } else {
+      ch2_3_content += isRu
+        ? `Методика оценки эффективности оптимизационных мер по теме **"${topic}"** опирается на систему сбалансированных ключевых показателей результативности (KPI). В качестве базовых индикаторов выступают коэффициент полезного использования ресурсов, скорость прохождения информационных потоков и индекс удовлетворенности конечных благополучателей.
+
+Моделирование показывает, что синхронная модернизация организационного и технологического контуров в рамках дисциплины "${subject}" обеспечивает устойчивый мультипликативный эффект и повышает прозрачность всех этапов работы.`
+        : `**"${topic}"** yo'nalishida optimallashtirish chora-tadbirlari samaradorligini baholash metodikasi muvozanatlashgan asosiy samaradorlik ko'rsatkichlari (KPI) tizimiga tayanadi. Bazaviy indikatorlar sifatida resurslardan foydalanishning foydali ish koeffitsiyenti, axborot oqimlarining o'tish tezligi hamda yakuniy foydalanuvchilarning qoniqish indeksi olinadi.
+
+Tahliliy modellashtirish shuni ko'rsatadiki, "${subject}" doirasida tashkiliy va texnologik jarayonlarni sinxron modernizatsiya qilish barqaror multiplikativ samara beradi hamda faoliyatning barcha bosqichlarida shaffoflikni ta'minlaydi.`;
     }
 
     pages.push({
@@ -1190,11 +1274,16 @@ Ushbu chora-tadbirlarning amaliyotga tatbiq etilishi resurs sarfini minimallasht
   for (let i = 0; i < ch3_1_pages; i++) {
     const isFirst = i === 0;
     const subTitle = ch3Info.subsections[0] || "3.1. Rivojlantirishning «Yo'l xaritasi»";
-    let ch3_1_content = `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi)\n\n`}`;
+    let ch3_1_content = `${isFirst ? `# ${ch3Info.title.toUpperCase()}\n\n## ${subTitle}\n\n` : `## ${subTitle} (Davomi — ${i + 1}-qism)\n\n`}`;
 
-    if (aiChapters?.sub3_1) {
+    if (isFirst && aiChapters?.sub3_1) {
       ch3_1_content += `${aiChapters.sub3_1}`;
-    } else {
+      if (aiChapters.sub3_1.split(/\s+/).length < 150) {
+        ch3_1_content += isRu
+          ? `\n\nРеализация данной «Дорожной карты» в соответствии со Стратегией «Узбекистан — 2030» обеспечивает согласованность действий всех профильных ведомств.`
+          : `\n\nMazkur «Yo'l xaritasi»ning «O'zbekiston — 2030» strategiyasi maqsadlariga uyg'un holda amalga oshirilishi barcha mas'ul bo'g'inlar faoliyatining o'zaro muvofiqligini ta'minlaydi.`;
+      }
+    } else if (isFirst) {
       ch3_1_content += isRu
         ? `Поэтапное развитие темы **"${topic}"** предлагается реализовывать на базе трехэтапной «Дорожной карты»:
 - **1 этап (Подготовительный, 1–6 мес.):** Инвентаризация нормативно-методической базы, разработка регламентов и запуск пилотных площадок;
@@ -1205,9 +1294,17 @@ Ushbu chora-tadbirlarning amaliyotga tatbiq etilishi resurs sarfini minimallasht
 - **2-bosqich (Asosiy joriy etish va ko'lamlashtirish, 6–18 oy):** Samarali modellarni amaliyotga keng tatbiq qilish, mutaxassislar malakasini oshirish;
 - **3-bosqich (Monitoring va xulosaviy baholash, 18–24 oy):** Barqaror sifat nazorati tizimini shakllantirish va xalqaro tajriba bilan integratsiyalashuv.`;
 
-      if (aiChapters?.chapter3Content && isFirst) {
+      if (aiChapters?.chapter3Content) {
         ch3_1_content += `\n\n### Strategik mexanizmlar va takliflar\n${aiChapters.chapter3Content}`;
       }
+    } else {
+      ch3_1_content += isRu
+        ? `Институциональное обеспечение реализации «Дорожной карты» по теме **"${topic}"** предполагает четкое распределение зон ответственности между участниками процесса. На каждом этапе фиксируются верифицируемые контрольные точки (milestones) и индикаторы выполнения целевых задач.
+
+Особое внимание уделяется созданию механизмов обратной связи, позволяющих оперативно корректировать параметры внедрения инновационных решений в сфере "${subject}" с учетом региональной специфики и обратной связи от профильных специалистов.`
+        : `**"${topic}"** mavzusi bo'yicha «Yo'l xaritasi»ni amalga oshirishning institutsional ta'minoti jarayon ishtirokchilari o'rtasida mas'uliyat doiralarini aniq taqsimlashni nazarda tutadi. Har bir bosqichda tekshirilishi mumkin bo'lgan nazorat nuqtalari (indikatorlar) va maqsadli ko'rsatkichlar qayd etib boriladi.
+
+Shuningdek, "${subject}" sohasida innovatsion yechimlarni joriy etish parametrlarini hududiy xususiyatlar hamda amaliyotchi mutaxassislarning takliflari asosida tezkorlik bilan moslashtirib borishga xizmat qiluvchi qayta aloqa mexanizmlarini yaratishga alohida e'tibor qaratiladi.`;
     }
 
     pages.push({
@@ -1219,25 +1316,31 @@ Ushbu chora-tadbirlarning amaliyotga tatbiq etilishi resurs sarfini minimallasht
   }
 
   for (let i = 0; i < ch3_2_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch3Info.subsections[1] || "3.2. Ijtimoiy-iqtisodiy samaradorlik";
-    let ch3_2_content = "";
+    let ch3_2_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
 
-    if (aiChapters?.sub3_2) {
-      ch3_2_content = `## ${subTitle}\n\n${aiChapters.sub3_2}`;
-    } else {
-      ch3_2_content = isRu
-        ? `## ${subTitle}
-
-Оценка ожидаемого эффекта от внедрения предложенных мер по теме **"${topic}"** выражается в следующих аспектах:
+    if (isFirst && aiChapters?.sub3_2) {
+      ch3_2_content += aiChapters.sub3_2;
+      if (aiChapters.sub3_2.split(/\s+/).length < 150) {
+        ch3_2_content += isRu
+          ? `\n\nДолгосрочная социально-экономическая устойчивость предложенных решений подтверждается снижением трансакционных издержек и ростом качества конечного результата.`
+          : `\n\nTaklif etilgan yechimlarning uzoq muddatli ijtimoiy-iqtisodiy barqarorligi operatsion xarajatlarning qisqarishi va yakuniy natija sifatining oshishi bilan tasdiqlanadi.`;
+      }
+    } else if (isFirst) {
+      ch3_2_content += isRu
+        ? `Оценка ожидаемого эффекта от внедрения предложенных мер по теме **"${topic}"** выражается в следующих аспектах:
 - **Организационный эффект:** устранение дублирующих операций и повышение прозрачности взаимодействий;
 - **Качественный эффект:** рост объективности аналитических оценок и минимизация влияния субъективного фактора;
 - **Социально-экономический эффект:** сбалансированное распределение ресурсов и обеспечение долгосрочной устойчивости.`
-        : `## ${subTitle}
-
-**"${topic}"** mavzusi bo'yicha ishlab chiqilgan ilmiy takliflarning amaliyotga joriy etilishidan kutilayotgan samaradorlik quyidagi yo'nalishlarda namoyon bo'ladi:
+        : `**"${topic}"** mavzusi bo'yicha ishlab chiqilgan ilmiy takliflarning amaliyotga joriy etilishidan kutilayotgan samaradorlik quyidagi yo'nalishlarda namoyon bo'ladi:
 - **Tashkiliy samaradorlik:** ortiqcha byurokratik jarayonlar va takrorlanishlarning qisqarishi;
 - **Sifat samaradorligi:** tahliliy xulosalarning asoslanganlik darajasi ortishi va xatolar xavfining kamayishi;
 - **Ijtimoiy-iqtisodiy samaradorlik:** resurslardan tejamkor va maqsadli foydalanish imkoniyatining kengayishi.`;
+    } else {
+      ch3_2_content += isRu
+        ? `Комплексный расчет перспективной отдачи от модернизации направления **"${topic}"** учитывает как прямые экономические выгоды, так и косвенные социальные эффекты. К прямым выгодам относится экономия рабочего времени специалистов и снижение удельных затрат на сопровождение процессов, а к косвенным — повышение инвестиционной и кадровой привлекательности сектора "${subject}".`
+        : `**"${topic}"** yo'nalishini modernizatsiya qilishdan kutilayotgan istiqbolli natijadorlikning kompleks hisobi ham bevosita iqtisodiy nafni, ham bilvosita ijtimoiy samarani qamrab oladi. Bevosita samara mutaxassislar ish vaqtining tejalishi va jarayonlarni yuritish xarajatlarining kamayishida ifodalansa, bilvosita samara "${subject}" sohasining institutsional va kadrlar jozibadorligi ortishida namoyon bo'ladi.`;
     }
 
     pages.push({
@@ -1249,25 +1352,31 @@ Ushbu chora-tadbirlarning amaliyotga tatbiq etilishi resurs sarfini minimallasht
   }
 
   for (let i = 0; i < ch3_3_pages; i++) {
+    const isFirst = i === 0;
     const subTitle = ch3Info.subsections[2] || "3.3. Amaliyotga joriy etish tavsiyalari";
-    let ch3_3_content = "";
+    let ch3_3_content = `## ${subTitle}${isFirst ? "" : ` (Davomi — ${i + 1}-qism)`}\n\n`;
 
-    if (aiChapters?.sub3_3) {
-      ch3_3_content = `## ${subTitle}\n\n${aiChapters.sub3_3}`;
-    } else {
-      ch3_3_content = isRu
-        ? `## ${subTitle}
-
-Практические рекомендации по внедрению результатов исследования:
+    if (isFirst && aiChapters?.sub3_3) {
+      ch3_3_content += aiChapters.sub3_3;
+      if (aiChapters.sub3_3.split(/\s+/).length < 150) {
+        ch3_3_content += isRu
+          ? `\n\nСистемное выполнение данных рекомендаций обеспечит непрерывность совершенствования процессов в рамках темы «${topic}».`
+          : `\n\nUshbu amaliy tavsiyalarning tizimli bajarilishi «${topic}» doirasidagi jarayonlarni uzluksiz takomillashtirib borishni ta'minlaydi.`;
+      }
+    } else if (isFirst) {
+      ch3_3_content += isRu
+        ? `Практические рекомендации по внедрению результатов исследования:
 1. Создание постоянно действующей межведомственной рабочей группы по мониторингу качества внедрения решений;
 2. Разработка типовых методических указаний для филиалов и профильных организаций;
 3. Включение практических модулей по теме в программы подготовки и переподготовки кадров высших учебных заведений.`
-        : `## ${subTitle}
-
-Tadqiqot natijalarini amaliyotga tatbiq etish bo'yicha amaliy tavsiyalar:
+        : `Tadqiqot natijalarini amaliyotga tatbiq etish bo'yicha amaliy tavsiyalar:
 1. Sohaviy vazirlik va idoralar qoshida yangiliklarni joriy etish bo'yicha doimiy monitoring guruhini tuzish;
 2. Tashkilot va muassasalar uchun yagona namunaviy amaliy qo'llanmalarni ishlab chiqish;
 3. Oliy ta'lim muassasalarining o'quv rejalariga mavzuga oid yangi amaliy topshiriqlar va laboratoriya ishlarini integratsiya qilish.`;
+    } else {
+      ch3_3_content += isRu
+        ? `Для успешного масштабирования прикладных разработок по теме **"${topic}"** целесообразно организовать научно-практические лаборатории на базе профильных кафедр высших учебных заведений. Взаимодействие академического сообщества с реальным сектором в рамках дисциплины "${subject}" позволит оперативно тестировать пилотные проекты и внедрять передовые стандарты качества.`
+        : `**"${topic}"** mavzusi bo'yicha amaliy ishlanmalarni keng miqyosda tatbiq etish uchun oliy ta'lim muassasalarining ixtisoslashgan kafedralari qoshida ilmiy-amaliy laboratoriyalar faoliyatini yo'lga qo'yish maqsadga muvofiqdir. "${subject}" fani doirasida akademik hamjamiyat va amaliyotchi tashkilotlar o'rtasidagi integratsiya pilot loyihalarni tezkor sinovdan o'tkazish va sifat standartlarini joriy etish imkonini beradi.`;
     }
 
     pages.push({
@@ -1511,7 +1620,10 @@ export async function POST(req: Request) {
       pageCount,
       language = "uz",
       outline: clientOutline,
+      templateText = "",
     } = body;
+    const sanitizedTemplate =
+      typeof templateText === "string" ? templateText.trim().slice(0, 8000) : "";
 
     const cleanTopic = String(topic || "")
       .trim()
@@ -1552,6 +1664,7 @@ Quyidagi parametrlar bo'yicha 3 ta bobdan va har bir bob kamida 3 ta mustaqil ba
 Fan: "${cleanSubject}"
 Mavzu: "${cleanTopic}"
 Til: "${lang}"
+${sanitizedTemplate ? `\nFoydalanuvchi taqdim etgan namuna/matn (reja shunga asoslansin):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY CHEKLOV VA TALABLAR:
 1. Rejadagi barcha bob va fasllar FAQAT VA FAQAT «${cleanTopic}» mavzusiga bevosita tegishli bo'lsin.
@@ -1655,6 +1768,7 @@ Reja:
 ${data.outline?.chapters.map((ch) => `- ${ch.title}:\n${ch.subsections.map((s) => `  * ${s}`).join("\n")}`).join("\n")}
 - Xulosa va amaliy tavsiyalar
 Til: "${lang}"
+${sanitizedTemplate ? `\nFoydalanuvchi taqdim etgan namuna/tayyor matn (kurs ishi uslubi va mazmunida shunga to'liq amal qiling):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY AKADEMIK TALABLAR VA CHEKLOV (MAVZUGA 100% MOSLIK):
 1. Siz FAQAT VA FAQAT «${data.topic}» mavzusi bo'yicha yozasiz. Boshqa umumiy yoki begona mavzularga chalg'ish qat'iyan taqiqlanadi!
@@ -1696,7 +1810,7 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
       const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
         temperature: 0.2,
         maxOutputTokens: 8192,
-        timeoutMs: 55_000,
+        timeoutMs: 28_000,
         systemInstruction:
           "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy kurs ishlari bo'yicha yetakchi ekspertsiz. Matnni faqat kiritilgan mavzuga 100% bog'langan holda, akademik tilda, hech qanday takrorlanishlarsiz va faqat JSON formatida qaytaring.",
       });

@@ -38,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { CourseworkOutline, CourseworkPage } from "@/app/api/generate-coursework/route";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 
 const FACULTIES_AND_SUBJECTS: {
   category: string;
@@ -285,6 +286,7 @@ export default function CourseworkGenerator() {
     year: new Date().getFullYear().toString(),
     pageCount: "19",
     language: "uz" as "uz" | "uz-cyrl" | "ru",
+    templateText: "",
   });
 
   // Step 2: Outline state
@@ -1299,6 +1301,28 @@ export default function CourseworkGenerator() {
                 </div>
 
                 {/* 4. OPTIONAL TITUL DETAILS COLLAPSIBLE ACCORDION */}
+                <div className="space-y-3">
+                  <div className="border-border/80 bg-surface-elevated/40 rounded-xl border p-3.5">
+                    <label className="text-foreground mb-2 block text-xs font-bold">
+                      Namuna yoki tayyor matn fayli (Ixtiyoriy)
+                    </label>
+                    <SecureFileUploadZone
+                      onTextExtracted={(text, fileName) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          templateText: text,
+                          // If topic is empty, suggest extracting from filename
+                          topic: prev.topic || fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+                        }));
+                      }}
+                      onClear={() => setFormData((prev) => ({ ...prev, templateText: "" }))}
+                      title="Kurs ishi namunasi yoki rejasini yuklash (.txt, .docx, .pdf)"
+                      description="AI ushbu fayldagi matn, talablar va tuzilmani to'liq hisobga oladi."
+                    />
+                  </div>
+                </div>
+
+                {/* 5. OPTIONAL TITUL DETAILS COLLAPSIBLE ACCORDION */}
                 <div className="border-border/80 bg-surface-elevated/40 rounded-xl border">
                   <button
                     type="button"

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
+import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 
 export default function AcademicExamPrepPage() {
   const { toast } = useToast();
@@ -27,6 +28,7 @@ export default function AcademicExamPrepPage() {
     subject: "",
     topic: "",
     prepType: "Bilet savollari va to'liq yechimlar",
+    templateText: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -223,6 +225,25 @@ export default function AcademicExamPrepPage() {
                     Tezkor shpargalka va qisqa konspekt
                   </option>
                 </select>
+              </div>
+
+              {/* Namuna Fayli Yuklash */}
+              <div>
+                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                  Imtihon savollari yoki konspekt fayli (Ixtiyoriy)
+                </label>
+                <SecureFileUploadZone
+                  onTextExtracted={(text, fileName) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      templateText: text,
+                      topic: prev.topic || fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+                    }));
+                  }}
+                  onClear={() => setFormData((prev) => ({ ...prev, templateText: "" }))}
+                  title="Bilet savollari yoki konspektni yuklash (.txt, .docx, .pdf)"
+                  description="Fayldagi savollar va mavzular bo'yicha to'liq test va yechimlar tayyorlanadi."
+                />
               </div>
 
               <button
