@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -19,6 +19,13 @@ import {
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
+import {
+  StaleBuildError,
+  deliverPdf,
+  describePdfError,
+  exportElementsToPdf,
+  inAppHint,
+} from "@/lib/pdf-export";
 
 function formatInlineMarkdown(text: string): string {
   return text
@@ -81,7 +88,9 @@ function formatMarkdownToWordHTML(md: string): string {
     }
 
     if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
-      resultLines.push("<hr style='border:0; border-top:1pt solid #ccc; margin:16pt 0;'/>");
+      resultLines.push(
+        "<br clear='all' style='page-break-before:always; mso-break-type:page-break' />"
+      );
       continue;
     }
 
@@ -318,6 +327,43 @@ export default function AcademicReferatPage() {
       title: "Word (.doc) yuklab olindi! 📄",
       description: "Hujjat MOVSO GOST standartlariga to'liq mos holda saqlandi.",
     });
+  };
+
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const documentRef = useRef<HTMLDivElement>(null);
+
+  // Real PDF file download (html2canvas-pro + jsPDF), print dialog only as fallback
+  const handleDownloadPdf = async () => {
+    if (!documentRef.current || !result) return;
+    setIsExportingPdf(true);
+    const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Referat";
+    const filename = `${formData.workType.replace(/[^a-zA-Z0-9]/g, "_")}_${cleanTopic}.pdf`;
+    try {
+      const blob = await exportElementsToPdf([documentRef.current], {
+        filename,
+        orientation: "portrait",
+        margin: 10,
+        fit: "width",
+        captureWidth: 794,
+      });
+      const delivered = await deliverPdf(blob, filename);
+      if (delivered !== "cancelled") {
+        toast({
+          title: "PDF yuklab olindi! 📄",
+          description: inAppHint() ?? "Hujjat A4 PDF formatida saqlandi.",
+        });
+      }
+    } catch (err) {
+      console.error("[PDF_EXPORT_ERROR]", err);
+      if (err instanceof StaleBuildError) {
+        toast({ title: "Sahifani yangilang 🔄", description: err.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Chop etish orqali PDF saqlash", description: describePdfError(err) });
+      handlePrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handlePrint = () => {
@@ -648,17 +694,29 @@ export default function AcademicReferatPage() {
                       <span>Word (.doc)</span>
                     </button>
                     <button
+                      onClick={handleDownloadPdf}
+                      disabled={isExportingPdf}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-red-500 disabled:opacity-50"
+                      title="PDF faylni yuklab olish"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      <span>{isExportingPdf ? "PDF..." : "PDF (.pdf)"}</span>
+                    </button>
+                    <button
                       onClick={handlePrint}
                       className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
                       title="Chop etish yoki PDF sifatida saqlash"
                     >
                       <Printer className="h-3.5 w-3.5" />
-                      <span>PDFni chop etish / saqlash</span>
+                      <span>Chop etish</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="border-border max-h-[800px] overflow-y-auto rounded-2xl border bg-white p-8 font-serif text-sm leading-relaxed text-slate-900 shadow-xl sm:p-12 print:m-0 print:max-h-none print:overflow-visible print:border-0 print:p-0 print:text-black print:shadow-none">
+                <div
+                  ref={documentRef}
+                  className="border-border max-h-[800px] overflow-y-auto rounded-2xl border bg-white p-8 font-serif text-sm leading-relaxed text-slate-900 shadow-xl sm:p-12 print:m-0 print:max-h-none print:overflow-visible print:border-0 print:p-0 print:text-black print:shadow-none"
+                >
                   <div className="prose prose-slate max-w-none text-slate-900 print:text-black">
                     <ReactMarkdown>{result}</ReactMarkdown>
                   </div>

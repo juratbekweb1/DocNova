@@ -33,6 +33,14 @@ import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { SlideItem } from "@/app/api/academic/presentation/route";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import {
+  StaleBuildError,
+  deliverPdf,
+  describePdfError,
+  importWithRetry,
+  inAppHint,
+  isMobileDevice,
+} from "@/lib/pdf-export";
 
 type PresentationStyle = "academic" | "modern" | "minimalist";
 
@@ -601,10 +609,7 @@ function PresentationContent() {
     if (slides.length === 0) return;
     setIsExportingPdf(true);
 
-    const isMobile =
-      typeof window !== "undefined" &&
-      (window.innerWidth < 768 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    const isMobile = isMobileDevice();
 
     const cleanFilename =
       topic
@@ -613,53 +618,9 @@ function PresentationContent() {
         .slice(0, 40) || "Prezentatsiya";
 
     try {
-      if (!isMobile && deckExportRef.current) {
-        const deckEl = deckExportRef.current;
-        const wasHidden = deckEl.classList.contains("hidden");
-        if (wasHidden) {
-          deckEl.classList.remove("hidden");
-          deckEl.classList.add("block");
-        }
-        try {
-          const html2pdfModule = await import("html2pdf.js");
-          const html2pdf = html2pdfModule.default || html2pdfModule;
-          await html2pdf()
-            .set({
-              margin: 0,
-              filename: `Prezentatsiya_${cleanFilename}.pdf`,
-              image: { type: "jpeg", quality: 0.95 },
-              html2canvas: { scale: 1.5, useCORS: true, logging: false },
-              jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-            })
-            .from(deckEl)
-            .save();
-
-          toast({
-            title: "PDF muvaffaqiyatli yuklab olindi! 📄",
-            description: `Barcha ${slides.length} ta slayd PDF formatida saqlandi.`,
-          });
-          return;
-        } catch (html2pdfErr) {
-          console.warn("[HTML2PDF_FALLBACK_TO_PRINT]", html2pdfErr);
-        } finally {
-          if (wasHidden && presentationViewMode === "single") {
-            deckEl.classList.remove("block");
-            deckEl.classList.add("hidden");
-          }
-        }
-      }
-
-      if (isMobile) {
-        triggerPrintFallback();
-        toast({
-          title: "PDF chop etish oynasi ochildi 🖨️",
-          description: "«Save as PDF» (PDF sifatida saqlash) tugmasini bosing.",
-        });
-        return;
-      }
-
-      // High-reliability Canvas 2D + pdf-lib generator (works on mobile & desktop)
-      const { PDFDocument } = await import("pdf-lib");
+      // Canvas 2D + pdf-lib renderer: no DOM capture (immune to Tailwind v4 oklch colors
+      // and html2canvas memory crashes), works identically on mobile & desktop.
+      const { PDFDocument } = await importWithRetry(() => import("pdf-lib"));
       const pdfDoc = await PDFDocument.create();
 
       const W = isMobile ? 1280 : 1600;
@@ -880,8 +841,8 @@ function PresentationContent() {
         }
 
         const jpgImage = await pdfDoc.embedJpg(bytes);
-        const pageWidth = 841.89;
-        const pageHeight = 595.28;
+        const pageWidth = 841.89; // 16:9 widescreen (same width as A4 landscape)
+        const pageHeight = 473.56;
         const page = pdfDoc.addPage([pageWidth, pageHeight]);
         page.drawImage(jpgImage, {
           x: 0,
@@ -889,29 +850,33 @@ function PresentationContent() {
           width: pageWidth,
           height: pageHeight,
         });
+        // Yield to the UI thread between slides (prevents mobile watchdog kills)
+        await new Promise((r) => setTimeout(r, 0));
       }
+
+      canvas.width = 0;
+      canvas.height = 0;
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Prezentatsiya_${cleanFilename}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-
-      toast({
-        title: "PDF muvaffaqiyatli yuklab olindi! 📄",
-        description: `Barcha ${slides.length} ta slayd A4 Landscape PDF formatida saqlandi.`,
-      });
+      const result = await deliverPdf(blob, `Prezentatsiya_${cleanFilename}.pdf`);
+      if (result !== "cancelled") {
+        toast({
+          title: "PDF muvaffaqiyatli tayyorlandi! 📄",
+          description:
+            inAppHint() ?? `Barcha ${slides.length} ta slayd PDF formatida yuklab olindi.`,
+        });
+      }
     } catch (err: unknown) {
-      console.error("[PDF_EXPORT_FALLBACK_PRINT]", err);
+      console.error("[PDF_EXPORT_ERROR]", err);
+      if (err instanceof StaleBuildError) {
+        toast({ title: "Sahifani yangilang 🔄", description: err.message, variant: "destructive" });
+        return;
+      }
       toast({
         title: "PDF chop etish oynasi ochildi 🖨️",
-        description: "Mobil qurilmada «Save as PDF» (PDF sifatida saqlash) tugmasini bosing.",
+        description: describePdfError(err),
       });
       triggerPrintFallback();
     } finally {

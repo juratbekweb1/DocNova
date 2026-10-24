@@ -24,6 +24,13 @@ import {
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
+import {
+  StaleBuildError,
+  deliverPdf,
+  describePdfError,
+  exportElementsToPdf,
+  inAppHint,
+} from "@/lib/pdf-export";
 
 interface SpecialtyOption {
   id: string;
@@ -540,6 +547,42 @@ export default function DiplomBmiPage() {
       title: "Word (.doc) yuklandi!",
       description: "Hujjat GOST standartlariga to'liq mos holda saqlandi.",
     });
+  };
+
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  // Real PDF file download (html2canvas-pro + jsPDF), print dialog only as fallback
+  const handleDownloadPdf = async () => {
+    if (!documentRef.current || !result) return;
+    setIsExportingPdf(true);
+    const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Diplom";
+    const filename = `${formData.workType.replace(/[^a-zA-Z0-9]/g, "_")}_${cleanTopic}.pdf`;
+    try {
+      const blob = await exportElementsToPdf([documentRef.current], {
+        filename,
+        orientation: "portrait",
+        margin: 10,
+        fit: "width",
+        captureWidth: 794,
+      });
+      const delivered = await deliverPdf(blob, filename);
+      if (delivered !== "cancelled") {
+        toast({
+          title: "PDF yuklab olindi! 📄",
+          description: inAppHint() ?? "Hujjat A4 PDF formatida saqlandi.",
+        });
+      }
+    } catch (err) {
+      console.error("[PDF_EXPORT_ERROR]", err);
+      if (err instanceof StaleBuildError) {
+        toast({ title: "Sahifani yangilang 🔄", description: err.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Chop etish orqali PDF saqlash", description: describePdfError(err) });
+      handlePrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handlePrint = () => {
@@ -1067,12 +1110,21 @@ export default function DiplomBmiPage() {
                       <span>Word (.doc)</span>
                     </button>
                     <button
+                      onClick={handleDownloadPdf}
+                      disabled={isExportingPdf}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-red-500 disabled:opacity-50"
+                      title="PDF faylni yuklab olish"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      <span>{isExportingPdf ? "PDF..." : "PDF (.pdf)"}</span>
+                    </button>
+                    <button
                       onClick={handlePrint}
                       className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
                       title="Chop etish yoki PDF sifatida saqlash"
                     >
                       <Printer className="h-3.5 w-3.5" />
-                      <span>PDFni chop etish / saqlash</span>
+                      <span>Chop etish</span>
                     </button>
                   </div>
                 </div>

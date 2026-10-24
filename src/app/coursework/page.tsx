@@ -28,6 +28,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
+import {
+  StaleBuildError,
+  deliverPdf,
+  describePdfError,
+  exportElementsToPdf,
+  inAppHint,
+} from "@/lib/pdf-export";
 import { useToast } from "@/hooks/use-toast";
 import type { CourseworkOutline, CourseworkPage } from "@/app/api/generate-coursework/route";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
@@ -877,23 +884,6 @@ export default function CourseworkGenerator() {
   const handleDownloadPDF = async () => {
     if (!documentRef.current && pages.length === 0 && !result) return;
 
-    // Mobile resilience: Mobile browsers crash or block massive 30-page html2canvas renders.
-    // Native print engine produces vector-crisp PDF instantly without memory exhaustion.
-    const isMobile =
-      typeof window !== "undefined" &&
-      (window.innerWidth < 640 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-
-    if (isMobile) {
-      toast({
-        title: "PDFni saqlash / chop etish 📱",
-        description:
-          "Chop etish oynasida printerni 'PDF sifatida saqlash' (Save as PDF) ga o'zgartiring va Saqlash tugmasini bosing.",
-      });
-      handlePrint();
-      return;
-    }
-
     setDownloading(true);
     setDownloadProgress("Barcha sahifalar tayyorlanmoqda...");
 
@@ -902,47 +892,50 @@ export default function CourseworkGenerator() {
       // Ensure all pages are rendered into the DOM before capturing
       if (prevMode !== "continuous") {
         setViewMode("continuous");
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
-
-      const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default || html2pdfModule;
 
       const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Kurs_Ishi";
       const element = documentRef.current;
       if (!element) throw new Error("Hujjat maydoni topilmadi");
 
-      element.classList.add("pdf-export-mode");
+      // Capture page-by-page (memory-safe on phones, oklch-safe via html2canvas-pro)
+      const pageEls = Array.from(element.querySelectorAll<HTMLElement>(".coursework-page-card"));
+      const targets = pageEls.length > 0 ? pageEls : [element];
 
-      const opt = {
-        margin: 0,
-        filename: `Kurs_Ishi_${cleanTopic}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          scrollY: 0,
-        },
-        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
-        pagebreak: { mode: ["css", "legacy"], after: ".coursework-page-card" },
-      };
+      element.classList.add("pdf-export-mode");
+      let blob: Blob;
+      try {
+        blob = await exportElementsToPdf(targets, {
+          filename: `Kurs_Ishi_${cleanTopic}.pdf`,
+          orientation: "portrait",
+          fit: "auto",
+          captureWidth: 794, // A4 width @96dpi → identical layout on phones & desktop
+          onProgress: (c, t) => setDownloadProgress(`Sahifa ${c} / ${t} tayyorlanmoqda...`),
+        });
+      } finally {
+        element.classList.remove("pdf-export-mode");
+      }
 
       setDownloadProgress("PDF fayl yuklanmoqda...");
-      await html2pdf().from(element).set(opt).save();
-
-      element.classList.remove("pdf-export-mode");
-
-      toast({
-        title: "PDF muvaffaqiyatli yuklab olindi! 📄",
-        description: `Barcha ${pages.length || formData.pageCount} sahifalik kurs ishi A4 formatida saqlandi.`,
-      });
+      const delivered = await deliverPdf(blob, `Kurs_Ishi_${cleanTopic}.pdf`);
+      if (delivered !== "cancelled") {
+        toast({
+          title: "PDF muvaffaqiyatli yuklab olindi! 📄",
+          description:
+            inAppHint() ??
+            `Barcha ${pages.length || formData.pageCount} sahifalik kurs ishi A4 formatida saqlandi.`,
+        });
+      }
     } catch (err: unknown) {
       console.error("[PDF_EXPORT_ERROR]", err);
+      if (err instanceof StaleBuildError) {
+        toast({ title: "Sahifani yangilang 🔄", description: err.message, variant: "destructive" });
+        return;
+      }
       toast({
         title: "Chop etish orqali PDF saqlash",
-        description:
-          "Brauzerning chop etish oynasi ochilmoqda. Undan 'PDF sifatida saqlash'ni tanlang.",
+        description: describePdfError(err),
       });
       setTimeout(() => {
         handlePrint();

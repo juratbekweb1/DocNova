@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Download, User, Briefcase, Star, Printer, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { StaleBuildError, deliverPdf, exportElementsToPdf } from "@/lib/pdf-export";
 
 interface ResumeData {
   name: string;
@@ -69,27 +70,24 @@ export default function ExportsPage() {
     try {
       const element = document.getElementById("resume-preview");
       if (element) {
-        const html2pdfModule = await import("html2pdf.js");
-        const html2pdf = html2pdfModule.default as unknown as () => {
-          set: (options: Record<string, unknown>) => {
-            from: (el: HTMLElement) => {
-              save: () => Promise<void>;
-            };
-          };
-        };
-        const opt = {
-          margin: [6, 6, 6, 6],
-          filename: `${data.name.replace(/\s+/g, "_") || "DocNova"}_Resume.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-        await html2pdf().set(opt).from(element).save();
+        const filename = `${data.name.replace(/\s+/g, "_") || "DocNova"}_Resume.pdf`;
+        const blob = await exportElementsToPdf([element], {
+          filename,
+          orientation: "portrait",
+          margin: 6,
+          fit: "auto",
+          captureWidth: 794,
+        });
+        await deliverPdf(blob, filename);
       } else {
         window.print();
       }
     } catch (err) {
       console.warn("Direct PDF generation failed, using print fallback:", err);
+      if (err instanceof StaleBuildError) {
+        alert(err.message);
+        return;
+      }
       window.print();
     } finally {
       setIsExporting(false);

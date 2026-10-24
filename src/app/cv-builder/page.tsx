@@ -26,6 +26,13 @@ import {
   FileDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  StaleBuildError,
+  deliverPdf,
+  describePdfError,
+  exportElementsToPdf,
+  inAppHint,
+} from "@/lib/pdf-export";
 
 interface Experience {
   id: string;
@@ -446,7 +453,7 @@ function CvBuilderContent() {
     setEducation(education.map((edu) => (edu.id === id ? { ...edu, [field]: val } : edu)));
   };
 
-  // Export PDF with html2pdf.js
+  // Export PDF (html2canvas-pro + jsPDF: Tailwind v4 oklch-safe, mobile-safe)
   const handleDownloadPdf = async () => {
     if (!resumeRef.current) return;
     setIsExporting(true);
@@ -456,42 +463,33 @@ function CvBuilderContent() {
     });
 
     try {
-      const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default as () => {
-        set: (options: Record<string, unknown>) => {
-          from: (element: HTMLElement) => {
-            save: () => Promise<void>;
-          };
-        };
-      };
-
-      const opt = {
-        margin: [6, 6, 6, 6],
-        filename: `${personalInfo.fullName.replace(/\s+/g, "_") || "DocNova"}_Resume.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          logging: false,
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
-
-      await html2pdf().set(opt).from(resumeRef.current).save();
-
-      toast({
-        title: "Muvaffaqiyatli yuklab olindi! 🎉",
-        description: "Rezyume A4 PDF formatida saqlandi.",
+      const filename = `${personalInfo.fullName.replace(/\s+/g, "_") || "DocNova"}_Resume.pdf`;
+      const blob = await exportElementsToPdf([resumeRef.current], {
+        filename,
+        orientation: "portrait",
+        margin: 6,
+        fit: "auto",
+        captureWidth: 794,
       });
+      const delivered = await deliverPdf(blob, filename);
+
+      if (delivered !== "cancelled") {
+        toast({
+          title: "Muvaffaqiyatli yuklab olindi! 🎉",
+          description: inAppHint() ?? "Rezyume A4 PDF formatida saqlandi.",
+        });
+      }
     } catch (err) {
       console.error("PDF Export Error:", err);
+      if (err instanceof StaleBuildError) {
+        toast({ title: "Sahifani yangilang 🔄", description: err.message, variant: "destructive" });
+        return;
+      }
       toast({
-        title: "Xatolik yuz berdi",
-        description:
-          "PDF yaratishda xatolik bo'ldi. 'Chop etish' yoki 'Word' tugmasi orqali saqlashingiz mumkin.",
-        variant: "destructive",
+        title: "Chop etish orqali PDF saqlash",
+        description: describePdfError(err),
       });
+      setTimeout(() => window.print(), 300);
     } finally {
       setIsExporting(false);
     }
