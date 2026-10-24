@@ -62,10 +62,12 @@ export async function getDetailedAiReport(): Promise<PlatformAiSummary> {
   const reportDateStr = uzTime.toISOString().split("T")[0];
   const reportTimeStr = uzTime.toISOString().split("T")[1].slice(0, 5);
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Tashkent (UTC+5) day/month boundaries, independent of server timezone
+  const TZ_MS = 5 * 60 * 60 * 1000;
+  const startOfToday = new Date(
+    Date.UTC(uzTime.getUTCFullYear(), uzTime.getUTCMonth(), uzTime.getUTCDate()) - TZ_MS
+  );
+  const startOfMonth = new Date(Date.UTC(uzTime.getUTCFullYear(), uzTime.getUTCMonth(), 1) - TZ_MS);
 
   // 1. Fetch AI usage for this month
   const monthlyUsages = await prisma.aIUsage.findMany({
@@ -337,13 +339,13 @@ export function formatTelegramReport(summary: PlatformAiSummary): string {
 • ⭐ PRO (39k): *${planBreakdown.PRO.usersCount}* (${planBreakdown.PRO.requests} ta so'rov, ${(planBreakdown.PRO.tokens / 1000).toFixed(0)}k token)
 • 👑 PREMIUM (69k): *${planBreakdown.PREMIUM.usersCount}* (${planBreakdown.PREMIUM.requests} ta so'rov, ${(planBreakdown.PREMIUM.tokens / 1000).toFixed(0)}k token)
 
-⚡️ *BUGUNGI FOYDALANISH:*
+⚡️ *BUGUNGI FOYDALANUVCHILAR & TOKENLAR:*
 • Faol foydalanuvchilar: *${today.activeUsers} nafar*
 • Jami so'rovlar: *${today.totalRequests} ta* (Muvaffaqiyatli: ${today.successful})
 • Sarflangan tokenlar: *${today.totalTokens.toLocaleString()} token*
 • AI xarajati: *$${today.costUsd.toFixed(3)}* (~*${today.costUzs.toLocaleString()} so'm*)
 
-🗓 *SHU OY FOYDALANISH:*
+🗓 *SHU OY FOYDALANUVCHILARI:*
 • Faol foydalanuvchilar: *${month.activeUsers} nafar*
 • Jami so'rovlar: *${month.totalRequests} ta*
 • Sarflangan tokenlar: *${(month.totalTokens / 1_000_000).toFixed(2)}M token* (${month.totalTokens.toLocaleString()})
