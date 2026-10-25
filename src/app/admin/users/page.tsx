@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AutoSubmitSelect } from "@/components/admin/auto-submit-select";
 import { revalidatePath } from "next/cache";
 import { UserRole, SubscriptionTier } from "@prisma/client";
 import { Users, Sparkles, CreditCard, Calendar, CheckCircle } from "lucide-react";
@@ -9,22 +10,27 @@ import { Users, Sparkles, CreditCard, Calendar, CheckCircle } from "lucide-react
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      accounts: {
-        select: {
-          provider: true,
+  const users = await prisma.user
+    .findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        accounts: {
+          select: {
+            provider: true,
+          },
+        },
+        apiLimit: true,
+        _count: {
+          select: {
+            aiusages: true,
+          },
         },
       },
-      apiLimit: true,
-      _count: {
-        select: {
-          aiusages: true,
-        },
-      },
-    },
-  });
+    })
+    .catch((err: unknown) => {
+      console.error("[ADMIN_USERS_LOAD_ERROR]", err instanceof Error ? err.message : err);
+      return [];
+    });
 
   // Action: Update user role (USER, ADMIN, SUPER_ADMIN)
   async function updateUserRole(formData: FormData) {
@@ -88,7 +94,7 @@ export default async function AdminUsersPage() {
 
   const totalUsers = users.length;
   const googleUsersCount = users.filter((u) =>
-    u.accounts.some((a) => a.provider === "google")
+    (u.accounts ?? []).some((a) => a?.provider === "google")
   ).length;
   const paidUsersCount = users.filter(
     (u) => u.plan === SubscriptionTier.PRO || u.plan === SubscriptionTier.PREMIUM
@@ -200,7 +206,7 @@ export default async function AdminUsersPage() {
                   </tr>
                 ) : (
                   users.map((u) => {
-                    const isGoogle = u.accounts.some((a) => a.provider === "google");
+                    const isGoogle = (u.accounts ?? []).some((a) => a?.provider === "google");
                     const avatarUrl = u.avatar || u.image;
                     const displayName = u.displayName || u.name || "Foydalanuvchi";
 
@@ -217,7 +223,7 @@ export default async function AdminUsersPage() {
                               />
                             ) : (
                               <div className="bg-primary/10 text-primary border-primary/20 flex h-9 w-9 items-center justify-center rounded-full border text-xs font-bold uppercase">
-                                {displayName.charAt(0)}
+                                {(displayName.charAt(0) || "?").toUpperCase()}
                               </div>
                             )}
                             <div className="min-w-0">
@@ -269,7 +275,7 @@ export default async function AdminUsersPage() {
                         <td className="px-5 py-4">
                           <form action={updateUserPlan} className="flex items-center">
                             <input type="hidden" name="id" value={u.id} />
-                            <select
+                            <AutoSubmitSelect
                               name="plan"
                               defaultValue={u.plan}
                               className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-bold shadow-xs transition-all focus:outline-none ${
@@ -279,12 +285,11 @@ export default async function AdminUsersPage() {
                                     ? "border-blue-500/30 bg-blue-500/10 text-blue-600"
                                     : "bg-background text-foreground-secondary border-border"
                               }`}
-                              onChange={(e) => e.target.form?.requestSubmit()}
                             >
                               <option value="FREE">FREE (Bepul)</option>
                               <option value="PRO">PRO (39 000 so&apos;m)</option>
                               <option value="PREMIUM">PREMIUM (69 000 so&apos;m)</option>
-                            </select>
+                            </AutoSubmitSelect>
                           </form>
                         </td>
 
@@ -292,7 +297,7 @@ export default async function AdminUsersPage() {
                         <td className="px-5 py-4">
                           <form action={updateUserRole} className="flex items-center">
                             <input type="hidden" name="id" value={u.id} />
-                            <select
+                            <AutoSubmitSelect
                               name="role"
                               defaultValue={u.role}
                               className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-xs transition-all focus:outline-none ${
@@ -302,12 +307,11 @@ export default async function AdminUsersPage() {
                                     ? "border-amber-500/30 bg-amber-500/10 font-bold text-amber-600"
                                     : "bg-background text-foreground-secondary border-border"
                               }`}
-                              onChange={(e) => e.target.form?.requestSubmit()}
                             >
                               <option value="USER">USER</option>
                               <option value="ADMIN">ADMIN</option>
                               <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                            </select>
+                            </AutoSubmitSelect>
                           </form>
                         </td>
 

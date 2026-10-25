@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_PLANS = [
   { slug: "free", name: "Free", priceMonthly: 0, priceYearly: 0, aiDailyLimit: 5 },
   { slug: "pro", name: "Pro", priceMonthly: 39000, priceYearly: 390000, aiDailyLimit: 50 },
