@@ -16,16 +16,28 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminPage() {
+  const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+    p.catch((err) => {
+      console.error("[SUPER_ADMIN_QUERY_ERROR]", err instanceof Error ? err.message : err);
+      return fallback;
+    });
+
   const [totalUsers, paidUsers, totalAiusages, recentLogs] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({
-      where: { plan: { in: ["PRO", "PREMIUM"] } },
-    }),
-    prisma.aIUsage.count(),
-    prisma.securityLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
+    safe(prisma.user.count(), 0),
+    safe(
+      prisma.user.count({
+        where: { plan: { in: ["PRO", "PREMIUM"] } },
+      }),
+      0
+    ),
+    safe(prisma.aIUsage.count(), 0),
+    safe(
+      prisma.securityLog.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      []
+    ),
   ]);
 
   return (

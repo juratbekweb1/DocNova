@@ -3,10 +3,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
 
+const DEFAULT_PLANS = [
+  { slug: "free", name: "Free", priceMonthly: 0, priceYearly: 0, aiDailyLimit: 5 },
+  { slug: "pro", name: "Pro", priceMonthly: 39000, priceYearly: 390000, aiDailyLimit: 50 },
+  { slug: "premium", name: "Premium", priceMonthly: 69000, priceYearly: 690000, aiDailyLimit: 200 },
+];
+
+async function loadPlans() {
+  try {
+    let plans = await prisma.plan.findMany({ orderBy: { priceMonthly: "asc" } });
+    if (plans.length === 0) {
+      // Plan table is empty: seed defaults idempotently so the admin always sees editable tiers.
+      for (const p of DEFAULT_PLANS) {
+        await prisma.plan.upsert({
+          where: { slug: p.slug },
+          update: {},
+          create: { ...p, features: {}, isActive: true },
+        });
+      }
+      plans = await prisma.plan.findMany({ orderBy: { priceMonthly: "asc" } });
+    }
+    return { plans, failed: false };
+  } catch (err) {
+    console.error("[ADMIN_PRICING_LOAD_ERROR]", err instanceof Error ? err.message : err);
+    return { plans: [], failed: true };
+  }
+}
+
 export default async function AdminPricingPage() {
-  const plans = await prisma.plan.findMany({
-    orderBy: { priceMonthly: "asc" },
-  });
+  const { plans, failed } = await loadPlans();
 
   async function updatePlan(formData: FormData) {
     "use server";
@@ -36,6 +61,12 @@ export default async function AdminPricingPage() {
           Manage subscription tiers, limits, and prices dynamically.
         </p>
       </div>
+
+      {failed && (
+        <p className="text-sm text-red-500">
+          Tariflarni yuklab bo&apos;lmadi. Sahifani qayta yuklab ko&apos;ring.
+        </p>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         {plans.map((plan) => (
