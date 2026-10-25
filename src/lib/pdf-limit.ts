@@ -9,10 +9,15 @@ export const checkPdfLimit = async (userId: string) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, plan: true },
   });
 
   if (user && (user.role === "SUPER_ADMIN" || user.role === "ADMIN")) {
+    return true;
+  }
+
+  // PRO / PREMIUM subscribers: no PDF operation cap
+  if (user && (user.plan === "PRO" || user.plan === "PREMIUM")) {
     return true;
   }
 
