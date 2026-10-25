@@ -558,9 +558,9 @@ function CvBuilderContent() {
         }
       `}</style>
 
-      <div className="bg-background flex h-[calc(100vh-80px)] overflow-hidden">
+      <div className="bg-background flex min-h-[calc(100vh-80px)] w-full max-w-full flex-col overflow-x-hidden md:h-[calc(100vh-80px)] md:flex-row md:overflow-hidden">
         {/* Left Sidebar: Tabs for Templates & Editor */}
-        <div className="border-border bg-surface z-10 flex h-full w-full max-w-full flex-col border-r shadow-lg sm:w-[430px] sm:min-w-[360px]">
+        <div className="border-border bg-surface z-10 flex h-[calc(100vh-80px)] w-full max-w-full shrink-0 flex-col border-r shadow-lg md:h-full md:w-[430px] md:min-w-[360px]">
           {/* Header */}
           <div className="border-border bg-surface/90 flex items-center justify-between border-b p-4 backdrop-blur">
             <div>
@@ -1133,7 +1133,7 @@ function CvBuilderContent() {
         </div>
 
         {/* Right Side: Live A4 Resume Preview */}
-        <div className="bg-surface-elevated/80 flex flex-1 flex-col items-center overflow-y-auto p-6 md:p-10">
+        <div className="bg-surface-elevated/80 flex min-h-[60vh] w-full flex-1 flex-col items-center overflow-x-auto overflow-y-auto p-4 md:p-10">
           {/* Top Preview Bar */}
           <div className="text-foreground-secondary mb-4 flex w-full max-w-[210mm] items-center justify-between text-xs">
             <div className="flex items-center gap-2">
