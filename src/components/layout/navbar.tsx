@@ -67,7 +67,7 @@ export function Navbar() {
   const isDark = mounted ? resolvedTheme === "dark" || theme === "dark" : true;
 
   return (
-    <ScrollHeader className="border-b border-slate-200/80 bg-white/85 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/60 dark:bg-[#020817]/85">
+    <ScrollHeader className="border-b border-slate-200/90 bg-white/95 transition-colors duration-300 md:bg-white/85 md:backdrop-blur-xl dark:border-slate-800/70 dark:bg-[#020817]/95 md:dark:bg-[#020817]/85">
       <Container
         size="full"
         className="flex h-16 max-w-[1536px] items-center justify-between gap-2 px-3 sm:px-6 md:h-20 lg:px-8 xl:gap-4"

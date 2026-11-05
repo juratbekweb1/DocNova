@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminSettingsPage() {
   const [userCount, documentCount, activePlanCount] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),

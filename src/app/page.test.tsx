@@ -16,9 +16,15 @@ const localStorageMock = (() => {
   };
   return {
     getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      Object.keys(store).forEach((k) => delete store[k]);
+    },
   };
 })();
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
@@ -35,14 +41,20 @@ vi.mock("../components/marketing/landing-page", () => ({
   ),
 }));
 
+import fs from "node:fs";
+import path from "node:path";
 import HomePage from "./page";
+import { ScrollHeader } from "../components/layout/scroll-header";
+import { MobileDrawer } from "../components/layout/mobile-drawer";
 
 describe("marketing home page", () => {
   it("renders the hero, features, and CTA content", () => {
     render(<HomePage />);
 
     expect(
-      screen.getByRole("heading", { name: /build a standout resume with clarity, speed, and confidence/i })
+      screen.getByRole("heading", {
+        name: /build a standout resume with clarity, speed, and confidence/i,
+      })
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /start building for free/i })).toBeInTheDocument();
     expect(
@@ -51,5 +63,32 @@ describe("marketing home page", () => {
     expect(
       screen.getByRole("heading", { name: /ready to build a resume that works as hard as you do/i })
     ).toBeInTheDocument();
+  });
+
+  it("prevents mobile blurriness in globals.css and avoids dangerous [class*='blur-'] wildcard selectors", () => {
+    const cssPath = path.resolve(process.cwd(), "src/app/globals.css");
+    const cssContent = fs.readFileSync(cssPath, "utf8");
+
+    expect(cssContent).not.toContain('[class*="blur-"]');
+    expect(cssContent).not.toContain('[class*="blur-["]');
+    expect(cssContent).toContain('[class*="backdrop-blur"]');
+    expect(cssContent).toContain("filter: none !important;");
+    expect(cssContent).toContain("backdrop-filter: none !important;");
+  });
+
+  it("renders ScrollHeader without transform-gpu and portals MobileDrawer to document.body", () => {
+    const { container } = render(
+      <ScrollHeader>
+        <MobileDrawer isOpen={true} onClose={() => {}}>
+          <div>Mobile Nav Content</div>
+        </MobileDrawer>
+      </ScrollHeader>
+    );
+
+    const header = container.querySelector("header");
+    expect(header).toBeInTheDocument();
+    expect(header?.className).not.toContain("transform-gpu");
+    expect(screen.getByText("Mobile Nav Content")).toBeInTheDocument();
+    expect(header?.contains(screen.getByText("Mobile Nav Content"))).toBe(false);
   });
 });

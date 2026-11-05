@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
 import { Trash2, Plus } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPromoPage() {
   const promos = await prisma.promoCode.findMany({
     orderBy: { createdAt: "desc" },

@@ -33,10 +33,11 @@ function createPrismaClient(): PrismaClient {
     });
   }
 
-  // Fallback to local PGlite
-  const client = new PGlite("./prisma/pglite");
+  // Fallback to local PGlite (use in-memory instance in test environment to avoid concurrent WASM lock crashes)
+  const isTest = env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const client = isTest ? new PGlite() : new PGlite("./prisma/pglite");
   const adapter = new PrismaPGlite(client);
-  return new PrismaClient({ adapter, log: ["query", "error", "warn"] });
+  return new PrismaClient({ adapter, log: isTest ? ["error"] : ["query", "error", "warn"] });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

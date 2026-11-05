@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,11 @@ export function MobileDrawer({
   className,
 }: MobileDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   // Focus trap and scroll lock
   useEffect(() => {
@@ -31,7 +37,7 @@ export function MobileDrawer({
 
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
-        
+
         // Basic focus trap
         if (e.key === "Tab" && drawerRef.current) {
           const focusableElements = drawerRef.current.querySelectorAll(
@@ -65,7 +71,7 @@ export function MobileDrawer({
   // Auto focus first element when opened
   useEffect(() => {
     if (isOpen && drawerRef.current) {
-      const closeBtn = drawerRef.current.querySelector('button') as HTMLElement;
+      const closeBtn = drawerRef.current.querySelector("button") as HTMLElement;
       if (closeBtn) closeBtn.focus();
     }
   }, [isOpen]);
@@ -81,11 +87,13 @@ export function MobileDrawer({
     visible: { x: 0 },
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-[100] flex" 
+        <div
+          className="fixed inset-0 z-[100] flex"
           style={{ justifyContent: side === "right" ? "flex-end" : "flex-start" }}
         >
           {/* Backdrop */}
@@ -94,7 +102,7 @@ export function MobileDrawer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 absolute inset-0 md:backdrop-blur-sm"
             onClick={handleBackdropClick}
             aria-hidden="true"
           />
@@ -107,29 +115,28 @@ export function MobileDrawer({
             variants={slideVariants}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className={cn(
-              "relative z-[101] w-[85%] max-w-sm bg-surface shadow-2xl h-[100dvh] flex flex-col border-l border-border/50",
+              "bg-surface border-border/50 relative z-[101] flex h-[100dvh] w-[85%] max-w-sm flex-col border-l shadow-2xl",
               className
             )}
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation Menu"
           >
-            <div className="flex items-center justify-between p-4 border-b border-border/10 bg-surface">
-              <span className="text-sm font-semibold text-foreground">Menu</span>
+            <div className="border-border/10 bg-surface flex items-center justify-between border-b p-4">
+              <span className="text-foreground text-sm font-semibold">Menu</span>
               <button
                 onClick={onClose}
-                className="p-2 rounded-md text-foreground-secondary hover:text-foreground hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="text-foreground-secondary hover:text-foreground hover:bg-surface-elevated focus-visible:ring-primary rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 aria-label="Close menu"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 bg-surface">
-              {children}
-            </div>
+            <div className="bg-surface flex-1 overflow-y-auto p-6">{children}</div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

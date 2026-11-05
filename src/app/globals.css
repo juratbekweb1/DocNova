@@ -210,7 +210,7 @@ section {
   scrollbar-width: none !important;
 }
 
-/* Mobile Performance Optimization (Lag & Stutter Prevention) */
+/* Mobile Performance & Sharpness Optimization (Zero Blur & Zero Lag) */
 @media (max-width: 768px) {
   * {
     -webkit-tap-highlight-color: transparent;
@@ -228,10 +228,32 @@ section {
     display: none !important;
   }
 
-  /* Cap expensive backdrop filters across all variants on mobile to preserve GPU fillrate */
+  /* Strictly guarantee no UI container, header, card, or interactive element ever gets foreground blur on mobile */
+  header,
+  nav,
+  main,
+  section,
+  article,
+  aside,
+  footer,
+  button,
+  a,
   [class*="backdrop-blur"] {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  /* Disable offscreen backdrop-filter compositing on mobile/WebView to prevent blurry layer downscaling and GPU lag */
+  .backdrop-blur-3xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md,
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* Disable continuous GPU-draining infinite CSS animations on mobile */
@@ -239,14 +261,6 @@ section {
   .animate-ping,
   .animate-float {
     animation: none !important;
-  }
-
-  /* Force GPU layer composition for fixed/sticky headers to prevent scroll jitter */
-  header,
-  .sticky {
-    transform: translateZ(0);
-    will-change: transform;
-    backface-visibility: hidden;
   }
 }
 

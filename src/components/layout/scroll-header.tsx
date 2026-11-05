@@ -19,7 +19,7 @@ export function ScrollHeader({ children, className, ...props }: ScrollHeaderProp
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    
+
     // Initial check in case of page reload halfway down
     handleScroll();
 
@@ -31,9 +31,9 @@ export function ScrollHeader({ children, className, ...props }: ScrollHeaderProp
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full border-b transition-all duration-300 transform-gpu",
+        "fixed top-0 right-0 left-0 z-50 w-full border-b transition-colors duration-300",
         isScrolled
-          ? "border-border/50 bg-background/80 shadow-sm backdrop-blur-md"
+          ? "border-border/50 bg-background/95 md:bg-background/80 shadow-sm md:backdrop-blur-md"
           : "border-transparent bg-transparent",
         className
       )}
