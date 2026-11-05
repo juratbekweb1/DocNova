@@ -217,26 +217,35 @@ section {
   }
 
   /* Smooth touch deceleration */
-  html, body {
+  html,
+  body {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
-  /* Cap expensive backdrop filters on mobile devices to preserve GPU fillrate */
-  .backdrop-blur-3xl,
-  .backdrop-blur-2xl,
-  .backdrop-blur-xl {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+  /* Completely disable fixed body background pseudo-element on mobile (eliminates full-screen repaint) */
+  body::before {
+    display: none !important;
   }
 
-  /* Cap massive Gaussian blur radiuses on mobile GPU */
-  .blur-3xl {
-    filter: blur(20px) !important;
-    -webkit-filter: blur(20px) !important;
+  /* Cap expensive backdrop filters across all variants on mobile to preserve GPU fillrate */
+  [class*="backdrop-blur"] {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
   }
-  .blur-2xl {
-    filter: blur(14px) !important;
-    -webkit-filter: blur(14px) !important;
+
+  /* Cap all Gaussian blur radiuses (standard and arbitrary) on mobile GPU */
+  [class*="blur-"],
+  [class*="blur-["] {
+    filter: blur(12px) !important;
+    -webkit-filter: blur(12px) !important;
+  }
+
+  /* Disable continuous GPU-draining infinite CSS animations on mobile */
+  .animate-pulse,
+  .animate-ping,
+  .animate-float {
+    animation: none !important;
   }
 
   /* Force GPU layer composition for fixed/sticky headers to prevent scroll jitter */
@@ -244,6 +253,7 @@ section {
   .sticky {
     transform: translateZ(0);
     will-change: transform;
+    backface-visibility: hidden;
   }
 }
 

@@ -28,29 +28,29 @@ import {
   LanguageLevelDef,
   MockQuestion,
 } from "@/lib/academic/mock-test-data";
-import {
-  evaluateMockTestLocally,
-  AIResult,
-} from "@/lib/academic/mock-test-evaluator";
+import { evaluateMockTestLocally, AIResult } from "@/lib/academic/mock-test-evaluator";
 
 interface MockTestRunnerProps {
   mockData: LanguageMockTestData;
   accentColor?: "blue" | "purple" | "emerald";
 }
 
-export function MockTestRunner({
-  mockData,
-  accentColor = "blue",
-}: MockTestRunnerProps) {
+export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunnerProps) {
   const { toast } = useToast();
 
-  const [selectedLevelId, setSelectedLevelId] = useState<string>(
-    mockData.defaultLevelId
-  );
+  const [selectedLevelId, setSelectedLevelId] = useState<string>(mockData.defaultLevelId);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [writtenText, setWrittenText] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [result, setResult] = useState<AIResult | null>(null);
+  const resultRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to result dashboard when evaluation completes
+  useEffect(() => {
+    if (result && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [result]);
 
   // 15 minutes timer per test
   const [timeLeft, setTimeLeft] = useState(15 * 60);
@@ -58,10 +58,7 @@ export function MockTestRunner({
 
   // Find the active level configuration
   const activeLevel: LanguageLevelDef = useMemo(() => {
-    return (
-      mockData.levels.find((lvl) => lvl.id === selectedLevelId) ||
-      mockData.levels[0]
-    );
+    return mockData.levels.find((lvl) => lvl.id === selectedLevelId) || mockData.levels[0];
   }, [mockData, selectedLevelId]);
 
   // Color themes
@@ -69,8 +66,7 @@ export function MockTestRunner({
     blue: {
       primary: "from-blue-600 to-sky-500",
       borderGlow: "border-blue-500/40 shadow-blue-500/10",
-      activeTab:
-        "border-sky-500 bg-sky-500/15 text-sky-300 shadow-[0_0_15px_rgba(14,165,233,0.3)]",
+      activeTab: "border-sky-500 bg-sky-500/15 text-sky-300 shadow-[0_0_15px_rgba(14,165,233,0.3)]",
       badge: "border-blue-500/30 bg-blue-500/10 text-blue-400",
       button: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25",
       ring: "focus:border-sky-500 focus:ring-sky-500",
@@ -126,9 +122,7 @@ export function MockTestRunner({
   };
 
   const answeredCount = activeLevel.questions.filter((q) => answers[q.id]).length;
-  const progressPercent = Math.round(
-    (answeredCount / activeLevel.questions.length) * 100
-  );
+  const progressPercent = Math.round((answeredCount / activeLevel.questions.length) * 100);
 
   const handleSelectAnswer = (qId: string, optionKey: string) => {
     if (result) return;
@@ -171,9 +165,9 @@ export function MockTestRunner({
     setIsEvaluating(true);
     setTimerActive(false);
 
-    // Fail-fast AbortController with 6.5s maximum client wait budget
+    // Fail-fast AbortController with 6.0s maximum client wait budget
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
       const res = await fetch("/api/ai/language-test", {
@@ -194,15 +188,25 @@ export function MockTestRunner({
 
       clearTimeout(timeoutId);
 
-      // Handle explicit quota limit error
+      // Handle quota limit error: compute local evaluation so user is never left stranded
       if (res.status === 403) {
         const data = await res.json().catch(() => ({}));
+        const fallbackResult = evaluateMockTestLocally({
+          language: mockData.code,
+          testType: mockData.standard,
+          selectedLevel: activeLevel.name,
+          levelId: activeLevel.id,
+          levelShortName: activeLevel.shortName,
+          answers,
+          questions: activeLevel.questions,
+          writtenText,
+        });
+        setResult(fallbackResult);
         toast({
-          title: "Limit yetarli emas",
+          title: "Test natijangiz hisoblandi",
           description:
             data.upgradeMessage ||
-            "Mock Test topshirish bo'yicha limitingiz tugadi. Tarifni yangilang.",
-          variant: "destructive",
+            "Mock Test limitingiz tugagan bo'lsa-da, javoblaringiz bo'yicha test natijasi muvaffaqiyatli hisoblandi.",
         });
         return;
       }
@@ -265,7 +269,7 @@ export function MockTestRunner({
       </div>
 
       {/* Top Breadcrumb & Live Status Bar */}
-      <div className="border-border/70 bg-surface/50 sticky top-0 z-20 border-b backdrop-blur-md px-4 py-3.5 sm:px-6 lg:px-8 print:hidden">
+      <div className="border-border/70 bg-surface/50 sticky top-0 z-20 border-b px-4 py-3.5 backdrop-blur-md sm:px-6 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -279,12 +283,10 @@ export function MockTestRunner({
             <div className="flex items-center gap-2">
               <span className="text-2xl drop-shadow-sm">{mockData.flag}</span>
               <div>
-                <span className="text-foreground text-sm font-bold block leading-none">
+                <span className="text-foreground block text-sm leading-none font-bold">
                   {mockData.title}
                 </span>
-                <span className="text-foreground-muted text-[11px]">
-                  {mockData.standard}
-                </span>
+                <span className="text-foreground-muted text-[11px]">{mockData.standard}</span>
               </div>
             </div>
           </div>
@@ -301,7 +303,7 @@ export function MockTestRunner({
             {/* Live Timer */}
             <div
               className={`border-border bg-surface-elevated/80 flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-xs font-bold ${
-                timeLeft < 180 ? "border-amber-500/50 text-amber-400 animate-pulse" : "text-primary"
+                timeLeft < 180 ? "animate-pulse border-amber-500/50 text-amber-400" : "text-primary"
               }`}
             >
               <Clock className="h-3.5 w-3.5" />
@@ -309,7 +311,7 @@ export function MockTestRunner({
             </div>
 
             {/* Answered Counter */}
-            <div className="text-foreground-secondary hidden rounded-xl bg-surface-elevated/40 border border-border px-3 py-1.5 text-xs font-medium sm:block">
+            <div className="text-foreground-secondary bg-surface-elevated/40 border-border hidden rounded-xl border px-3 py-1.5 text-xs font-medium sm:block">
               Progress:{" "}
               <span className="text-primary font-bold">
                 {answeredCount}/{activeLevel.questions.length}
@@ -322,7 +324,7 @@ export function MockTestRunner({
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Level Selection Section */}
         <div className="border-border/80 bg-surface/70 relative mb-8 overflow-hidden rounded-3xl border p-5 shadow-lg backdrop-blur-sm sm:p-7 print:hidden">
-          <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl transform-gpu" />
+          <div className="bg-primary/10 pointer-events-none absolute -top-24 -right-24 hidden h-64 w-64 transform-gpu rounded-full blur-3xl md:block" />
 
           <div className="relative z-10">
             <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
@@ -361,9 +363,9 @@ export function MockTestRunner({
                     >
                       <div className="flex items-center gap-1">
                         <span className="text-base font-extrabold">{lvl.shortName}</span>
-                        {isCurrent && <Check className="h-3.5 w-3.5 text-primary" />}
+                        {isCurrent && <Check className="text-primary h-3.5 w-3.5" />}
                       </div>
-                      <span className="text-foreground-muted text-[10px] font-medium leading-tight">
+                      <span className="text-foreground-muted text-[10px] leading-tight font-medium">
                         {lvl.badge}
                       </span>
                     </button>
@@ -380,9 +382,7 @@ export function MockTestRunner({
                 </div>
                 <div
                   className={`grid grid-cols-1 gap-2.5 ${
-                    specialLevels.length === 4
-                      ? "sm:grid-cols-2 lg:grid-cols-4"
-                      : "sm:grid-cols-3"
+                    specialLevels.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
                   }`}
                 >
                   {specialLevels.map((lvl) => {
@@ -402,7 +402,7 @@ export function MockTestRunner({
                           <div className="text-foreground text-xs font-bold sm:text-sm">
                             {lvl.name}
                           </div>
-                          <div className="text-foreground-muted mt-0.5 text-[11px] line-clamp-1">
+                          <div className="text-foreground-muted mt-0.5 line-clamp-1 text-[11px]">
                             {lvl.badge}
                           </div>
                         </div>
@@ -422,11 +422,9 @@ export function MockTestRunner({
 
             {/* Active Level Description Note */}
             <div className="border-border/60 bg-surface-elevated/30 mt-4 flex items-start gap-2.5 rounded-xl border p-3 text-xs">
-              <Zap className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <div className="text-foreground-secondary">
-                <strong className="text-foreground font-semibold">
-                  {activeLevel.name}:
-                </strong>{" "}
+                <strong className="text-foreground font-semibold">{activeLevel.name}:</strong>{" "}
                 {activeLevel.description}
               </div>
             </div>
@@ -441,9 +439,9 @@ export function MockTestRunner({
               {progressPercent}% tugallandi ({answeredCount}/{activeLevel.questions.length})
             </span>
           </div>
-          <div className="bg-surface-elevated h-2 w-full overflow-hidden rounded-full border border-border/50">
+          <div className="bg-surface-elevated border-border/50 h-2 w-full overflow-hidden rounded-full border">
             <div
-              className={`h-full bg-gradient-to-r ${theme.primary} transition-all duration-300 shadow-sm`}
+              className={`h-full bg-gradient-to-r ${theme.primary} shadow-sm transition-all duration-300`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -466,7 +464,8 @@ export function MockTestRunner({
           </h3>
           <p className="text-foreground-secondary mt-1 text-xs sm:text-sm">
             Quyidagi har bir savol uchun eng to&apos;g&apos;ri javobni tanlang. Xato qilgan taqdirda
-            ham test oxirida har bir savolning to&apos;liq qoidasi va tushuntirishi ko&apos;rsatiladi.
+            ham test oxirida har bir savolning to&apos;liq qoidasi va tushuntirishi
+            ko&apos;rsatiladi.
           </p>
         </div>
 
@@ -487,8 +486,8 @@ export function MockTestRunner({
                       ? "border-emerald-500/40 bg-emerald-500/5 shadow-sm"
                       : "border-red-500/40 bg-red-500/5 shadow-sm"
                     : isAnswered
-                    ? `${theme.borderGlow} shadow-sm`
-                    : "border-border hover:border-border-hover"
+                      ? `${theme.borderGlow} shadow-sm`
+                      : "border-border hover:border-border-hover"
                 }`}
               >
                 {/* Question Header */}
@@ -510,9 +509,7 @@ export function MockTestRunner({
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-400">
                           <XCircle className="h-3.5 w-3.5" />
-                          <span>
-                            To&apos;g&apos;ri javob: variant {q.correctKey}
-                          </span>
+                          <span>To&apos;g&apos;ri javob: variant {q.correctKey}</span>
                         </span>
                       )}
                     </div>
@@ -542,7 +539,8 @@ export function MockTestRunner({
                         optStyle =
                           "border-red-500/70 bg-red-500/10 text-red-300 line-through font-semibold";
                       } else {
-                        optStyle = "border-border/60 bg-background/50 text-foreground-muted opacity-60";
+                        optStyle =
+                          "border-border/60 bg-background/50 text-foreground-muted opacity-60";
                       }
                     } else if (isSelected) {
                       optStyle = `border-primary bg-primary/10 text-foreground font-semibold shadow-sm`;
@@ -562,11 +560,11 @@ export function MockTestRunner({
                               ? isOptionCorrect
                                 ? "bg-emerald-500 text-white"
                                 : isOptionWrongSelected
-                                ? "bg-red-500 text-white"
-                                : "bg-surface-elevated text-foreground-muted"
+                                  ? "bg-red-500 text-white"
+                                  : "bg-surface-elevated text-foreground-muted"
                               : isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-surface-elevated text-foreground-muted"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-surface-elevated text-foreground-muted"
                           }`}
                         >
                           {opt.key}
@@ -580,11 +578,9 @@ export function MockTestRunner({
                 {/* Explanation Box (Visible after submission) */}
                 {result && q.explanation && (
                   <div className="border-border/80 bg-surface-elevated/70 mt-4 flex items-start gap-3 rounded-xl border p-3.5 text-xs">
-                    <Lightbulb className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                     <div>
-                      <span className="text-foreground font-bold">
-                        Tushuntirish va qoida:
-                      </span>
+                      <span className="text-foreground font-bold">Tushuntirish va qoida:</span>
                       <p className="text-foreground-secondary mt-0.5 leading-relaxed">
                         {q.explanation}
                       </p>
@@ -599,7 +595,7 @@ export function MockTestRunner({
         {/* Section 2: Writing task */}
         <div className="border-border bg-surface mt-10 rounded-2xl border p-6 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="rounded-md bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 text-xs font-bold tracking-wider text-purple-400 uppercase">
+            <span className="rounded-md border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-xs font-bold tracking-wider text-purple-400 uppercase">
               Part 2: Yozma nutq topshirig&apos;i ({activeLevel.shortName}) • Ixtiyoriy
             </span>
             <span className="text-foreground-muted text-xs">
@@ -623,7 +619,7 @@ export function MockTestRunner({
             className={`border-border bg-background text-foreground placeholder:text-foreground-muted w-full rounded-xl border p-4 text-xs transition-colors focus:outline-none sm:text-sm ${theme.ring}`}
           />
 
-          <div className="mt-2 flex items-center justify-between text-[11px] text-foreground-muted">
+          <div className="text-foreground-muted mt-2 flex items-center justify-between text-[11px]">
             <span>
               So&apos;zlar soni:{" "}
               <strong className="text-foreground">
@@ -631,8 +627,7 @@ export function MockTestRunner({
               </strong>
             </span>
             <span>
-              Belgilar soni:{" "}
-              <strong className="text-foreground">{writtenText.length}</strong>
+              Belgilar soni: <strong className="text-foreground">{writtenText.length}</strong>
             </span>
           </div>
         </div>
@@ -666,11 +661,14 @@ export function MockTestRunner({
 
         {/* AI Result Report Dashboard */}
         {result && (
-          <div className="border-primary/40 from-surface via-surface to-background animate-in fade-in slide-in-from-bottom-4 mt-12 rounded-3xl border bg-gradient-to-b p-6 shadow-2xl duration-500 sm:p-8 print:border-none print:shadow-none print:p-0 print:bg-transparent">
+          <div
+            ref={resultRef}
+            className="border-primary/40 from-surface via-surface to-background animate-in fade-in slide-in-from-bottom-4 mt-12 rounded-3xl border bg-gradient-to-b p-6 shadow-2xl duration-500 sm:p-8 print:border-none print:bg-transparent print:p-0 print:shadow-none"
+          >
             {/* Report Header */}
             <div className="border-border flex flex-col items-start justify-between gap-4 border-b pb-6 sm:flex-row sm:items-center">
               <div>
-                <div className="text-primary bg-primary/10 mb-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border border-primary/20">
+                <div className="text-primary bg-primary/10 border-primary/20 mb-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold">
                   <Award className="h-4 w-4" />
                   <span>Rasmiy AI Lingvistik Sertifikat Tahlili</span>
                 </div>
@@ -719,7 +717,7 @@ export function MockTestRunner({
                 <span className="text-primary text-[11px] font-bold tracking-wider uppercase">
                   Rasmiy Band / Daraja
                 </span>
-                <div className="text-primary mt-1 text-lg font-extrabold sm:text-xl line-clamp-1">
+                <div className="text-primary mt-1 line-clamp-1 text-lg font-extrabold sm:text-xl">
                   {result.bandScore}
                 </div>
                 <span className="text-primary/70 mt-0.5 block text-[11px]">
@@ -753,7 +751,7 @@ export function MockTestRunner({
             </div>
 
             {/* Additional Gauges */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="border-border bg-surface-elevated/40 flex items-center justify-between rounded-xl border p-3.5 text-xs">
                 <span className="text-foreground-secondary">
                   Matn tushunish (Reading Comprehension):
@@ -761,9 +759,7 @@ export function MockTestRunner({
                 <span className="text-foreground font-bold">{result.readingScore}%</span>
               </div>
               <div className="border-border bg-surface-elevated/40 flex items-center justify-between rounded-xl border p-3.5 text-xs">
-                <span className="text-foreground-secondary">
-                  Yozma nutq (Writing Expression):
-                </span>
+                <span className="text-foreground-secondary">Yozma nutq (Writing Expression):</span>
                 <span className="text-foreground font-bold">{result.writingScore}%</span>
               </div>
             </div>
@@ -831,7 +827,7 @@ export function MockTestRunner({
             )}
 
             {/* Certificate Recommendation Stamp */}
-            <div className="mt-8 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-sky-500/5 to-transparent p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="border-primary/30 from-primary/10 mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border bg-gradient-to-r via-sky-500/5 to-transparent p-5 sm:flex-row">
               <div className="flex items-center gap-3.5">
                 <div className="bg-primary/20 text-primary rounded-xl p-3">
                   <Award className="h-6 w-6" />
@@ -840,15 +836,16 @@ export function MockTestRunner({
                   <div className="text-foreground text-sm font-bold">
                     DocNova Raqamli Sertifikat Tavsiyasi
                   </div>
-                  <div className="text-foreground-secondary text-xs mt-0.5">
-                    Ushbu test natijasi bo&apos;yicha sizning bilim darajangiz <strong>{result.bandScore}</strong> sifatida tasdiqlandi.
+                  <div className="text-foreground-secondary mt-0.5 text-xs">
+                    Ushbu test natijasi bo&apos;yicha sizning bilim darajangiz{" "}
+                    <strong>{result.bandScore}</strong> sifatida tasdiqlandi.
                   </div>
                 </div>
               </div>
 
               <Link
                 href="/academic/mock-test"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold shadow-md transition-all hover:scale-105 shrink-0 print:hidden"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold shadow-md transition-all hover:scale-105 print:hidden"
               >
                 <span>Boshqa tilni sinash</span>
                 <ArrowRight className="h-3.5 w-3.5" />

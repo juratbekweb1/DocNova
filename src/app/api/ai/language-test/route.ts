@@ -61,7 +61,9 @@ export async function POST(req: Request) {
     } = body;
 
     const langCode = (language || "EN").toUpperCase();
-    const cleanLevelId = String(levelId || "").trim().toUpperCase();
+    const cleanLevelId = String(levelId || "")
+      .trim()
+      .toUpperCase();
     const levelStr = String(selectedLevel || levelShortName || cleanLevelId || "B2").trim();
 
     // Deterministic scoring on submitted answers
@@ -127,25 +129,29 @@ Return ONLY a valid JSON object strictly matching this schema:
         const geminiRes = await generateGeminiJson<Record<string, unknown>>(prompt, {
           temperature: 0.2,
           maxOutputTokens: 2048,
-          timeoutMs: 5_000,
+          timeoutMs: 3_500,
           maxRetries: 0,
           systemInstruction:
             "You are a certified senior linguistic examiner. Return ONLY a valid JSON object strictly matching the schema with authentic Uzbek feedback.",
         });
 
         if (geminiRes.data && geminiRes.data.bandScore) {
-          await deductUserAiCredit(userId);
-          await trackAIUsage({
-            userId,
-            plan,
-            feature: "MOCK_TEST",
-            provider: "gemini",
-            model: geminiRes.modelUsed,
-            status: "SUCCESS",
-            inputTokens: geminiRes.usage.promptTokenCount,
-            outputTokens: geminiRes.usage.candidatesTokenCount,
-            requestDurationMs: Date.now() - startTime,
-          });
+          try {
+            await deductUserAiCredit(userId);
+            await trackAIUsage({
+              userId,
+              plan,
+              feature: "MOCK_TEST",
+              provider: "gemini",
+              model: geminiRes.modelUsed,
+              status: "SUCCESS",
+              inputTokens: geminiRes.usage.promptTokenCount,
+              outputTokens: geminiRes.usage.candidatesTokenCount,
+              requestDurationMs: Date.now() - startTime,
+            });
+          } catch (trackErr) {
+            console.warn("[TRACK_AI_USAGE_WARN]", trackErr);
+          }
 
           const data = geminiRes.data;
           const testPerc = Math.round((correctCount / Math.max(totalQuestions, 1)) * 100);
@@ -155,11 +161,14 @@ Return ONLY a valid JSON object strictly matching this schema:
             bandScore: String(data.bandScore),
             cefrLevel: String(data.cefrLevel || "B2"),
             grammarScore: typeof data.grammarScore === "number" ? data.grammarScore : testPerc,
-            vocabularyScore: typeof data.vocabularyScore === "number" ? data.vocabularyScore : testPerc,
+            vocabularyScore:
+              typeof data.vocabularyScore === "number" ? data.vocabularyScore : testPerc,
             readingScore: typeof data.readingScore === "number" ? data.readingScore : testPerc,
             writingScore: typeof data.writingScore === "number" ? data.writingScore : 0,
-            strengths: Array.isArray(data.strengths) && data.strengths.length > 0 ? data.strengths : [],
-            weaknesses: Array.isArray(data.weaknesses) && data.weaknesses.length > 0 ? data.weaknesses : [],
+            strengths:
+              Array.isArray(data.strengths) && data.strengths.length > 0 ? data.strengths : [],
+            weaknesses:
+              Array.isArray(data.weaknesses) && data.weaknesses.length > 0 ? data.weaknesses : [],
             recommendations:
               Array.isArray(data.recommendations) && data.recommendations.length > 0
                 ? data.recommendations

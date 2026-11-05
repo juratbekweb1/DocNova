@@ -182,7 +182,8 @@ describe("Academic Mock Test System - Multi-Level Verification", () => {
         levelShortName: b2Level.shortName,
         answers,
         questions: b2Level.questions,
-        writtenText: "This is a comprehensive analytical essay demonstrating advanced academic English writing skills.",
+        writtenText:
+          "This is a comprehensive analytical essay demonstrating advanced academic English writing skills.",
       });
       const duration = performance.now() - start;
 
@@ -232,6 +233,32 @@ describe("Academic Mock Test System - Multi-Level Verification", () => {
 
       expect(result.cefrLevel).toBe("C2");
       expect(result.bandScore).toContain("TÖMER İleri");
+    });
+
+    it("should gracefully handle quota exhaustion fallback and generate full report", () => {
+      const a2Level = ENGLISH_MOCK_DATA.levels.find((l) => l.id === "A2")!;
+      const answers: Record<string, string> = {
+        [a2Level.questions[0].id]: a2Level.questions[0].correctKey,
+      };
+
+      const result = evaluateMockTestLocally({
+        language: "EN",
+        testType: "IELTS & CEFR",
+        selectedLevel: a2Level.name,
+        levelId: a2Level.id,
+        levelShortName: a2Level.shortName,
+        answers,
+        questions: a2Level.questions,
+        writtenText: "",
+        isGuest: true,
+      });
+
+      expect(result.bandScore).toBeDefined();
+      expect(result.bandScore.length).toBeGreaterThan(0);
+      expect(result.overallScore).toBeGreaterThanOrEqual(0);
+      expect(result.strengths.length).toBeGreaterThanOrEqual(1);
+      expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
+      expect(result.summary.length).toBeGreaterThan(10);
     });
   });
 });
