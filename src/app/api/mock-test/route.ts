@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { generateMockTestQuestion, evaluateMockTestAnswer } from "@/lib/ai/geminiService";
 import { prisma } from "@/lib/prisma";
-import { SubscriptionTier } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -17,13 +16,19 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { plan: true }
+      select: { plan: true },
     });
-    const plan = (user?.plan as any as string) || "FREE";
+    const plan = user?.plan ? String(user.plan) : "FREE";
 
     const limitCheck = await checkUserLimit(userId, "mock_test");
     if (limitCheck.limitExceeded) {
-      await trackAIUsage({ userId, plan, feature: "MOCK_TEST", status: "QUOTA_EXCEEDED", errorCode: "LIMIT_EXCEEDED" });
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "MOCK_TEST",
+        status: "QUOTA_EXCEEDED",
+        errorCode: "LIMIT_EXCEEDED",
+      });
       return NextResponse.json({ error: limitCheck.error, code: limitCheck.code }, { status: 429 });
     }
 
@@ -32,7 +37,7 @@ export async function POST(req: Request) {
     const startTime = Date.now();
     let status: "SUCCESS" | "FAILED" = "SUCCESS";
     let errorCode: string | undefined = undefined;
-    let resultData: any;
+    let resultData: Record<string, unknown>;
 
     try {
       if (action === "start") {
@@ -43,7 +48,7 @@ export async function POST(req: Request) {
       } else {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
       }
-    } catch (err: any) {
+    } catch (_err: unknown) {
       status = "FAILED";
       errorCode = "API_ERROR";
       resultData = { error: "Xatolik yuz berdi" };
@@ -56,13 +61,13 @@ export async function POST(req: Request) {
       feature: "MOCK_TEST",
       status,
       requestDurationMs: duration,
-      errorCode
+      errorCode,
     });
 
     if (status === "FAILED") {
-       return NextResponse.json(resultData, { status: 503 });
+      return NextResponse.json(resultData, { status: 503 });
     }
-    
+
     return NextResponse.json(resultData);
   } catch (error) {
     console.error("Mock Test API Error:", error);

@@ -14,7 +14,6 @@ import {
   Languages,
   Presentation,
   Sliders,
-  Check,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -116,7 +115,7 @@ export default function MockTestHubPage() {
 
             <h1 className="text-foreground text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
               Mock Test:{" "}
-              <span className="from-cyan-400 via-primary to-sky-400 bg-gradient-to-r bg-clip-text text-transparent">
+              <span className="via-primary bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent">
                 Chet tillari diagnostikasi
               </span>
             </h1>
@@ -206,7 +205,7 @@ export default function MockTestHubPage() {
                     {card.levels.map((lvl) => (
                       <span
                         key={lvl}
-                        className="rounded-lg border border-border bg-surface-elevated/80 px-2 py-0.5 text-[11px] font-semibold text-foreground-secondary"
+                        className="border-border bg-surface-elevated/80 text-foreground-secondary rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
                       >
                         {lvl}
                       </span>
@@ -253,7 +252,7 @@ export default function MockTestHubPage() {
         <div className="mt-10">
           <Link
             href="/academic/presentation?type=mock&slides=10"
-            className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent p-5 transition-all hover:border-cyan-500/60 shadow-sm"
+            className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent p-5 shadow-sm transition-all hover:border-cyan-500/60"
           >
             <div className="flex items-center gap-3.5">
               <div className="shrink-0 rounded-xl bg-cyan-500/20 p-3 text-cyan-400">
@@ -286,7 +285,7 @@ export default function MockTestHubPage() {
           </h3>
           <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-4">
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+              <div className="bg-primary/10 text-primary border-primary/20 mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border text-lg font-bold">
                 1
               </div>
               <h4 className="text-foreground text-sm font-semibold">Darajangizni belgilang</h4>
@@ -296,7 +295,7 @@ export default function MockTestHubPage() {
             </div>
 
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+              <div className="bg-primary/10 text-primary border-primary/20 mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border text-lg font-bold">
                 2
               </div>
               <h4 className="text-foreground text-sm font-semibold">Savollarga javob bering</h4>
@@ -306,7 +305,7 @@ export default function MockTestHubPage() {
             </div>
 
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+              <div className="bg-primary/10 text-primary border-primary/20 mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border text-lg font-bold">
                 3
               </div>
               <h4 className="text-foreground text-sm font-semibold">AI chuqur tahlil qiladi</h4>
@@ -317,7 +316,7 @@ export default function MockTestHubPage() {
             </div>
 
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+              <div className="bg-primary/10 text-primary border-primary/20 mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border text-lg font-bold">
                 4
               </div>
               <h4 className="text-foreground text-sm font-semibold">Natija & Xatolar tahlili</h4>

@@ -31,6 +31,10 @@ vi.mock("@/lib/prisma", () => ({
     documentVerification: {
       upsert: vi.fn(),
     },
+    verificationToken: {
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+    },
   },
 }));
 

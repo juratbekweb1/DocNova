@@ -2,18 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import {
-  FileText,
-  Plus,
-  LayoutGrid,
-  List,
-  MoreVertical,
-  Edit,
-  Copy,
-  Download,
-  Trash2,
-  Share2,
-} from "lucide-react";
+import { FileText, Plus, MoreVertical, Edit, Download, Trash2 } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,9 +18,9 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-foreground text-3xl font-bold tracking-tight">
             {t.documentsTitle || "Hujjatlar"}
           </h1>
           <p className="text-foreground-secondary mt-1">
@@ -41,7 +30,7 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard/documents/new"
-            className="flex items-center gap-2 rounded-full bg-primary hover:bg-primary/90 px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:scale-[1.02]"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all hover:scale-[1.02]"
           >
             <Plus className="h-4 w-4" />
             {t.topbarNewDoc || "Yangi hujjat"}
@@ -50,19 +39,20 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
       </div>
 
       {documents.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-surface p-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="border-border bg-surface rounded-2xl border p-12 text-center">
+          <div className="bg-primary/10 text-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <FileText className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-bold text-foreground mb-2">
+          <h3 className="text-foreground mb-2 text-lg font-bold">
             {t.noDocsTitle || "Hali hujjatlaringiz yo'q"}
           </h3>
-          <p className="text-sm text-foreground-secondary max-w-sm mx-auto mb-6">
-            {t.noDocsDesc || "AI yordamida birinchi professional hujjatingizni bir necha daqiqada yarating."}
+          <p className="text-foreground-secondary mx-auto mb-6 max-w-sm text-sm">
+            {t.noDocsDesc ||
+              "AI yordamida birinchi professional hujjatingizni bir necha daqiqada yarating."}
           </p>
           <Link
             href="/dashboard/documents/new"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold transition-all"
           >
             <Plus className="h-4 w-4" />
             {t.createNewDoc || "Yangi hujjat yaratish"}
@@ -73,7 +63,7 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className="group relative flex flex-col rounded-2xl border border-border bg-surface p-6 transition-all hover:border-primary/50 hover:bg-surface-elevated"
+              className="group border-border bg-surface hover:border-primary/50 hover:bg-surface-elevated relative flex flex-col rounded-2xl border p-6 transition-all"
             >
               <div className="absolute top-4 right-4 z-10">
                 <DropdownMenu>
@@ -81,27 +71,29 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-foreground-secondary hover:text-foreground"
+                      className="text-foreground-secondary hover:text-foreground h-8 w-8"
                     >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="w-48 border-border bg-surface-elevated text-foreground"
+                    className="border-border bg-surface-elevated text-foreground w-48"
                   >
                     <DropdownMenuItem asChild>
                       <Link
                         href={`/dashboard/editor/${doc.id}`}
                         className="flex cursor-pointer items-center"
                       >
-                        <Edit className="mr-2 h-4 w-4" /> {lang === "ru" ? "Редактировать" : "Tahrirlash"}
+                        <Edit className="mr-2 h-4 w-4" />{" "}
+                        {lang === "ru" ? "Редактировать" : "Tahrirlash"}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="flex cursor-pointer items-center">
-                      <Download className="mr-2 h-4 w-4" /> {lang === "ru" ? "Скачать PDF" : "PDF yuklash"}
+                      <Download className="mr-2 h-4 w-4" />{" "}
+                      {lang === "ru" ? "Скачать PDF" : "PDF yuklash"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="flex cursor-pointer items-center text-error focus:bg-error/10 focus:text-error">
+                    <DropdownMenuItem className="text-error focus:bg-error/10 focus:text-error flex cursor-pointer items-center">
                       <Trash2 className="mr-2 h-4 w-4" /> {lang === "ru" ? "Удалить" : "O'chirish"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -109,13 +101,13 @@ export function DocumentsClient({ documents }: { documents: Document[] }) {
               </div>
 
               <Link href={`/dashboard/editor/${doc.id}`} className="block flex flex-1 flex-col">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
                   <FileText className="h-6 w-6" />
                 </div>
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="text-foreground group-hover:text-primary font-semibold transition-colors">
                   {doc.title}
                 </h3>
-                <div className="mt-2 flex items-center gap-2 text-xs text-foreground-secondary">
+                <div className="text-foreground-secondary mt-2 flex items-center gap-2 text-xs">
                   <span className="capitalize">{doc.type.replace("_", " ").toLowerCase()}</span>
                   <span>•</span>
                   <span>{doc.status}</span>

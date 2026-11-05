@@ -63,7 +63,7 @@ import { getDetailedAiReport, formatTelegramReport } from "@/lib/telegram-ai-rep
  * Diagnostic logger for academic flow stages.
  * Never logs secrets, API keys, bot tokens, or user raw prompt text.
  */
-function logAcademicStage(data: {
+function _logAcademicStage(data: {
   requestId: string;
   stage: string;
   telegramId?: string | number;

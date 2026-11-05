@@ -475,7 +475,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
             const selectedKey = answers[q.id];
             const isAnswered = Boolean(selectedKey);
             const isCorrect = result && selectedKey === q.correctKey;
-            const isWrong = result && selectedKey && selectedKey !== q.correctKey;
+            const _isWrong = result && selectedKey && selectedKey !== q.correctKey;
 
             return (
               <div

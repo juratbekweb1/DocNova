@@ -5,8 +5,17 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
 
-  serverExternalPackages: ["@prisma/client", "@prisma/engines", "@electric-sql/pglite", "pglite-prisma-adapter", "bcrypt", "bcryptjs"],
-  turbopack: {},
+  serverExternalPackages: [
+    "@prisma/client",
+    "@prisma/engines",
+    "@electric-sql/pglite",
+    "pglite-prisma-adapter",
+    "bcrypt",
+    "bcryptjs",
+  ],
+  turbopack: {
+    root: process.cwd(),
+  },
   images: {
     remotePatterns: [
       {
@@ -35,7 +44,8 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             // basic CSP for Next.js app, allowing unsafe-inline for styles/scripts in dev or typical Next builds if strict not configured
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;",
           },
           {
             key: "Permissions-Policy",
@@ -50,4 +60,3 @@ const nextConfig: NextConfig = {
 export default withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })(nextConfig);
-

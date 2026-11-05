@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth-options";
 import { checkUserLimit, trackAIUsage } from "@/lib/limits";
 import { getGeminiModel } from "@/lib/ai/gemini";
 import { prisma } from "@/lib/prisma";
-import { SubscriptionTier } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,17 +16,21 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { plan: true }
+      select: { plan: true },
     });
-    let organizationId: string | undefined = undefined;
-    if (false) {
-       organizationId = (user as any).organizationId;
-    }
-    const plan = (user?.plan as any as string) || "FREE";
+    const organizationId: string | undefined = undefined;
+    const plan = user?.plan ? String(user.plan) : "FREE";
 
     const limitCheck = await checkUserLimit(userId, "document_generation");
     if (!limitCheck.allowed) {
-      await trackAIUsage({ userId, organizationId, plan, feature: "DOCUMENT_GENERATION", status: "QUOTA_EXCEEDED", errorCode: "LIMIT_EXCEEDED" });
+      await trackAIUsage({
+        userId,
+        organizationId,
+        plan,
+        feature: "DOCUMENT_GENERATION",
+        status: "QUOTA_EXCEEDED",
+        errorCode: "LIMIT_EXCEEDED",
+      });
       return NextResponse.json(
         { error: "Limit reached", requireUpgrade: true, upgradeMessage: limitCheck.error },
         { status: 403 }
@@ -60,7 +63,7 @@ Write a cover letter that is 3-4 paragraphs long. It should be engaging, highlig
 
       const res = await response.response;
       result = res.text() || "";
-      
+
       if (res.usageMetadata) {
         inputTokens = res.usageMetadata.promptTokenCount || 0;
         outputTokens = res.usageMetadata.candidatesTokenCount || 0;
@@ -68,8 +71,10 @@ Write a cover letter that is 3-4 paragraphs long. It should be engaging, highlig
         inputTokens = Math.ceil(prompt.length / 4);
         outputTokens = Math.ceil(result.length / 4);
       }
-    } catch (apiError: any) {
-      console.warn("Gemini Cover Letter API Error, using fallback:", apiError?.message || apiError);
+    } catch (apiError: unknown) {
+      const errMessage = apiError instanceof Error ? apiError.message : String(apiError);
+      console.warn("Gemini Cover Letter API Error, using fallback:", errMessage);
+      errorCode = "API_ERROR";
       status = "SUCCESS";
       const candName = name || "Nomzod";
       const jobRole = role || "Mutaxassis";
@@ -87,7 +92,7 @@ Write a cover letter that is 3-4 paragraphs long. It should be engaging, highlig
         inputTokens,
         outputTokens,
         requestDurationMs: duration,
-        errorCode
+        errorCode,
       });
     }
 

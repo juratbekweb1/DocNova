@@ -14,6 +14,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "coverage/**",
     "next-env.d.ts",
+    "*.js",
+    "*.mjs",
+    "scripts/**",
+    "scratch/**",
+    "test-artifacts/**",
+    "tests/**",
+    "update-*.ts",
+    "test-prisma.ts",
+    "*.sql",
+    "pglite*/**",
   ]),
   {
     plugins: {

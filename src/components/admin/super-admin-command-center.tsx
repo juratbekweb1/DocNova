@@ -14,7 +14,6 @@ import {
   ShieldAlert,
   TrendingUp,
   Clock,
-  Server,
   Sparkles,
   Zap,
   Send,
@@ -25,21 +24,13 @@ import {
   Cpu,
   BarChart3,
   Layers,
-  GraduationCap,
   ArrowUpRight,
-  Tag,
   Settings,
   CheckCircle,
   XCircle,
-  MessageSquareWarning,
   Menu,
   X,
-  FileCheck,
   ChevronRight,
-  ShieldCheck,
-  FileSpreadsheet,
-  Palette,
-  BookOpen,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { SuperAdminSiteReport } from "@/lib/super-admin-analytics";
@@ -53,7 +44,7 @@ export type TabKey = "dashboard" | "users" | "content" | "finance" | "statistics
 
 export function SuperAdminCommandCenter({
   report,
-  embedded = false,
+  embedded: _embedded = false,
 }: SuperAdminCommandCenterProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -68,9 +59,6 @@ export function SuperAdminCommandCenter({
   const [userFilter, setUserFilter] = useState<
     "ALL" | "ACTIVE_TODAY" | "ACTIVE_MONTH" | "PAID" | "FREE" | "TELEGRAM" | "GOOGLE" | "ADMINS"
   >("ALL");
-
-  // Live AI logs filter
-  const [logStatusFilter, setLogStatusFilter] = useState<"ALL" | "SUCCESS" | "FAILED">("ALL");
 
   const { users, aiCostsAndUsage, finance, content, securityAndSystem, userRows } = report;
 
@@ -140,23 +128,13 @@ export function SuperAdminCommandCenter({
     });
   }, [userRows, userSearch, userFilter]);
 
-  const filteredAiLogs = useMemo(() => {
-    return aiCostsAndUsage.recentLogs.filter((l) => {
-      if (logStatusFilter === "SUCCESS") return l.status === "SUCCESS";
-      if (logStatusFilter === "FAILED") return l.status !== "SUCCESS";
-      return true;
-    });
-  }, [aiCostsAndUsage.recentLogs, logStatusFilter]);
-
-  const maxDailyRequests = Math.max(
-    1,
-    ...aiCostsAndUsage.dailyTrend.map((d) => d.requests)
-  );
+  const maxDailyRequests = Math.max(1, ...aiCostsAndUsage.dailyTrend.map((d) => d.requests));
 
   // Growth calculations
-  const userGrowthPercent = users.total > users.newThisMonth
-    ? (((users.newThisMonth / (users.total - users.newThisMonth))) * 100).toFixed(1)
-    : "100";
+  const userGrowthPercent =
+    users.total > users.newThisMonth
+      ? ((users.newThisMonth / (users.total - users.newThisMonth)) * 100).toFixed(1)
+      : "100";
 
   // Document types breakdown calculations
   const totalDocs = Math.max(1, content.totalDocuments);
@@ -167,44 +145,128 @@ export function SuperAdminCommandCenter({
     return found ? found.count : 0;
   };
 
-  const coursework = getDocTypeCount("coursework") || getDocTypeCount("kurs") || Math.round(totalDocs * 0.35);
-  const referat = getDocTypeCount("referat") || getDocTypeCount("mustaqil") || Math.round(totalDocs * 0.25);
-  const presentation = getDocTypeCount("presentation") || getDocTypeCount("slide") || Math.round(totalDocs * 0.18);
-  const resumes = getDocTypeCount("resume") || getDocTypeCount("cv") || Math.round(totalDocs * 0.14);
-  const diplomas = getDocTypeCount("diplom") || getDocTypeCount("bmi") || Math.round(totalDocs * 0.08);
+  const coursework =
+    getDocTypeCount("coursework") || getDocTypeCount("kurs") || Math.round(totalDocs * 0.35);
+  const referat =
+    getDocTypeCount("referat") || getDocTypeCount("mustaqil") || Math.round(totalDocs * 0.25);
+  const presentation =
+    getDocTypeCount("presentation") || getDocTypeCount("slide") || Math.round(totalDocs * 0.18);
+  const resumes =
+    getDocTypeCount("resume") || getDocTypeCount("cv") || Math.round(totalDocs * 0.14);
+  const diplomas =
+    getDocTypeCount("diplom") || getDocTypeCount("bmi") || Math.round(totalDocs * 0.08);
 
   const docBreakdown = [
-    { label: "Kurs ishi", count: coursework, color: "bg-blue-500", textColor: "text-blue-400", border: "border-blue-500/30", pct: Math.round((coursework / totalDocs) * 100) },
-    { label: "Mustaqil ish / Referat", count: referat, color: "bg-emerald-500", textColor: "text-emerald-400", border: "border-emerald-500/30", pct: Math.round((referat / totalDocs) * 100) },
-    { label: "Taqdimot (PPTX)", count: presentation, color: "bg-amber-500", textColor: "text-amber-400", border: "border-amber-500/30", pct: Math.round((presentation / totalDocs) * 100) },
-    { label: "Rezyume (CV)", count: resumes, color: "bg-cyan-500", textColor: "text-cyan-400", border: "border-cyan-500/30", pct: Math.round((resumes / totalDocs) * 100) },
-    { label: "Diplom / BMI", count: diplomas, color: "bg-purple-500", textColor: "text-purple-400", border: "border-purple-500/30", pct: Math.round((diplomas / totalDocs) * 100) },
+    {
+      label: "Kurs ishi",
+      count: coursework,
+      color: "bg-blue-500",
+      textColor: "text-blue-400",
+      border: "border-blue-500/30",
+      pct: Math.round((coursework / totalDocs) * 100),
+    },
+    {
+      label: "Mustaqil ish / Referat",
+      count: referat,
+      color: "bg-emerald-500",
+      textColor: "text-emerald-400",
+      border: "border-emerald-500/30",
+      pct: Math.round((referat / totalDocs) * 100),
+    },
+    {
+      label: "Taqdimot (PPTX)",
+      count: presentation,
+      color: "bg-amber-500",
+      textColor: "text-amber-400",
+      border: "border-amber-500/30",
+      pct: Math.round((presentation / totalDocs) * 100),
+    },
+    {
+      label: "Rezyume (CV)",
+      count: resumes,
+      color: "bg-cyan-500",
+      textColor: "text-cyan-400",
+      border: "border-cyan-500/30",
+      pct: Math.round((resumes / totalDocs) * 100),
+    },
+    {
+      label: "Diplom / BMI",
+      count: diplomas,
+      color: "bg-purple-500",
+      textColor: "text-purple-400",
+      border: "border-purple-500/30",
+      pct: Math.round((diplomas / totalDocs) * 100),
+    },
   ];
 
-  const sidebarNavItems: { id: TabKey; label: string; icon: React.ElementType; badge?: string; badgeColor?: string }[] = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: "Asosiy", badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
-    { id: "users", label: "Foydalanuvchilar", icon: Users, badge: `${users.total}`, badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    { id: "content", label: "Hujjatlar turlari", icon: FileText, badge: `${content.totalDocuments}`, badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-    { id: "finance", label: "To'lovlar / Tariflar", icon: CreditCard, badge: `${users.byPlan.paidTotal} faol`, badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-    { id: "statistics", label: "Statistika", icon: TrendingUp, badge: "AI Telemetriya", badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    { id: "settings", label: "Sozlamalar", icon: Settings, badge: "Xavfsizlik", badgeColor: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
+  const sidebarNavItems: {
+    id: TabKey;
+    label: string;
+    icon: React.ElementType;
+    badge?: string;
+    badgeColor?: string;
+  }[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      badge: "Asosiy",
+      badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+    },
+    {
+      id: "users",
+      label: "Foydalanuvchilar",
+      icon: Users,
+      badge: `${users.total}`,
+      badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    },
+    {
+      id: "content",
+      label: "Hujjatlar turlari",
+      icon: FileText,
+      badge: `${content.totalDocuments}`,
+      badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+    },
+    {
+      id: "finance",
+      label: "To'lovlar / Tariflar",
+      icon: CreditCard,
+      badge: `${users.byPlan.paidTotal} faol`,
+      badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    },
+    {
+      id: "statistics",
+      label: "Statistika",
+      icon: TrendingUp,
+      badge: "AI Telemetriya",
+      badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    },
+    {
+      id: "settings",
+      label: "Sozlamalar",
+      icon: Settings,
+      badge: "Xavfsizlik",
+      badgeColor: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+    },
   ];
 
   return (
-    <div className="flex min-h-screen w-full bg-[#020817] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-white">
+    <div className="flex min-h-screen w-full bg-[#020817] font-sans text-slate-100 selection:bg-cyan-500/30 selection:text-white">
       {/* =========================================================================
           1. CHAP TOMONLAMA MENYU (SIDEBAR) - DocNova Super Admin Neon Theme
          ========================================================================= */}
-      <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 flex-col border-r border-slate-800/80 bg-[#050c1e]/95 backdrop-blur-2xl sticky top-0 h-screen z-30">
+      <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800/80 bg-[#050c1e]/95 backdrop-blur-2xl lg:flex xl:w-72">
         {/* Sidebar Brand Header */}
-        <div className="p-5 border-b border-slate-800/80">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+        <div className="border-b border-slate-800/80 p-5">
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-transform group-hover:scale-105">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight text-white group-hover:text-cyan-400 transition-colors">DocNova</span>
+                <span className="text-lg font-black tracking-tight text-white transition-colors group-hover:text-cyan-400">
+                  DocNova
+                </span>
                 <span className="rounded-md border border-cyan-500/30 bg-cyan-950/60 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
                   v2.5
                 </span>
@@ -222,12 +284,12 @@ export function SuperAdminCommandCenter({
               </span>
               <span className="font-semibold text-emerald-400">Tizim Faol</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">99.98% Uptime</span>
+            <span className="font-mono text-[10px] text-slate-400">99.98% Uptime</span>
           </div>
         </div>
 
         {/* Sidebar Navigation Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
             Boshqaruv Bo&apos;limlari
           </div>
@@ -242,18 +304,22 @@ export function SuperAdminCommandCenter({
                   setActiveTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-200 sm:text-sm ${
                   active
-                    ? "bg-gradient-to-r from-cyan-500/20 via-blue-600/15 to-transparent border border-cyan-500/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+                    ? "border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 via-blue-600/15 to-transparent text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                    : "border border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-cyan-400" : "text-slate-400"}`} />
+                  <Icon
+                    className={`h-4 w-4 shrink-0 ${active ? "text-cyan-400" : "text-slate-400"}`}
+                  />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeColor || "border-slate-700 bg-slate-800 text-slate-300"}`}>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.badgeColor || "border-slate-700 bg-slate-800 text-slate-300"}`}
+                  >
                     {item.badge}
                   </span>
                 )}
@@ -263,10 +329,10 @@ export function SuperAdminCommandCenter({
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-slate-800/80 bg-[#030919] space-y-2">
+        <div className="space-y-2 border-t border-slate-800/80 bg-[#030919] p-3">
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800/60 hover:text-white"
           >
             <ArrowUpRight className="h-3.5 w-3.5 text-cyan-400" />
             <span>Asosiy Saytga Qaytish</span>
@@ -280,15 +346,15 @@ export function SuperAdminCommandCenter({
       {/* =========================================================================
           2. ASOSIY MAYDON (MAIN CONTENT AREA)
          ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         {/* Top Sticky Header */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-800/80 bg-[#020817]/90 px-4 sm:px-6 lg:px-8 backdrop-blur-xl">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-800/80 bg-[#020817]/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           {/* Mobile Menu Button + Breadcrumb */}
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white"
+              className="rounded-xl border border-slate-800 bg-slate-900/80 p-2 text-slate-300 hover:text-white lg:hidden"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -307,9 +373,11 @@ export function SuperAdminCommandCenter({
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-cyan-500/40 px-3.5 py-2 text-xs font-bold text-slate-200 hover:text-white shadow-sm transition-all"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-xs font-bold text-slate-200 shadow-sm transition-all hover:border-cyan-500/40 hover:text-white"
             >
-              <RefreshCw className={`h-3.5 w-3.5 text-cyan-400 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 text-cyan-400 ${isRefreshing ? "animate-spin" : ""}`}
+              />
               <span className="hidden sm:inline">Yangilash</span>
             </button>
 
@@ -317,7 +385,7 @@ export function SuperAdminCommandCenter({
               type="button"
               onClick={handleSendTelegramReport}
               disabled={isSendingTelegram}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-4 py-2 text-xs font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" />
               <span>{isSendingTelegram ? "Yuborilmoqda..." : "Telegramga hisobot"}</span>
@@ -327,7 +395,7 @@ export function SuperAdminCommandCenter({
 
         {/* Mobile Nav Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-b border-slate-800 bg-[#050c1e] p-4 space-y-1">
+          <div className="space-y-1 border-b border-slate-800 bg-[#050c1e] p-4 lg:hidden">
             {sidebarNavItems.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;
@@ -339,9 +407,9 @@ export function SuperAdminCommandCenter({
                     setActiveTab(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold ${
+                  className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold ${
                     active
-                      ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-300"
+                      ? "border border-cyan-500/40 bg-cyan-500/20 text-cyan-300"
                       : "text-slate-400 hover:bg-slate-800/40"
                   }`}
                 >
@@ -350,7 +418,7 @@ export function SuperAdminCommandCenter({
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                    <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-300">
                       {item.badge}
                     </span>
                   )}
@@ -361,24 +429,25 @@ export function SuperAdminCommandCenter({
         )}
 
         {/* Inner Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
           {/* =========================================================================
               3. YUQORI STATISTIK KARTOCHKALAR (KPI) - Har Doim Ko'rinuvchi Neon Kartalar
              ========================================================================= */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {/* KPI 1: Jami Foydalanuvchilar */}
-            <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl hover:border-cyan-500/40 transition-colors group">
-              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-cyan-500/15 blur-2xl group-hover:scale-125 transition-transform" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-cyan-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-cyan-500/15 blur-2xl transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-400">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Jami Foydalanuvchilar
                 </span>
                 <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2.5 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
                   <Users className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-3xl font-black text-white tracking-tight">
-                {users.total.toLocaleString()} <span className="text-sm font-semibold text-slate-400">nafar</span>
+              <div className="text-3xl font-black tracking-tight text-white">
+                {users.total.toLocaleString()}{" "}
+                <span className="text-sm font-semibold text-slate-400">nafar</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-bold text-emerald-400">
@@ -390,18 +459,19 @@ export function SuperAdminCommandCenter({
             </div>
 
             {/* KPI 2: Yaratilgan Hujjatlar */}
-            <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl hover:border-purple-500/40 transition-colors group">
-              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-purple-500/15 blur-2xl group-hover:scale-125 transition-transform" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-purple-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-purple-500/15 blur-2xl transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-400">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Yaratilgan Hujjatlar
                 </span>
                 <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-2.5 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
                   <FileText className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-3xl font-black text-white tracking-tight">
-                {content.totalDocuments.toLocaleString()} <span className="text-sm font-semibold text-slate-400">ta</span>
+              <div className="text-3xl font-black tracking-tight text-white">
+                {content.totalDocuments.toLocaleString()}{" "}
+                <span className="text-sm font-semibold text-slate-400">ta</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-md border border-purple-500/30 bg-purple-500/15 px-2 py-0.5 font-bold text-purple-300">
@@ -413,40 +483,43 @@ export function SuperAdminCommandCenter({
             </div>
 
             {/* KPI 3: Faol Tariflar va Obunachilar */}
-            <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl hover:border-amber-500/40 transition-colors group">
-              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/15 blur-2xl group-hover:scale-125 transition-transform" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-amber-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-amber-500/15 blur-2xl transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-400">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Faol Tariflar & Obunalar
                 </span>
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
                   <Crown className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-3xl font-black text-amber-400 tracking-tight">
-                {users.byPlan.paidTotal} <span className="text-sm font-semibold text-slate-400">ta obuna</span>
+              <div className="text-3xl font-black tracking-tight text-amber-400">
+                {users.byPlan.paidTotal}{" "}
+                <span className="text-sm font-semibold text-slate-400">ta obuna</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-md border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 font-bold text-amber-300">
                   {users.byPlan.conversionPercent}% konversiya
                 </span>
-                <span className="text-blue-400 font-semibold">PRO: {users.byPlan.PRO}</span>
-                <span className="text-amber-400 font-semibold">• PREMIUM: {users.byPlan.PREMIUM}</span>
+                <span className="font-semibold text-blue-400">PRO: {users.byPlan.PRO}</span>
+                <span className="font-semibold text-amber-400">
+                  • PREMIUM: {users.byPlan.PREMIUM}
+                </span>
               </div>
             </div>
 
             {/* KPI 4: Umumiy Tushum */}
-            <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl hover:border-emerald-500/40 transition-colors group">
-              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/15 blur-2xl group-hover:scale-125 transition-transform" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-emerald-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-emerald-500/15 blur-2xl transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-400">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Umumiy Tushum
                 </span>
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
                   <DollarSign className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight">
+              <div className="text-2xl font-black tracking-tight text-emerald-400 sm:text-3xl">
                 {finance.allTimeRevenueUzs.toLocaleString()}{" "}
                 <span className="text-sm font-semibold text-slate-400">UZS</span>
               </div>
@@ -454,7 +527,9 @@ export function SuperAdminCommandCenter({
                 <span className="rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-bold text-emerald-300">
                   +{finance.paidTransactionsCount} ta to&apos;lov
                 </span>
-                <span className="text-slate-400">Shu oy: {finance.monthRevenueUzs.toLocaleString()} UZS</span>
+                <span className="text-slate-400">
+                  Shu oy: {finance.monthRevenueUzs.toLocaleString()} UZS
+                </span>
               </div>
             </div>
           </div>
@@ -462,13 +537,15 @@ export function SuperAdminCommandCenter({
           {/* =========================================================================
               4. TEZKOR AMALLAR (QUICK ACTIONS GRID) - Admin Uchun Eng Kerakli Tugmalar
              ========================================================================= */}
-          <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 backdrop-blur-xl shadow-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <h2 className="flex items-center gap-2 text-sm font-bold tracking-wider text-slate-300 uppercase">
                 <Zap className="h-4 w-4 text-cyan-400" />
                 Tezkor Amallar (Quick Actions)
               </h2>
-              <span className="text-[11px] text-slate-400">Eng ko&apos;p foydalaniladigan amallar</span>
+              <span className="text-[11px] text-slate-400">
+                Eng ko&apos;p foydalaniladigan amallar
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -476,73 +553,73 @@ export function SuperAdminCommandCenter({
                 type="button"
                 onClick={handleSendTelegramReport}
                 disabled={isSendingTelegram}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-950/30 hover:bg-cyan-900/40 hover:border-cyan-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-cyan-400 hover:bg-cyan-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 transition-transform group-hover:scale-110">
                   <Send className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-white">Telegram Hisobot</span>
-                <span className="text-[10px] text-cyan-300 mt-0.5">Tezkor snapshot</span>
+                <span className="mt-0.5 text-[10px] text-cyan-300">Tezkor snapshot</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/30 hover:bg-blue-900/40 hover:border-blue-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-blue-500/30 bg-blue-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-blue-400 hover:bg-blue-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400 transition-transform group-hover:scale-110">
                   <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                 </div>
                 <span className="text-xs font-bold text-white">Jonli Yangilash</span>
-                <span className="text-[10px] text-blue-300 mt-0.5">Hamma jadvallar</span>
+                <span className="mt-0.5 text-[10px] text-blue-300">Hamma jadvallar</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("users")}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/40 hover:border-purple-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-purple-500/30 bg-purple-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-purple-400 hover:bg-purple-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400 transition-transform group-hover:scale-110">
                   <Users className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-white">Foydalanuvchilar</span>
-                <span className="text-[10px] text-purple-300 mt-0.5">Filtrlar va Rollar</span>
+                <span className="mt-0.5 text-[10px] text-purple-300">Filtrlar va Rollar</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("content")}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-amber-500/30 bg-amber-950/30 hover:bg-amber-900/40 hover:border-amber-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-amber-500/30 bg-amber-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-amber-400 hover:bg-amber-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 transition-transform group-hover:scale-110">
                   <FileText className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-white">Hujjatlar Turlari</span>
-                <span className="text-[10px] text-amber-300 mt-0.5">Taqsimot tahlili</span>
+                <span className="mt-0.5 text-[10px] text-amber-300">Taqsimot tahlili</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("finance")}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-900/40 hover:border-emerald-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-emerald-400 hover:bg-emerald-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 transition-transform group-hover:scale-110">
                   <CreditCard className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-white">To&apos;lovlar & Tariflar</span>
-                <span className="text-[10px] text-emerald-300 mt-0.5">Kvitansiyalar</span>
+                <span className="mt-0.5 text-[10px] text-emerald-300">Kvitansiyalar</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("settings")}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-xl border border-rose-500/30 bg-rose-950/30 hover:bg-rose-900/40 hover:border-rose-400 text-center transition-all cursor-pointer shadow-sm hover:scale-102"
+                className="group flex cursor-pointer flex-col items-center justify-center rounded-xl border border-rose-500/30 bg-rose-950/30 p-3.5 text-center shadow-sm transition-all hover:scale-102 hover:border-rose-400 hover:bg-rose-900/40"
               >
-                <div className="h-9 w-9 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400 transition-transform group-hover:scale-110">
                   <ShieldAlert className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-white">Xavfsizlik & IP</span>
-                <span className="text-[10px] text-rose-300 mt-0.5">Tizim holati</span>
+                <span className="mt-0.5 text-[10px] text-rose-300">Tizim holati</span>
               </button>
             </div>
           </div>
@@ -555,24 +632,25 @@ export function SuperAdminCommandCenter({
           {activeTab === "dashboard" && (
             <div className="space-y-6">
               {/* ANALITIKA: HUJJATLAR TAQSIMOTI DIAGRAMMASI */}
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <h2 className="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
                       <Layers className="h-5 w-5 text-cyan-400" />
                       Hujjatlar Taqsimoti Diagrammasi
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Platformada yaratilgan barcha akademik va professional hujjatlarning foizli ulushi
+                      Platformada yaratilgan barcha akademik va professional hujjatlarning foizli
+                      ulushi
                     </p>
                   </div>
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full border border-slate-700 bg-slate-800/60 text-slate-300">
+                  <span className="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs font-semibold text-slate-300">
                     Jami: {content.totalDocuments} ta hujjat
                   </span>
                 </div>
 
                 {/* Multi-segment Glowing Stacked Bar Meter */}
-                <div className="h-4 w-full rounded-full bg-slate-900/90 overflow-hidden flex p-0.5 border border-slate-800">
+                <div className="flex h-4 w-full overflow-hidden rounded-full border border-slate-800 bg-slate-900/90 p-0.5">
                   {docBreakdown.map((item) => (
                     <div
                       key={item.label}
@@ -588,7 +666,7 @@ export function SuperAdminCommandCenter({
                   {docBreakdown.map((item) => (
                     <div
                       key={item.label}
-                      className={`rounded-xl border ${item.border} bg-[#04091a]/80 p-3 flex flex-col justify-between`}
+                      className={`rounded-xl border ${item.border} flex flex-col justify-between bg-[#04091a]/80 p-3`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-slate-300">{item.label}</span>
@@ -604,7 +682,7 @@ export function SuperAdminCommandCenter({
 
               {/* 7-KUNLIK FAOLLIK VA AI XARAJATLAR DINAMIKASI */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm lg:col-span-2">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6 lg:col-span-2">
                   <div className="mb-5 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                     <div>
                       <h2 className="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
@@ -616,7 +694,9 @@ export function SuperAdminCommandCenter({
                       </p>
                     </div>
                     <span className="rounded-lg border border-slate-800 bg-slate-900/80 px-2.5 py-1 text-xs font-semibold text-slate-300">
-                      7 kun: {aiCostsAndUsage.week.requests} so&apos;rov • ${aiCostsAndUsage.week.costUsd.toFixed(3)} (~{aiCostsAndUsage.week.costUzs.toLocaleString()} so&apos;m)
+                      7 kun: {aiCostsAndUsage.week.requests} so&apos;rov • $
+                      {aiCostsAndUsage.week.costUsd.toFixed(3)} (~
+                      {aiCostsAndUsage.week.costUzs.toLocaleString()} so&apos;m)
                     </span>
                   </div>
 
@@ -632,18 +712,16 @@ export function SuperAdminCommandCenter({
                           <div className="text-[10px] font-bold text-slate-400">
                             {day.requests} ta
                           </div>
-                          <div className="flex h-32 w-full items-end overflow-hidden rounded-xl bg-slate-900/90 p-1 border border-slate-800">
+                          <div className="flex h-32 w-full items-end overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90 p-1">
                             <div
-                              className="w-full rounded-lg bg-gradient-to-t from-cyan-600 to-sky-400 transition-all duration-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
+                              className="w-full rounded-lg bg-gradient-to-t from-cyan-600 to-sky-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] transition-all duration-500"
                               style={{ height: `${heightPercent}%` }}
                               title={`${day.dateStr}: ${day.requests} so'rov, ${day.tokens.toLocaleString()} token, $${day.costUsd.toFixed(3)}`}
                             />
                           </div>
                           <div className="text-center">
                             <div className="text-[11px] font-bold text-white">{day.label}</div>
-                            <div className="text-[10px] text-slate-400">
-                              +{day.newUsers} user
-                            </div>
+                            <div className="text-[10px] text-slate-400">+{day.newUsers} user</div>
                             <div className="text-[10px] font-semibold text-emerald-400">
                               {day.costUzs > 0 ? `${day.costUzs.toLocaleString()} s` : "0 s"}
                             </div>
@@ -655,7 +733,7 @@ export function SuperAdminCommandCenter({
                 </div>
 
                 {/* AI Byudjet & Unit Economics */}
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm flex flex-col justify-between">
+                <div className="flex flex-col justify-between rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
                   <div className="space-y-4">
                     <div>
                       <h2 className="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
@@ -671,17 +749,18 @@ export function SuperAdminCommandCenter({
                       <div className="mb-1.5 flex items-center justify-between text-xs font-bold">
                         <span className="text-slate-300">Kunlik AI Byudjet</span>
                         <span className="text-emerald-400">
-                          ${aiCostsAndUsage.today.costUsd.toFixed(3)} / ${aiCostsAndUsage.dailyBudgetUsd.toFixed(2)}
+                          ${aiCostsAndUsage.today.costUsd.toFixed(3)} / $
+                          {aiCostsAndUsage.dailyBudgetUsd.toFixed(2)}
                         </span>
                       </div>
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-900 border border-slate-800">
+                      <div className="h-2.5 w-full overflow-hidden rounded-full border border-slate-800 bg-slate-900">
                         <div
                           className={`h-full rounded-full transition-all ${
                             aiCostsAndUsage.dailyBudgetUsedPercent >= 80
                               ? "bg-rose-500"
                               : aiCostsAndUsage.dailyBudgetUsedPercent >= 50
-                              ? "bg-amber-500"
-                              : "bg-emerald-500"
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
                           }`}
                           style={{
                             width: `${Math.max(4, aiCostsAndUsage.dailyBudgetUsedPercent)}%`,
@@ -697,7 +776,9 @@ export function SuperAdminCommandCenter({
                     <div className="space-y-2.5 text-xs">
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                         <span className="text-slate-400">Valyuta kursi (1 USD):</span>
-                        <span className="font-bold text-white">{report.usdToUzsRate.toLocaleString()} so&apos;m</span>
+                        <span className="font-bold text-white">
+                          {report.usdToUzsRate.toLocaleString()} so&apos;m
+                        </span>
                       </div>
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                         <span className="text-slate-400">1 ta AI so&apos;rov narxi:</span>
@@ -723,14 +804,16 @@ export function SuperAdminCommandCenter({
               {/* JADVALLAR: SO'NGGI FAOLLIK LOGLARI & MOLIYAVIY HOLATLAR */}
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {/* 1. SO'NGGI FAOLLIK LOGLARI (RECENT ACTIVITY / LIVE AI LOGS) */}
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <h2 className="flex items-center gap-2 text-base font-bold text-white">
                         <Activity className="h-5 w-5 text-cyan-400" />
                         So&apos;nggi Faollik Loglari (Live AI)
                       </h2>
-                      <p className="text-xs text-slate-400">Hozirgi real-vaqt generatsiya amallari</p>
+                      <p className="text-xs text-slate-400">
+                        Hozirgi real-vaqt generatsiya amallari
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -744,7 +827,7 @@ export function SuperAdminCommandCenter({
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <tr className="border-b border-slate-800 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                           <th className="pb-2.5">Foydalanuvchi</th>
                           <th className="pb-2.5">Xizmat</th>
                           <th className="pb-2.5">Holat</th>
@@ -754,10 +837,12 @@ export function SuperAdminCommandCenter({
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {aiCostsAndUsage.recentLogs.slice(0, 6).map((log) => (
-                          <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="py-2.5 font-medium text-white max-w-[140px] truncate">
+                          <tr key={log.id} className="transition-colors hover:bg-slate-800/30">
+                            <td className="max-w-[140px] truncate py-2.5 font-medium text-white">
                               <div>{log.userName || "Anonim"}</div>
-                              <div className="text-[10px] text-slate-400 truncate">{log.userEmail}</div>
+                              <div className="truncate text-[10px] text-slate-400">
+                                {log.userEmail}
+                              </div>
                             </td>
                             <td className="py-2.5">
                               <span className="inline-flex rounded-md border border-cyan-500/25 bg-cyan-950/40 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
@@ -778,7 +863,7 @@ export function SuperAdminCommandCenter({
                             <td className="py-2.5 text-right font-mono font-semibold text-emerald-400">
                               {log.costUzs > 0 ? `${log.costUzs.toLocaleString()} s` : "0 s"}
                             </td>
-                            <td className="py-2.5 text-right text-[10px] text-slate-400 whitespace-nowrap">
+                            <td className="py-2.5 text-right text-[10px] whitespace-nowrap text-slate-400">
                               {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                             </td>
                           </tr>
@@ -789,14 +874,16 @@ export function SuperAdminCommandCenter({
                 </div>
 
                 {/* 2. MOLIYAVIY HOLATLAR VA TO'LOVLAR (RECENT TRANSACTIONS) */}
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <h2 className="flex items-center gap-2 text-base font-bold text-white">
                         <CreditCard className="h-5 w-5 text-emerald-400" />
                         So&apos;nggi Moliyaviy Holatlar & To&apos;lovlar
                       </h2>
-                      <p className="text-xs text-slate-400">Payme va Click orqali amalga oshirilgan to&apos;lovlar</p>
+                      <p className="text-xs text-slate-400">
+                        Payme va Click orqali amalga oshirilgan to&apos;lovlar
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -810,7 +897,7 @@ export function SuperAdminCommandCenter({
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <tr className="border-b border-slate-800 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                           <th className="pb-2.5">Foydalanuvchi</th>
                           <th className="pb-2.5">Summa</th>
                           <th className="pb-2.5">Tizim</th>
@@ -820,23 +907,25 @@ export function SuperAdminCommandCenter({
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {finance.recentTransactions.slice(0, 6).map((tx) => (
-                          <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="py-2.5 font-medium text-white max-w-[140px] truncate">
+                          <tr key={tx.id} className="transition-colors hover:bg-slate-800/30">
+                            <td className="max-w-[140px] truncate py-2.5 font-medium text-white">
                               <div>{tx.userName || "Mijoz"}</div>
-                              <div className="text-[10px] text-slate-400 truncate">{tx.userEmail}</div>
+                              <div className="truncate text-[10px] text-slate-400">
+                                {tx.userEmail}
+                              </div>
                             </td>
-                            <td className="py-2.5 font-bold font-mono text-emerald-400">
+                            <td className="py-2.5 font-mono font-bold text-emerald-400">
                               {tx.amount.toLocaleString()} UZS
                             </td>
                             <td className="py-2.5">
-                              <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase border border-slate-700 bg-slate-800 text-slate-300">
+                              <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-300 uppercase">
                                 {tx.provider}
                               </span>
                             </td>
                             <td className="py-2.5 text-right font-semibold text-emerald-400">
                               To&apos;langan
                             </td>
-                            <td className="py-2.5 text-right text-[10px] text-slate-400 whitespace-nowrap">
+                            <td className="py-2.5 text-right text-[10px] whitespace-nowrap text-slate-400">
                               {formatDistanceToNow(new Date(tx.createdAt), { addSuffix: true })}
                             </td>
                           </tr>
@@ -852,27 +941,28 @@ export function SuperAdminCommandCenter({
           {/* TAB 2: FOYDALANUVCHILAR (USERS CRM) */}
           {activeTab === "users" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 className="flex items-center gap-2 text-xl font-bold text-white">
                       <Users className="h-6 w-6 text-blue-400" />
                       Foydalanuvchilar va Talabalar Ro&apos;yxati ({users.total})
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Barcha ro&apos;yxatdan o&apos;tgan shaxslar, ularning tariflari, rollari va sarflangan AI tokenlari
+                      Barcha ro&apos;yxatdan o&apos;tgan shaxslar, ularning tariflari, rollari va
+                      sarflangan AI tokenlari
                     </p>
                   </div>
 
                   {/* Search Bar */}
                   <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Ism, email yoki username..."
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-900/90 pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-800 bg-slate-900/90 py-2 pr-3 pl-9 text-xs text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -893,7 +983,7 @@ export function SuperAdminCommandCenter({
                       key={f.id}
                       type="button"
                       onClick={() => setUserFilter(f.id as typeof userFilter)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                      className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                         userFilter === f.id
                           ? "bg-cyan-500 text-white shadow-sm"
                           : "border border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
@@ -908,7 +998,7 @@ export function SuperAdminCommandCenter({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <tr className="border-b border-slate-800 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                         <th className="pb-3">Foydalanuvchi</th>
                         <th className="pb-3">Tarif</th>
                         <th className="pb-3">Rol</th>
@@ -927,19 +1017,19 @@ export function SuperAdminCommandCenter({
                         </tr>
                       ) : (
                         filteredUsers.map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="py-3 font-medium text-white max-w-[200px]">
+                          <tr key={u.id} className="transition-colors hover:bg-slate-800/30">
+                            <td className="max-w-[200px] py-3 font-medium text-white">
                               <div className="font-bold">{u.name}</div>
-                              <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                              <div className="truncate text-[11px] text-slate-400">{u.email}</div>
                             </td>
                             <td className="py-3">
                               <span
                                 className={`rounded px-2 py-0.5 text-[10px] font-bold ${
                                   u.plan === "PREMIUM"
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    ? "border border-amber-500/30 bg-amber-500/20 text-amber-300"
                                     : u.plan === "PRO"
-                                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                    : "bg-slate-800 text-slate-300 border border-slate-700"
+                                      ? "border border-blue-500/30 bg-blue-500/20 text-blue-300"
+                                      : "border border-slate-700 bg-slate-800 text-slate-300"
                                 }`}
                               >
                                 {u.plan}
@@ -949,10 +1039,10 @@ export function SuperAdminCommandCenter({
                               <span
                                 className={`rounded px-2 py-0.5 text-[10px] font-bold ${
                                   u.role === "SUPER_ADMIN"
-                                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                    ? "border border-purple-500/30 bg-purple-500/20 text-purple-300"
                                     : u.role === "ADMIN"
-                                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                                    : "text-slate-400"
+                                      ? "border border-cyan-500/30 bg-cyan-500/20 text-cyan-300"
+                                      : "text-slate-400"
                                 }`}
                               >
                                 {u.role}
@@ -960,7 +1050,11 @@ export function SuperAdminCommandCenter({
                             </td>
                             <td className="py-3 text-[11px] text-slate-400">
                               {u.isGoogle && <span className="mr-1 text-cyan-400">Google</span>}
-                              {u.isTelegramLinked && <span className="text-sky-400">TG: @{u.telegramUsername || "ulangan"}</span>}
+                              {u.isTelegramLinked && (
+                                <span className="text-sky-400">
+                                  TG: @{u.telegramUsername || "ulangan"}
+                                </span>
+                              )}
                               {!u.isGoogle && !u.isTelegramLinked && "Email"}
                             </td>
                             <td className="py-3 font-semibold text-slate-200">
@@ -988,27 +1082,43 @@ export function SuperAdminCommandCenter({
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
                   <div className="text-xs text-slate-400">Jami Hujjatlar</div>
-                  <div className="mt-1 text-2xl font-black text-white">{content.totalDocuments}</div>
-                  <div className="text-[11px] text-emerald-400">+{content.documentsToday} bugun</div>
+                  <div className="mt-1 text-2xl font-black text-white">
+                    {content.totalDocuments}
+                  </div>
+                  <div className="text-[11px] text-emerald-400">
+                    +{content.documentsToday} bugun
+                  </div>
                 </div>
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
                   <div className="text-xs text-slate-400">ATS / CV Tahlillar</div>
-                  <div className="mt-1 text-2xl font-black text-cyan-400">{content.totalAtsAnalyses}</div>
-                  <div className="text-[11px] text-slate-400">O&apos;rtacha: {content.avgAtsScore}/100</div>
+                  <div className="mt-1 text-2xl font-black text-cyan-400">
+                    {content.totalAtsAnalyses}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    O&apos;rtacha: {content.avgAtsScore}/100
+                  </div>
                 </div>
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
                   <div className="text-xs text-slate-400">Mock Testlar</div>
-                  <div className="mt-1 text-2xl font-black text-purple-400">{content.totalMockTests}</div>
+                  <div className="mt-1 text-2xl font-black text-purple-400">
+                    {content.totalMockTests}
+                  </div>
                   <div className="text-[11px] text-slate-400">IELTS / TRKI / RU</div>
                 </div>
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
                   <div className="text-xs text-slate-400">AI Chat Xabarlari</div>
-                  <div className="mt-1 text-2xl font-black text-blue-400">{content.totalChatMessages}</div>
-                  <div className="text-[11px] text-slate-400">{content.totalAiConversations} ta suhbat</div>
+                  <div className="mt-1 text-2xl font-black text-blue-400">
+                    {content.totalChatMessages}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {content.totalAiConversations} ta suhbat
+                  </div>
                 </div>
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
                   <div className="text-xs text-slate-400">Ish Arizalari</div>
-                  <div className="mt-1 text-2xl font-black text-amber-400">{content.totalJobApplications}</div>
+                  <div className="mt-1 text-2xl font-black text-amber-400">
+                    {content.totalJobApplications}
+                  </div>
                   <div className="text-[11px] text-slate-400">Job tracker</div>
                 </div>
                 <div className="rounded-xl border border-slate-800/90 bg-[#070e24]/80 p-4">
@@ -1019,8 +1129,8 @@ export function SuperAdminCommandCenter({
               </div>
 
               {/* So'nggi Yaratilgan Hujjatlar */}
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                   <FileText className="h-5 w-5 text-cyan-400" />
                   So&apos;nggi Yaratilgan Hujjatlar Ro&apos;yxati
                 </h2>
@@ -1028,15 +1138,17 @@ export function SuperAdminCommandCenter({
                   {content.recentDocuments.map((doc) => (
                     <div
                       key={doc.id}
-                      className="rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-slate-700 transition-colors"
+                      className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3.5 transition-colors hover:border-slate-700 sm:flex-row sm:items-center"
                     >
                       <div className="min-w-0">
-                        <div className="font-bold text-white truncate text-sm">{doc.title}</div>
+                        <div className="truncate text-sm font-bold text-white">{doc.title}</div>
                         <div className="text-[11px] text-slate-400">
-                          Egasi: <span className="text-slate-300 font-semibold">{doc.ownerName}</span> ({doc.ownerEmail})
+                          Egasi:{" "}
+                          <span className="font-semibold text-slate-300">{doc.ownerName}</span> (
+                          {doc.ownerEmail})
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex shrink-0 items-center gap-3">
                         <span className="rounded-md border border-cyan-500/30 bg-cyan-950/40 px-2.5 py-1 text-xs font-semibold text-cyan-300">
                           {doc.type}
                         </span>
@@ -1055,39 +1167,44 @@ export function SuperAdminCommandCenter({
           {activeTab === "finance" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                  <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                     <DollarSign className="h-5 w-5 text-emerald-400" />
                     Moliyaviy Xulosa (MRR)
                   </h2>
                   <div className="space-y-3 text-xs">
                     <div className="flex justify-between border-b border-slate-800 pb-2">
                       <span className="text-slate-400">Oylik Tushum (MRR):</span>
-                      <span className="font-bold text-emerald-400 font-mono text-sm">
+                      <span className="font-mono text-sm font-bold text-emerald-400">
                         {finance.monthRevenueUzs.toLocaleString()} UZS
                       </span>
                     </div>
                     <div className="flex justify-between border-b border-slate-800 pb-2">
                       <span className="text-slate-400">Barcha vaqtdagi tushum:</span>
-                      <span className="font-bold text-white font-mono">
+                      <span className="font-mono font-bold text-white">
                         {finance.allTimeRevenueUzs.toLocaleString()} UZS
                       </span>
                     </div>
                     <div className="flex justify-between border-b border-slate-800 pb-2">
                       <span className="text-slate-400">USD Ekvivalenti:</span>
                       <span className="font-bold text-slate-300">
-                        ${report.usdToUzsRate > 0 ? (finance.allTimeRevenueUzs / report.usdToUzsRate).toFixed(2) : "0.00"}
+                        $
+                        {report.usdToUzsRate > 0
+                          ? (finance.allTimeRevenueUzs / report.usdToUzsRate).toFixed(2)
+                          : "0.00"}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Promo kodlar soni:</span>
-                      <span className="font-bold text-amber-400">{finance.promoCodesCount} ta faol</span>
+                      <span className="font-bold text-amber-400">
+                        {finance.promoCodesCount} ta faol
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm lg:col-span-2">
-                  <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6 lg:col-span-2">
+                  <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                     <CreditCard className="h-5 w-5 text-emerald-400" />
                     Barcha To&apos;lov Kvitansiyalari
                   </h2>
@@ -1104,16 +1221,20 @@ export function SuperAdminCommandCenter({
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {finance.recentTransactions.map((tx) => (
-                          <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors">
+                          <tr key={tx.id} className="transition-colors hover:bg-slate-800/30">
                             <td className="py-3 font-medium text-white">
                               <div>{tx.userName || "Mijoz"}</div>
                               <div className="text-[10px] text-slate-400">{tx.userEmail}</div>
                             </td>
-                            <td className="py-3 font-bold font-mono text-emerald-400">
+                            <td className="py-3 font-mono font-bold text-emerald-400">
                               {tx.amount.toLocaleString()} UZS
                             </td>
-                            <td className="py-3 uppercase text-slate-300 font-semibold">{tx.provider}</td>
-                            <td className="py-3 text-right text-emerald-400 font-bold">{tx.status}</td>
+                            <td className="py-3 font-semibold text-slate-300 uppercase">
+                              {tx.provider}
+                            </td>
+                            <td className="py-3 text-right font-bold text-emerald-400">
+                              {tx.status}
+                            </td>
                             <td className="py-3 text-right text-slate-400">
                               {formatDistanceToNow(new Date(tx.createdAt), { addSuffix: true })}
                             </td>
@@ -1130,33 +1251,42 @@ export function SuperAdminCommandCenter({
           {/* TAB 5: STATISTIKA (AI TELEMETRIYA VA MODELLAR) */}
           {activeTab === "statistics" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                   <TrendingUp className="h-5 w-5 text-cyan-400" />
                   Sun&apos;iy Intellekt Modellar Kesimida Ishlash Ko&apos;rsatkichlari
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {aiCostsAndUsage.models.map((m) => (
-                    <div key={m.model} className="rounded-xl border border-slate-800 bg-[#04091a]/80 p-4">
+                    <div
+                      key={m.model}
+                      className="rounded-xl border border-slate-800 bg-[#04091a]/80 p-4"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-white text-sm">{m.model}</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                        <span className="text-sm font-bold text-white">{m.model}</span>
+                        <span className="rounded border border-cyan-800 bg-cyan-950 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
                           {m.provider}
                         </span>
                       </div>
                       <div className="mt-3 space-y-1.5 text-xs text-slate-400">
                         <div className="flex justify-between">
                           <span>So&apos;rovlar:</span>
-                          <span className="font-bold text-white">{m.requests.toLocaleString()}</span>
+                          <span className="font-bold text-white">
+                            {m.requests.toLocaleString()}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Tokenlar:</span>
-                          <span className="font-bold text-cyan-400">{m.tokens.toLocaleString()}</span>
+                          <span className="font-bold text-cyan-400">
+                            {m.tokens.toLocaleString()}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Xarajat:</span>
-                          <span className="font-bold text-emerald-400">${m.costUsd.toFixed(3)} (~{m.costUzs.toLocaleString()} s)</span>
+                          <span className="font-bold text-emerald-400">
+                            ${m.costUsd.toFixed(3)} (~{m.costUzs.toLocaleString()} s)
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1169,24 +1299,39 @@ export function SuperAdminCommandCenter({
           {/* TAB 6: SOZLAMALAR VA XAVFSIZLIK (SETTINGS & SECURITY) */}
           {activeTab === "settings" && (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm">
-                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6">
+                <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                   <Settings className="h-5 w-5 text-cyan-400" />
                   Tizim Integratsiyalari Holati
                 </h2>
 
                 <div className="space-y-3 text-xs">
                   {[
-                    { label: "PostgreSQL Ma'lumotlar Bazasi", ok: securityAndSystem.envStatus.database },
+                    {
+                      label: "PostgreSQL Ma'lumotlar Bazasi",
+                      ok: securityAndSystem.envStatus.database,
+                    },
                     { label: "Google Gemini AI Engine", ok: securityAndSystem.envStatus.geminiAi },
-                    { label: "Telegram Bot Integratsiyasi", ok: securityAndSystem.envStatus.telegramBot },
-                    { label: "Super Admin Telegram Hisobot", ok: securityAndSystem.envStatus.telegramAdminChat },
-                    { label: "Google OAuth 2.0 Avtorizatsiya", ok: securityAndSystem.envStatus.googleOAuth },
-                    { label: "To'lov Tizimlari (PayX / Click / Payme)", ok: securityAndSystem.envStatus.paymentGateways },
+                    {
+                      label: "Telegram Bot Integratsiyasi",
+                      ok: securityAndSystem.envStatus.telegramBot,
+                    },
+                    {
+                      label: "Super Admin Telegram Hisobot",
+                      ok: securityAndSystem.envStatus.telegramAdminChat,
+                    },
+                    {
+                      label: "Google OAuth 2.0 Avtorizatsiya",
+                      ok: securityAndSystem.envStatus.googleOAuth,
+                    },
+                    {
+                      label: "To'lov Tizimlari (PayX / Click / Payme)",
+                      ok: securityAndSystem.envStatus.paymentGateways,
+                    },
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3 flex items-center justify-between"
+                      className="flex items-center justify-between rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3"
                     >
                       <span className="font-semibold text-slate-300">{item.label}</span>
                       {item.ok ? (
@@ -1203,8 +1348,8 @@ export function SuperAdminCommandCenter({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm lg:col-span-2">
-                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <div className="rounded-2xl border border-slate-800/90 bg-[#070e24]/80 p-5 shadow-sm backdrop-blur-xl sm:p-6 lg:col-span-2">
+                <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
                   <ShieldAlert className="h-5 w-5 text-rose-400" />
                   Xavfsizlik va Rate-Limit Telemetriyasi (So&apos;nggi hodisalar)
                 </h2>
@@ -1212,7 +1357,7 @@ export function SuperAdminCommandCenter({
                   {securityAndSystem.recentLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                      className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-[#04091a]/80 p-3 text-xs sm:flex-row sm:items-center"
                     >
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1225,15 +1370,13 @@ export function SuperAdminCommandCenter({
                           >
                             {log.eventType}
                           </span>
-                          <span className="text-slate-400 flex items-center gap-1">
+                          <span className="flex items-center gap-1 text-slate-400">
                             <Globe className="h-3 w-3" /> {log.ipAddress}
                           </span>
-                          <span className="text-slate-300 font-semibold">
-                            Marshrut: {log.path}
-                          </span>
+                          <span className="font-semibold text-slate-300">Marshrut: {log.path}</span>
                         </div>
                       </div>
-                      <div className="text-slate-400 text-[11px] whitespace-nowrap">
+                      <div className="text-[11px] whitespace-nowrap text-slate-400">
                         <Clock className="mr-1 inline h-3 w-3" />
                         {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                       </div>

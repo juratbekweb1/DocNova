@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Compass, ExternalLink, Copy, Check } from "lucide-react";
+import React, { useState } from "react";
+import { Compass, Copy, Check } from "lucide-react";
 import { isIOS, isInAppBrowser, getInAppBrowserName } from "@/lib/in-app-browser";
 
 export function InAppBrowserNotice() {
-  const [showNotice, setShowNotice] = useState(false);
-  const [appName, setAppName] = useState<string | null>(null);
+  const isClient = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (isIOS() && isInAppBrowser()) {
-      setShowNotice(true);
-      setAppName(getInAppBrowserName());
-    }
-  }, []);
+  const showNotice = isClient && isIOS() && isInAppBrowser();
+  const appName = showNotice ? getInAppBrowserName() : null;
 
   if (!showNotice) return null;
 
@@ -27,7 +26,7 @@ export function InAppBrowserNotice() {
   };
 
   return (
-    <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-foreground shadow-sm">
+    <div className="text-foreground mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs shadow-sm">
       <div className="flex items-start gap-2.5">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500">
           <Compass className="h-4 w-4" />
@@ -43,11 +42,11 @@ export function InAppBrowserNotice() {
               </span>
             )}
           </div>
-          <p className="text-[11px] leading-relaxed text-foreground-secondary">
+          <p className="text-foreground-secondary text-[11px] leading-relaxed">
             {appName || "Ilova"} ichida Google parolingizni so&apos;ramasligi uchun sahifani{" "}
             <strong className="text-foreground">Safari</strong> brauzerida oching.
           </p>
-          <p className="text-[10px] text-foreground-muted">
+          <p className="text-foreground-muted text-[10px]">
             👉 Pastki o&apos;ng burchakdagi <strong className="text-foreground">🧭 Safari</strong>{" "}
             belgisini yoki yuqoridagi <strong className="text-foreground">⋯</strong> menyusini
             bosing.
@@ -56,7 +55,7 @@ export function InAppBrowserNotice() {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-foreground transition-all hover:bg-surface-elevated"
+              className="border-border bg-surface text-foreground hover:bg-surface-elevated inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all"
             >
               {copied ? (
                 <>

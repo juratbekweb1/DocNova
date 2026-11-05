@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
 
   const parsed = RequestBodySchema.safeParse(body);
   if (!parsed.success) {
-    return errorResponse(new ValidationError(parsed.error.issues[0]?.message ?? "Noto'g'ri ma'lumot."));
+    return errorResponse(
+      new ValidationError(parsed.error.issues[0]?.message ?? "Noto'g'ri ma'lumot.")
+    );
   }
 
   const { rawInput } = parsed.data;
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
     rawText = await provider.complete(prompt);
-  } catch (err: any) {
+  } catch (err: unknown) {
     status = "FAILED";
     errorCode = "API_ERROR";
     const duration = Date.now() - startTime;
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
         feature: "DOCUMENT_GENERATION",
         status,
         requestDurationMs: duration,
-        errorCode
+        errorCode,
       });
     });
     return errorResponse(err);
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
       status,
       inputTokens: Math.ceil(prompt.length / 4),
       outputTokens: Math.ceil((rawText || "").length / 4),
-      requestDurationMs: duration
+      requestDurationMs: duration,
     });
   });
 

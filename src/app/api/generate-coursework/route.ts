@@ -122,7 +122,7 @@ export function getDomainReferences(
 ): string[] {
   const t = `${topic} ${subject}`.toLowerCase();
   const isRu = language === "ru";
-  const isCyrl = language === "uz-cyrl";
+  const _isCyrl = language === "uz-cyrl";
 
   // 1. EDUCATION / PEDAGOGY / AI IN EDUCATION
   if (
@@ -1504,7 +1504,7 @@ Oliy ta'lim muassasalari va soha tashkilotlari uchun quyidagi amaliy tavsiyalar 
 export function validateCoursework(
   topic: string,
   pages: CourseworkPage[],
-  aiChapters?: CourseworkAiChapters
+  _aiChapters?: CourseworkAiChapters
 ): CourseworkValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];

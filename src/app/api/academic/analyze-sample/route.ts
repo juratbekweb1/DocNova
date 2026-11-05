@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { POST as extractAndAnalyzePost } from "@/app/api/pdf/extract-text/route";
 
 export const maxDuration = 30;

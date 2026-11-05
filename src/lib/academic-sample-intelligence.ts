@@ -110,10 +110,7 @@ export const MAX_SAMPLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
  * Fayl nomini xavfsiz tozalash (Path traversal va maxsus belgilardan himoya)
  */
 export function sanitizeSafeFileName(rawName: string): string {
-  const base = (rawName || "namuna_fayl")
-    .replace(/\\/g, "/")
-    .split("/")
-    .pop() || "namuna_fayl";
+  const base = (rawName || "namuna_fayl").replace(/\\/g, "/").split("/").pop() || "namuna_fayl";
   return base.replace(/[\x00-\x1F\x7F<>:"|?*]/g, "_").slice(0, 180);
 }
 
@@ -134,7 +131,8 @@ export function validateSampleFileBuffer(params: {
   if (params.fileSize <= 0 || params.buffer.byteLength <= 0) {
     return {
       valid: false,
-      error: "Yuklangan fayl bo'sh (0 bayt). Iltimos, matni bor boshqa fayl tanlang yoki noldan yarating.",
+      error:
+        "Yuklangan fayl bo'sh (0 bayt). Iltimos, matni bor boshqa fayl tanlang yoki noldan yarating.",
     };
   }
 
@@ -156,15 +154,13 @@ export function validateSampleFileBuffer(params: {
   }
 
   const matchedExt = ALLOWED_EXTENSIONS.find((ext) => lowerName.endsWith(ext)) as
-    | ".docx"
-    | ".pdf"
-    | ".txt"
-    | undefined;
+    ".docx" | ".pdf" | ".txt" | undefined;
 
   if (!matchedExt) {
     return {
       valid: false,
-      error: "Qo'llab-quvvatlanmaydigan fayl formati. Faqat .DOCX, .PDF va .TXT fayllarni yuklash mumkin.",
+      error:
+        "Qo'llab-quvvatlanmaydigan fayl formati. Faqat .DOCX, .PDF va .TXT fayllarni yuklash mumkin.",
     };
   }
 
@@ -191,7 +187,8 @@ export function validateSampleFileBuffer(params: {
     if (!headerStr.startsWith("%PDF-")) {
       return {
         valid: false,
-        error: "Fayl haqiqiy PDF hujjat emas yoki shikastlangan. Iltimos, to'g'ri PDF yoki DOCX yuklang.",
+        error:
+          "Fayl haqiqiy PDF hujjat emas yoki shikastlangan. Iltimos, to'g'ri PDF yoki DOCX yuklang.",
       };
     }
     // Parol bilan himoyalangan (/Encrypt) PDF ni tekshirish
@@ -384,7 +381,8 @@ export function extractIsolatedOldMetadata(text: string): IsolatedSampleMetadata
 
     // Fakultet / Kafedra
     if (!oldFaculty && /(fakultet|kafedra|факультет|кафедра)/i.test(line) && line.length < 150) {
-      oldFaculty = line.replace(/^(fakultet|kafedra|факультет|кафедра)\s*[:\-]?\s*/i, "").trim() || line;
+      oldFaculty =
+        line.replace(/^(fakultet|kafedra|факультет|кафедра)\s*[:\-]?\s*/i, "").trim() || line;
     }
 
     // Guruh
@@ -477,8 +475,7 @@ export function extractSampleStructure(text: string): DetectedSampleStructure {
     /(foydalanilgan\s+adabiyot|adabiyotlar\s+ro'yxati|adabiyotlar|manbalar|список\s+использованной\s+литературы|список\s+литературы)/i.test(
       text
     );
-  const hasTables =
-    /(\d+[-\s]*jadval|таблица\s*№?\s*\d+|\|.+\|.+\|)/i.test(text);
+  const hasTables = /(\d+[-\s]*jadval|таблица\s*№?\s*\d+|\|.+\|.+\|)/i.test(text);
   const hasAppendices = /\b(ilova|ilovalar|приложение|приложения)\b/i.test(text);
 
   const chaptersMap = new Map<string, { title: string; subsections: string[] }>();
@@ -706,7 +703,9 @@ export function parseNaturalAcademicRequest(rawInput: string): ParsedNaturalAcad
   let language: "uz" | "ru" | undefined;
 
   // 1. Sahifa soni: "20 betlik", "25 bet", "30 sahifa", "15 стр"
-  const pageMatch = input.match(/\b(\d{1,3})\s*[-\s]?(?:bet(?:lik)?|sahifa(?:lik)?|стр(?:аниц)?)\b/i);
+  const pageMatch = input.match(
+    /\b(\d{1,3})\s*[-\s]?(?:bet(?:lik)?|sahifa(?:lik)?|стр(?:аниц)?)\b/i
+  );
   if (pageMatch) {
     const num = Math.min(500, Math.max(3, parseInt(pageMatch[1], 10)));
     pageCount = String(num);
@@ -733,16 +732,14 @@ export function parseNaturalAcademicRequest(rawInput: string): ParsedNaturalAcad
     /(?:menga\s+|bizga\s+)?([a-zA-Z0-9\u0400-\u04FF'‘`ʻ\s\-]{3,60}?)\s+fanidan\b/i
   );
   if (subjMatch) {
-    const cleanSubj = subjMatch[1]
-      .replace(/^(menga|bizga|iltimos|tezkor)\s+/i, "")
-      .trim();
+    const cleanSubj = subjMatch[1].replace(/^(menga|bizga|iltimos|tezkor)\s+/i, "").trim();
     if (cleanSubj.length >= 2) {
       subject = cleanSubj.charAt(0).toUpperCase() + cleanSubj.slice(1);
     }
   }
 
   // 5. Mavzu: "... haqida" yoki "... mavzusida" yoki qolgan mazmunli qism
-  let working = input
+  const working = input
     .replace(/^(menga|bizga|iltimos)\s+/i, "")
     .replace(/\b([a-zA-Z0-9\u0400-\u04FF'‘`ʻ\s\-]{3,60}?)\s+fanidan\b/i, "")
     .replace(/\b\d{1,3}\s*[-\s]?(?:bet(?:lik)?|sahifa(?:lik)?|стр(?:аниц)?)\b/gi, "")

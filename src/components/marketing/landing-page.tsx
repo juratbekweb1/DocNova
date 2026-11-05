@@ -95,7 +95,7 @@ const FaqItem = ({ faq }: { faq: { question: string; answer: string } }) => {
 };
 
 export function LandingPage() {
-  const { t } = useLanguage();
+  const { t: _t } = useLanguage();
 
   const avatars = [
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",

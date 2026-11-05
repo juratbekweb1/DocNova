@@ -11,15 +11,19 @@ export class LocalStorageAdapter implements UploadService {
 
   async uploadFile(file: File, pathPrefix: string): Promise<string> {
     const buffer = Buffer.from(await file.arrayBuffer());
-    
+
     // Ensure the directory exists
-    const uploadDir = path.join(/* turbopackIgnore: true */ process.cwd(), this.baseDir, pathPrefix);
+    const uploadDir = path.join(
+      /* turbopackIgnore: true */ process.cwd(),
+      this.baseDir,
+      pathPrefix
+    );
     await mkdir(uploadDir, { recursive: true });
 
     // Sanitize filename and add unique timestamp
     const originalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
     const filename = `${Date.now()}-${originalName}`;
-    const filePath = path.join(uploadDir, filename);
+    const filePath = path.join(/* turbopackIgnore: true */ uploadDir, filename);
 
     // Write file to disk
     await writeFile(filePath, buffer);
@@ -36,7 +40,9 @@ export class LocalStorageAdapter implements UploadService {
         throw new Error("Invalid URL format for local storage");
       }
       // e.g., url is '/uploads/pathPrefix/filename', filePath is 'public/uploads/pathPrefix/filename'
-      const relativePath = url.startsWith("/uploads/") ? url.replace(/^\//, "public/") : `public${url}`;
+      const relativePath = url.startsWith("/uploads/")
+        ? url.replace(/^\//, "public/")
+        : `public${url}`;
       const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), relativePath);
       await unlink(filePath);
     } catch (error: unknown) {

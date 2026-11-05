@@ -27,12 +27,7 @@ import {
 import { prisma } from "@/lib/prisma";
 
 export type AcademicWorkType =
-  | "COURSEWORK"
-  | "DIPLOMA_BMI"
-  | "REFERAT"
-  | "INDEPENDENT_WORK"
-  | "ESSAY"
-  | "OTHER";
+  "COURSEWORK" | "DIPLOMA_BMI" | "REFERAT" | "INDEPENDENT_WORK" | "ESSAY" | "OTHER";
 
 export interface AcademicDocxExportInput {
   /** Hujjat mavzusi (masalan: "Raqamli iqtisodiyotda bank xizmatlari") */
@@ -161,18 +156,20 @@ export async function registerDocumentVerification(
     ).toString("base64");
     const expires = new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000); // 5 yil
 
-    await prisma.verificationToken.upsert({
-      where: { token: tokenKey },
-      update: {
-        identifier: encodedData,
-        expires,
-      },
-      create: {
-        token: tokenKey,
-        identifier: encodedData,
-        expires,
-      },
-    });
+    if (prisma?.verificationToken?.upsert) {
+      await prisma.verificationToken.upsert({
+        where: { token: tokenKey },
+        update: {
+          identifier: encodedData,
+          expires,
+        },
+        create: {
+          token: tokenKey,
+          identifier: encodedData,
+          expires,
+        },
+      });
+    }
   } catch (dbErr) {
     // Agar DB ulanishida vaqtinchalik uzilish bo'lsa ham, URL dagi imzolangan kompaktni o'qiydi
     console.warn("[DOC_VERIFY_DB_SAVE_WARN]", dbErr);
@@ -215,19 +212,21 @@ export async function verifyDocumentByCode(
 
   // 1. Bazadan qidirish
   try {
-    const record = await prisma.verificationToken.findUnique({
-      where: { token: `doc_verify_${cleanCode}` },
-    });
-    if (record && record.expires > new Date()) {
-      const parsed = JSON.parse(
-        Buffer.from(record.identifier, "base64").toString("utf-8")
-      ) as AcademicVerificationPayload & { sig?: string };
-      const expectedSig = signVerificationData(parsed.code, parsed.contentHash);
-      return {
-        verified: true,
-        payload: parsed,
-        signatureValid: !parsed.sig || parsed.sig === expectedSig,
-      };
+    if (prisma?.verificationToken?.findUnique) {
+      const record = await prisma.verificationToken.findUnique({
+        where: { token: `doc_verify_${cleanCode}` },
+      });
+      if (record && record.expires > new Date()) {
+        const parsed = JSON.parse(
+          Buffer.from(record.identifier, "base64").toString("utf-8")
+        ) as AcademicVerificationPayload & { sig?: string };
+        const expectedSig = signVerificationData(parsed.code, parsed.contentHash);
+        return {
+          verified: true,
+          payload: parsed,
+          signatureValid: !parsed.sig || parsed.sig === expectedSig,
+        };
+      }
     }
   } catch (err) {
     console.warn("[DOC_VERIFY_LOOKUP_WARN]", err);
@@ -303,9 +302,7 @@ export async function generateHighResQrBuffer(url: string): Promise<Buffer> {
 function sanitizeXmlText(input: string): string {
   if (!input) return "";
   // XML 1.0 da ruxsat etilmagan control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) ni olib tashlaymiz
-  return input
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-    .replace(/\uFFFD/g, "");
+  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").replace(/\uFFFD/g, "");
 }
 
 /**
@@ -576,9 +573,7 @@ function parseMarkdownBlockToDocxNodes(
     }
 
     // Agar "MUNDARIJA", "СОДЕРЖАНИЕ", "REJA", "KIRISH", "ВВЕДЕНИЕ" boshlansa, cover page tugagan bo'ladi
-    if (
-      /^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|МУНДАРИЖА|КИРИШ)/i.test(trimmed)
-    ) {
+    if (/^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|МУНДАРИЖА|КИРИШ)/i.test(trimmed)) {
       if (isCover) {
         isCover = false;
         nodes.push(new Paragraph({ children: [new PageBreak()] }));
@@ -785,9 +780,10 @@ function parseMarkdownBlockToDocxNodes(
     }
 
     // 9. Oddiy akademik abzas (yoki Titul sahifadagi ma'lumot qatori)
-    const isCityYearLine = /^(Toshkent|Ташкент|Тошкент|Samarqand|Buxoro|Andijon|Namangan|Farg'ona|Nukus)\s*[—\-–]\s*\d{4}/i.test(
-      trimmed.replace(/\*/g, "")
-    );
+    const isCityYearLine =
+      /^(Toshkent|Ташкент|Тошкент|Samarqand|Buxoro|Andijon|Namangan|Farg'ona|Nukus)\s*[—\-–]\s*\d{4}/i.test(
+        trimmed.replace(/\*/g, "")
+      );
 
     if (isCityYearLine) {
       isCover = false;
@@ -850,14 +846,11 @@ async function buildQrVerificationFooterNodes(params: {
   const qrPngBuffer = await generateHighResQrBuffer(verificationUrl);
   const isRu = payload.language === "ru";
 
-  const formattedDate = new Date(payload.issuedAt).toLocaleDateString(
-    isRu ? "ru-RU" : "uz-UZ",
-    {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }
-  );
+  const formattedDate = new Date(payload.issuedAt).toLocaleDateString(isRu ? "ru-RU" : "uz-UZ", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 
   const subtleBorder = {
     style: BorderStyle.SINGLE,

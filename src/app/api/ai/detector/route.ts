@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { generateGeminiContent } from "@/lib/gemini";
 
 export const maxDuration = 45;
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions).catch(() => null);
     const body = await req.json();
     const { text } = body;
 
@@ -49,7 +46,7 @@ Respond strictly in JSON format with NO markdown ticks, following this schema:
   ]
 }`;
 
-    let aiResult: any = null;
+    let aiResult: Record<string, unknown> | null = null;
 
     try {
       const response = await generateGeminiContent(
@@ -121,11 +118,10 @@ Respond strictly in JSON format with NO markdown ticks, following this schema:
         },
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[DETECTOR_API_ERR]", err);
-    return NextResponse.json(
-      { error: err?.message || "Tahlil qilishda kutilmagan xatolik yuz berdi" },
-      { status: 500 }
-    );
+    const message =
+      err instanceof Error ? err.message : "Tahlil qilishda kutilmagan xatolik yuz berdi";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

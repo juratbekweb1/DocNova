@@ -18,13 +18,19 @@ function createPrismaClient(): PrismaClient {
     // Neon adapter
     neonConfig.webSocketConstructor = ws;
     const pool = new NeonPool({ connectionString: databaseUrl });
-    const adapter = new PrismaNeon(pool as any);
-    return new PrismaClient({ adapter, log: isProduction ? ["error"] : ["query", "error", "warn"] });
+    const adapter = new PrismaNeon(pool as unknown as ConstructorParameters<typeof PrismaNeon>[0]);
+    return new PrismaClient({
+      adapter,
+      log: isProduction ? ["error"] : ["query", "error", "warn"],
+    });
   } else if (databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://")) {
     // Standard PG adapter
     const pool = new PgPool({ connectionString: databaseUrl });
     const adapter = new PrismaPg(pool);
-    return new PrismaClient({ adapter, log: isProduction ? ["error"] : ["query", "error", "warn"] });
+    return new PrismaClient({
+      adapter,
+      log: isProduction ? ["error"] : ["query", "error", "warn"],
+    });
   }
 
   // Fallback to local PGlite

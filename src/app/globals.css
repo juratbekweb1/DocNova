@@ -230,15 +230,8 @@ section {
 
   /* Cap expensive backdrop filters across all variants on mobile to preserve GPU fillrate */
   [class*="backdrop-blur"] {
-    backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
-  }
-
-  /* Cap all Gaussian blur radiuses (standard and arbitrary) on mobile GPU */
-  [class*="blur-"],
-  [class*="blur-["] {
-    filter: blur(12px) !important;
-    -webkit-filter: blur(12px) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 
   /* Disable continuous GPU-draining infinite CSS animations on mobile */
