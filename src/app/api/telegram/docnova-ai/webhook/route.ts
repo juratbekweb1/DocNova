@@ -57,6 +57,7 @@ import {
 } from "@/lib/telegram-doc-manager";
 import { prisma } from "@/lib/prisma";
 import { checkUserLimit, getUserSubscription } from "@/lib/limits";
+import { getDetailedAiReport, formatTelegramReport } from "@/lib/telegram-ai-report";
 
 /**
  * Diagnostic logger for academic flow stages.
@@ -469,6 +470,39 @@ if (docnovaAiBot) {
     } catch (err) {
       console.error("[BOT_UNLINK_ERR]", err);
       await ctx.reply("❌ Xatolik yuz berdi.");
+    }
+  });
+
+  // 4.5. /hisobot and /report command for Super Admin / Admin
+  docnovaAiBot.command(["hisobot", "report", "admin"], async (ctx) => {
+    if (!ctx.from) return;
+    try {
+      const fromIdStr = ctx.from.id.toString();
+      const chatIdStr = ctx.chat?.id?.toString();
+      const adminEnvId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+      const user = await getLinkedUser(ctx.from.id);
+
+      const isAuthorized =
+        (adminEnvId && (fromIdStr === adminEnvId || chatIdStr === adminEnvId)) ||
+        user?.role === "SUPER_ADMIN" ||
+        user?.role === "ADMIN";
+
+      if (!isAuthorized) {
+        await ctx.reply("⛔ Ushbu buyruq faqat Super Admin uchun mo'ljallangan.");
+        return;
+      }
+
+      const summary = await getDetailedAiReport();
+      const reportText = formatTelegramReport(summary);
+
+      try {
+        await ctx.reply(reportText, { parse_mode: "Markdown" });
+      } catch {
+        await ctx.reply(reportText.replace(/[*_`]/g, ""));
+      }
+    } catch (err) {
+      console.error("[DOCNOVA_AI_REPORT_CMD_ERR]", err);
+      await ctx.reply("❌ Hisobotni shakllantirishda xatolik yuz berdi.");
     }
   });
 

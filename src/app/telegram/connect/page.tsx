@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { InAppBrowserNotice } from "@/components/auth/InAppBrowserNotice";
 
 function TelegramConnectInner() {
   const searchParams = useSearchParams();
@@ -107,6 +108,9 @@ function TelegramConnectInner() {
         {/* Unauthenticated: Sign in prompt */}
         {status === "unauthenticated" && (
           <div className="space-y-4">
+            {/* Guide for iPhone users opening via Telegram WebView */}
+            <InAppBrowserNotice />
+
             <div className="space-y-2 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 text-xs text-slate-300">
               <div className="flex items-center gap-2 text-sm font-medium text-blue-400">
                 <ShieldCheck className="h-4 w-4" />
@@ -120,7 +124,13 @@ function TelegramConnectInner() {
             </div>
 
             <button
-              onClick={() => signIn("google", { callbackUrl: getCanonicalCallbackUrl() })}
+              onClick={() =>
+                signIn(
+                  "google",
+                  { callbackUrl: getCanonicalCallbackUrl() },
+                  { prompt: "select_account" }
+                )
+              }
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 font-semibold text-slate-900 shadow-lg transition hover:bg-slate-100"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">

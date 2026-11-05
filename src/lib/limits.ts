@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SubscriptionTier } from "@prisma/client";
+import { ensureDailyTelegramReportSent } from "@/lib/telegram-ai-report";
 
 export type FeatureType =
   | "chat"
@@ -307,12 +308,12 @@ export async function trackAIUsage({
   feature: string;
   provider?: string;
   model?: string;
-  status: "SUCCESS" | "FAILED" | "RATE_LIMITED" | "QUOTA_EXCEEDED";
+  status: "SUCCESS" | "FAILED" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "REFUNDED";
   inputTokens?: number;
   outputTokens?: number;
   requestDurationMs?: number;
   errorCode?: string;
-}) {
+}): Promise<string | null> {
   try {
     const totalTokens = inputTokens + outputTokens;
     // Centralized cost (approx $0.075 / 1M input, $0.3 / 1M output for flash, example)
@@ -320,7 +321,7 @@ export async function trackAIUsage({
     const outputCost = (outputTokens / 1_000_000) * 0.3;
     const estimatedCostUsd = inputCost + outputCost;
 
-    await prisma.aIUsage.create({
+    const record = await prisma.aIUsage.create({
       data: {
         userId,
         organizationId,
@@ -336,9 +337,16 @@ export async function trackAIUsage({
         requestDurationMs,
         errorCode,
       },
+      select: { id: true },
     });
+
+    // Opportunistically check if the daily Telegram report (21:00+ Tashkent) needs to be dispatched
+    void ensureDailyTelegramReportSent();
+
+    return record.id;
   } catch (err) {
     console.error("Failed to track AI usage", err);
+    return null;
   }
 }
 
@@ -417,3 +425,47 @@ export async function deductUserAiCredit(userId: string): Promise<void> {
     console.error("Failed to deduct user AI credit:", err);
   }
 }
+
+/**
+ * Refunds a previously deducted AI credit and marks the AIUsage record as REFUNDED
+ * when generation fails, times out, or produces invalid output.
+ */
+export async function refundUserAiCredit(params: {
+  userId: string;
+  usageId?: string | null;
+  errorCode?: string;
+}): Promise<boolean> {
+  const { userId, usageId, errorCode = "GENERATION_FAILED_REFUND" } = params;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { aiUsageCount: true, dailyAiCount: true },
+    });
+
+    if (user) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          aiUsageCount: Math.max(0, (user.aiUsageCount || 0) - 1),
+          dailyAiCount: Math.max(0, (user.dailyAiCount || 0) - 1),
+        },
+      });
+    }
+
+    if (usageId) {
+      await prisma.aIUsage.update({
+        where: { id: usageId },
+        data: {
+          status: "REFUNDED",
+          errorCode,
+        },
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[REFUND_USER_AI_CREDIT_ERROR]", err);
+    return false;
+  }
+}
+

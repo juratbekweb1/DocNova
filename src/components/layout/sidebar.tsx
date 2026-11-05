@@ -18,7 +18,6 @@ import {
   CreditCard,
   LogOut,
   ShieldAlert,
-  Key,
   Search,
   GraduationCap,
   Sparkles,
@@ -26,14 +25,33 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/language-provider";
+import { useSubscription } from "@/components/providers/subscription-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLanguage();
+  const { features } = useSubscription();
+
+  const userRole = (session?.user as Record<string, unknown> | undefined)?.role as
+    | string
+    | undefined;
+  const isSuperOrAdmin =
+    userRole === "SUPER_ADMIN" ||
+    userRole === "ADMIN" ||
+    Boolean(features?.unlimited);
 
   const userNavigation = [
     { name: t.sidebarDashboard || "Boshqaruv paneli", href: "/dashboard", icon: LayoutDashboard },
+    ...(isSuperOrAdmin
+      ? [
+          {
+            name: userRole === "SUPER_ADMIN" ? "Super Admin Markazi" : "Admin Markazi",
+            href: userRole === "SUPER_ADMIN" ? "/super-admin" : "/admin",
+            icon: ShieldAlert,
+          },
+        ]
+      : []),
     {
       name: t.sidebarStudents || t.sidebarCoursework || "Talabalar uchun",
       href: "/academic",
@@ -46,20 +64,16 @@ export function Sidebar() {
   ];
 
   const adminNavigation = [
-    { name: t.adminNavTelemetry || "Telemetry", href: "/admin", icon: LayoutDashboard },
-    { name: "AI Tokenlar & Hisobot", href: "/admin/ai-analytics", icon: Sparkles },
-    { name: t.adminNavPricing || "Pricing Engine", href: "/admin/pricing", icon: CreditCard },
-    { name: t.adminNavPromo || "Promo Codes", href: "/admin/promo", icon: Tag },
-    { name: t.adminNavUsers || "Users (CRM)", href: "/admin/users", icon: Users },
+    { name: "Monitoring & Boshqaruv", href: "/super-admin", icon: LayoutDashboard },
+    { name: "AI Tokenlar & Xarajatlar", href: "/admin/ai-analytics", icon: Sparkles },
+    { name: "Foydalanuvchilar (CRM)", href: "/admin/users", icon: Users },
+    { name: "Tariflar va Narxlar", href: "/admin/pricing", icon: CreditCard },
+    { name: "Promo Kodlar", href: "/admin/promo", icon: Tag },
+    { name: "Yaratilgan Hujjatlar", href: "/admin/resumes", icon: FileText },
+    { name: "Tizim Sozlamalari", href: "/admin/settings", icon: Settings },
   ];
 
-  const superAdminNavigation = [
-    { name: t.sidebarDashboard || "Overview", href: "/super-admin", icon: LayoutDashboard },
-    { name: "AI Tokenlar & Hisobot", href: "/admin/ai-analytics", icon: Sparkles },
-    { name: "Role Management", href: "/super-admin/roles", icon: ShieldAlert },
-    { name: "API Keys", href: "/super-admin/api-keys", icon: Key },
-    { name: t.sidebarSettings || "Global Settings", href: "/super-admin/settings", icon: Settings },
-  ];
+  const superAdminNavigation = adminNavigation;
 
   let topNavigation = userNavigation;
   let title = "DocNova";
@@ -74,6 +88,7 @@ export function Sidebar() {
 
   const isDashboardRoute =
     pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/help") ||
     pathname === "/academic" ||
     pathname === "/coursework" ||
     pathname === "/documents" ||

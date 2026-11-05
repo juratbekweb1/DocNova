@@ -109,7 +109,10 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // 2. Auth for protected routes
   if (path.startsWith("/admin") || path.startsWith("/super-admin")) {
-    const token = await getToken({ req: request });
+    const token = await getToken({
+      req: request,
+      secureCookie: process.env.NODE_ENV === "production",
+    });
 
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));

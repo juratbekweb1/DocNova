@@ -170,7 +170,7 @@ function PresentationContent() {
   const [slidesCount, setSlidesCount] = useState<number>(10);
   const [selectedStyle, setSelectedStyle] = useState<PresentationStyle>("academic");
   const [presentationType, setPresentationType] = useState<string>(
-    () => searchParams.get("type") || "coursework"
+    () => searchParams.get("module") || searchParams.get("type") || "coursework"
   );
   const [language, setLanguage] = useState<"uz" | "uz-cyrl" | "ru" | "en">("uz");
 

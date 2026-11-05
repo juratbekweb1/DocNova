@@ -113,7 +113,7 @@ export function QuickCreateWidget() {
       typeId: "coursework",
       desc: t.toolCourseworkDesc || "Generate structured academic coursework automatically.",
       icon: GraduationCap,
-      href: "/coursework"
+      href: "/academic/coursework"
     },
     {
       title: t.toolEssay || "Essay / Report Builder",
@@ -134,7 +134,7 @@ export function QuickCreateWidget() {
       typeId: "coursework-to-slide",
       desc: t.toolSlidesDesc || "Generate PPTX presentations from your coursework.",
       icon: Sparkles,
-      href: "/academic/coursework-to-slide"
+      href: "/academic/presentation?module=coursework"
     },
     {
       title: t.toolPlagiarism || "Plagiarism Detector",
@@ -148,7 +148,7 @@ export function QuickCreateWidget() {
       typeId: "resume-builder",
       desc: t.toolResumeDesc || "Create ATS-friendly resumes in minutes.",
       icon: FileBadge,
-      href: "/documents/resume-builder"
+      href: "/cv-builder"
     },
   ];
 

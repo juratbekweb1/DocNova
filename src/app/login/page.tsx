@@ -47,7 +47,11 @@ export default function LoginPage() {
   };
 
   const handleOAuthProviderClick = (provider: string) => {
-    signIn(provider, { callbackUrl });
+    signIn(
+      provider,
+      { callbackUrl },
+      provider === "google" ? { prompt: "select_account" } : undefined
+    );
   };
 
   return (

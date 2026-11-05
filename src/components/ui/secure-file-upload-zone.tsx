@@ -1,67 +1,59 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, Loader2 } from "lucide-react";
+import {
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Loader2,
+  ShieldAlert,
+  Sparkles,
+  RefreshCw,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  SampleDocumentAnalysis,
+  analyzeSampleDocument,
+  sanitizeSafeFileName,
+  sanitizeUntrustedSampleText,
+  validateSampleFileBuffer,
+} from "@/lib/academic-sample-intelligence";
 
 export interface SecureFileUploadZoneProps {
-  onTextExtracted: (extractedText: string, fileName: string) => void;
+  onTextExtracted: (
+    extractedText: string,
+    fileName: string,
+    analysis?: SampleDocumentAnalysis
+  ) => void;
+  onSampleAnalyzed?: (analysis: SampleDocumentAnalysis) => void;
   onClear?: () => void;
   className?: string;
   maxSizeBytes?: number; // Default 10MB
   title?: string;
   description?: string;
+  showAnalysisCard?: boolean;
 }
-
-const ALLOWED_EXTENSIONS = [".txt", ".docx", ".pdf"];
-const DANGEROUS_EXTENSIONS = [
-  ".exe",
-  ".bat",
-  ".cmd",
-  ".sh",
-  ".php",
-  ".js",
-  ".vbs",
-  ".zip",
-  ".tar",
-  ".gz",
-  ".rar",
-  ".7z",
-  ".py",
-  ".jar",
-  ".msi",
-  ".scr",
-  ".dll",
-];
 
 const MAX_SIZE_DEFAULT = 10 * 1024 * 1024; // 10 MB
 
 /**
- * Sanitize extracted text to prevent script injection before passing to AI prompts
+ * Sanitize extracted text to prevent script & prompt injection before passing to AI prompts
  */
 export function sanitizePromptText(raw: string): string {
-  if (!raw) return "";
-  return (
-    raw
-      // Strip null characters
-      .replace(/\0/g, "")
-      // Neutralize script tags
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "[script_removed]")
-      // Neutralize html event handlers
-      .replace(/\bon\w+\s*=/gi, "on_disabled=")
-      // Normalize excessive consecutive blank lines
-      .replace(/\n{4,}/g, "\n\n\n")
-      .trim()
-  );
+  return sanitizeUntrustedSampleText(raw);
 }
 
 export function SecureFileUploadZone({
   onTextExtracted,
+  onSampleAnalyzed,
   onClear,
   className,
   maxSizeBytes = MAX_SIZE_DEFAULT,
-  title = "Namuna yoki tayyor matn faylini yuklash",
-  description = "Faqat .TXT, .DOCX yoki .PDF (maksimal 10 MB). Fayl matni AI generatsiyasi uchun kontekst sifatida olinadi.",
+  title = "Namuna faylni tanlang yoki shu yerga tashlang",
+  description = "Namuna fayl hujjatning tuzilishi va formatini tushunish uchun ishlatiladi. Yangi hujjat siz tasdiqlagan mavzu va ma'lumotlar asosida tayyorlanadi.",
+  showAnalysisCard = true,
 }: SecureFileUploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,6 +61,7 @@ export function SecureFileUploadZone({
   const [fileSizeStr, setFileSizeStr] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<SampleDocumentAnalysis | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const formatFileSize = (bytes: number): string => {
@@ -77,102 +70,127 @@ export function SecureFileUploadZone({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const validateFile = (file: File): string | null => {
-    const lowerName = file.name.toLowerCase();
-
-    // Dangerous extension check
-    for (const danger of DANGEROUS_EXTENSIONS) {
-      if (lowerName.endsWith(danger)) {
-        return `Xavfli fayl turi aniqlandi (${danger}). Faqat .txt, .docx yoki .pdf yuklang.`;
-      }
-    }
-
-    // Allowed extension check
-    const isAllowed = ALLOWED_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
-    if (!isAllowed) {
-      return "Faqat .txt, .docx va .pdf formatdagi fayllar qabul qilinadi.";
-    }
-
-    // Size check
-    if (file.size > maxSizeBytes) {
-      return `Fayl hajmi ruxsat etilgan limitdan (${formatFileSize(maxSizeBytes)}) katta.`;
-    }
-
-    return null;
-  };
-
   const processFile = async (file: File) => {
     setErrorMessage(null);
     setSuccessMessage(null);
+    setAnalysis(null);
 
-    const validationError = validateFile(file);
-    if (validationError) {
-      setErrorMessage(validationError);
+    if (file.size <= 0) {
+      setErrorMessage(
+        "Yuklangan fayl bo'sh (0 bayt). Iltimos, matni bor boshqa fayl yuklang yoki «Noldan yaratish» rejimini tanlang."
+      );
+      return;
+    }
+
+    if (file.size > maxSizeBytes) {
+      setErrorMessage(
+        `Fayl hajmi ruxsat etilgan me'yordan (${formatFileSize(maxSizeBytes)}) katta. Kichikroq fayl tanlang.`
+      );
       return;
     }
 
     setIsProcessing(true);
-    setCurrentFileName(file.name);
+    const safeName = sanitizeSafeFileName(file.name);
+    setCurrentFileName(safeName);
     setFileSizeStr(formatFileSize(file.size));
 
     try {
-      const lowerName = file.name.toLowerCase();
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+
+      const validation = validateSampleFileBuffer({
+        fileName: safeName,
+        fileSize: file.size,
+        mimeType: file.type,
+        buffer: uint8,
+        maxSizeBytes,
+      });
+
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+
       let extractedText = "";
+      let serverAnalysis: SampleDocumentAnalysis | undefined;
 
-      if (lowerName.endsWith(".txt")) {
-        extractedText = await file.text();
-      } else if (lowerName.endsWith(".docx")) {
-        const mammothModule = await import("mammoth");
-        const mammoth =
-          (mammothModule as unknown as { default?: typeof mammothModule }).default || mammothModule;
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        extractedText = result.value || "";
-      } else if (lowerName.endsWith(".pdf")) {
-        // In-memory extraction via pdf-lib or client text stream
-        const { PDFDocument } = await import("pdf-lib");
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-        const pageCount = pdfDoc.getPageCount();
-
-        // Send to client-safe text extraction endpoint or parse text stream
-        // Fallback: extract form fields or textual stream
+      if (validation.ext === ".txt") {
+        extractedText = new TextDecoder("utf-8").decode(uint8);
+      } else if (validation.ext === ".docx") {
         try {
+          const mammothModule = await import("mammoth");
+          const mammoth =
+            (mammothModule as unknown as { default?: typeof mammothModule }).default ||
+            mammothModule;
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          extractedText = result.value || "";
+        } catch {
+          // Server fallback
           const formData = new FormData();
           formData.append("file", file);
-          const res = await fetch("/api/pdf/extract-text", {
+          const res = await fetch("/api/academic/analyze-sample", {
             method: "POST",
             body: formData,
           });
-          if (res.ok) {
-            const data = await res.json();
-            extractedText = data.text || "";
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(
+              data.error ||
+                "DOCX faylni o'qib bo'lmadi. Fayl shikastlangan bo'lishi mumkin — boshqa fayl tanlang."
+            );
           }
-        } catch {
-          // If serverless endpoint fails, note page count
-          extractedText = `[PDF Hujjat: ${file.name}, Sahifalar soni: ${pageCount}]`;
+          extractedText = data.text || "";
+          serverAnalysis = data.analysis;
         }
-
-        if (!extractedText) {
-          extractedText = `[PDF Hujjat: ${file.name}, Sahifalar soni: ${pageCount}]`;
+      } else if (validation.ext === ".pdf") {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/academic/analyze-sample", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              "PDF fayldan matn ajratib olinmadi. Parol bilan himoyalangan yoki skanerlangan rasm bo'lishi mumkin."
+          );
         }
+        extractedText = data.text || "";
+        serverAnalysis = data.analysis;
       }
 
-      const sanitized = sanitizePromptText(extractedText);
-      if (!sanitized) {
-        throw new Error("Fayldan matn ajratib olinmadi yoki fayl bo'sh.");
+      const sanitized = sanitizeUntrustedSampleText(extractedText);
+      if (!sanitized || sanitized.replace(/\s+/g, "").length < 20) {
+        throw new Error(
+          "Fayldan matn ajratib olinmadi yoki fayl bo'sh. Boshqa DOCX/PDF fayl yuklang yoki «Noldan yaratish» rejimidan foydalaning."
+        );
       }
 
-      onTextExtracted(sanitized, file.name);
+      const finalAnalysis =
+        serverAnalysis ||
+        analyzeSampleDocument({
+          rawText: sanitized,
+          fileName: safeName,
+          fileSize: file.size,
+        });
+
+      setAnalysis(finalAnalysis);
+      onSampleAnalyzed?.(finalAnalysis);
+      // MUHIM (5-bo'lim qoidasi): Generatorga xom matn emas, balki shaxsiy ma'lumotlardan va eski mavzudan
+      // tozalangan `structuralBlueprint` uzatiladi!
+      onTextExtracted(finalAnalysis.structuralBlueprint, safeName, finalAnalysis);
       setSuccessMessage(
-        `«${file.name}» muvaffaqiyatli yuklandi va matni ajratildi (~${sanitized.length.toLocaleString()} ta belgi).`
+        `«${safeName}» tahlil qilindi: tuzilma olindi, eski shaxsiy ma'lumotlar ajratildi.`
       );
     } catch (err: unknown) {
-      console.error("[SECURE_FILE_UPLOAD_ERROR]", err);
-      const msg = err instanceof Error ? err.message : "Faylni o'qishda xatolik yuz berdi.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Faylni o'qishda xatolik yuz berdi. Boshqa fayl yuklang yoki noldan yarating.";
       setErrorMessage(msg);
       setCurrentFileName(null);
       setFileSizeStr(null);
+      setAnalysis(null);
     } finally {
       setIsProcessing(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -194,14 +212,14 @@ export function SecureFileUploadZone({
     setIsDragging(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      processFile(files[0]);
+      void processFile(files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      processFile(files[0]);
+      void processFile(files[0]);
     }
   };
 
@@ -210,16 +228,25 @@ export function SecureFileUploadZone({
     setFileSizeStr(null);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setAnalysis(null);
     if (inputRef.current) inputRef.current.value = "";
     onClear?.();
   };
 
+  const hasIsolatedPii = Boolean(
+    analysis &&
+      (analysis.isolatedOldMetadata.oldStudentName ||
+        analysis.isolatedOldMetadata.oldTeacherName ||
+        analysis.isolatedOldMetadata.oldGroup ||
+        analysis.isolatedOldMetadata.oldTopic)
+  );
+
   return (
-    <div className={cn("w-full space-y-2.5", className)}>
+    <div className={cn("w-full space-y-3", className)}>
       <input
         ref={inputRef}
         type="file"
-        accept=".txt,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".docx,.pdf,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,text/plain"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -230,14 +257,14 @@ export function SecureFileUploadZone({
         onDrop={handleDrop}
         onClick={() => !isProcessing && inputRef.current?.click()}
         className={cn(
-          "group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-5 text-center transition-all",
+          "group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all sm:p-5",
           isDragging
             ? "border-primary bg-primary/10 scale-[0.99]"
             : "border-border/80 bg-surface/30 hover:border-primary/50 hover:bg-surface-elevated/60",
           isProcessing && "pointer-events-none opacity-60"
         )}
       >
-        <div className="bg-primary/10 text-primary border-primary/20 mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl border transition-transform group-hover:scale-105">
+        <div className="bg-primary/10 text-primary border-primary/20 mb-2 flex h-10 w-10 items-center justify-center rounded-xl border transition-transform group-hover:scale-105">
           {isProcessing ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
@@ -245,48 +272,170 @@ export function SecureFileUploadZone({
           )}
         </div>
 
-        <div className="text-foreground text-xs font-bold">
-          {isProcessing ? "Fayl tahlil qilinmoqda..." : title}
+        <div className="text-foreground text-xs font-bold sm:text-sm">
+          {isProcessing ? "Namuna fayl tuzilmasi tahlil qilinmoqda..." : title}
         </div>
-        <p className="text-foreground-muted mt-1 max-w-md text-[11px] leading-relaxed">
+        <p className="text-foreground-muted mt-1 max-w-lg text-[11px] leading-relaxed">
           {description}
         </p>
 
-        <div className="text-foreground-secondary mt-2.5 inline-flex items-center gap-2 text-[10px] font-medium">
+        <div className="text-foreground-secondary mt-2.5 inline-flex flex-wrap items-center justify-center gap-1.5 text-[10px] font-medium">
+          <span className="border-border bg-surface-elevated rounded-md border px-2 py-0.5 font-semibold">
+            .DOCX (Word)
+          </span>
+          <span className="border-border bg-surface-elevated rounded-md border px-2 py-0.5 font-semibold">
+            .PDF (Matnli)
+          </span>
           <span className="border-border bg-surface-elevated rounded-md border px-2 py-0.5">
             .TXT
           </span>
-          <span className="border-border bg-surface-elevated rounded-md border px-2 py-0.5">
-            .DOCX
+          <span className="text-foreground-muted">
+            • Maksimal hajm: {formatFileSize(maxSizeBytes)}
           </span>
-          <span className="border-border bg-surface-elevated rounded-md border px-2 py-0.5">
-            .PDF
-          </span>
-          <span className="text-foreground-muted">• Max: 10 MB</span>
         </div>
       </div>
 
-      {/* Active File Loaded Banner */}
+      {/* Active File Loaded Banner with Replace & Remove buttons */}
       {currentFileName && (
-        <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-400">
-          <div className="flex items-center gap-2 truncate">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-400">
+          <div className="flex min-w-0 items-center gap-2">
             <FileText className="h-4 w-4 shrink-0" />
             <span className="truncate font-semibold">{currentFileName}</span>
             {fileSizeStr && (
-              <span className="text-[10px] text-emerald-300/80">({fileSizeStr})</span>
+              <span className="shrink-0 text-[10px] text-emerald-300/80">({fileSizeStr})</span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemove();
-            }}
-            className="rounded-md p-1 text-emerald-300 transition-colors hover:bg-emerald-500/20"
-            title="Faylni olib tashlash"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.click();
+              }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20"
+              title="Boshqa fayl tanlash"
+            >
+              <RefreshCw className="h-3 w-3" />
+              <span>Almashtirish</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemove();
+              }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+              title="Faylni olib tashlash"
+            >
+              <X className="h-3 w-3" />
+              <span>O&apos;chirish</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Sample Analysis & PII Isolation Report Card */}
+      {showAnalysisCard && analysis && !errorMessage && (
+        <div className="border-border bg-surface-elevated/60 space-y-3 rounded-2xl border p-4 text-xs shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/40 pb-2.5">
+            <div className="text-foreground flex items-center gap-1.5 font-bold">
+              <Sparkles className="text-primary h-4 w-4" />
+              <span>Namuna tahlili</span>
+            </div>
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
+              Tuzilma o&apos;rganildi
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="border-border/60 bg-background/60 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+              <div>
+                <span className="text-foreground-muted block text-[10px]">Hujjat turi:</span>
+                <span className="text-foreground font-semibold">{analysis.documentType.value}</span>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                  analysis.documentType.status === "Aniqlandi"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-amber-500/15 text-amber-400"
+                )}
+              >
+                {analysis.documentType.status}
+              </span>
+            </div>
+
+            <div className="border-border/60 bg-background/60 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+              <div>
+                <span className="text-foreground-muted block text-[10px]">Taxminiy hajm:</span>
+                <span className="text-foreground font-semibold">
+                  ~{analysis.estimatedPages} bet ({analysis.wordCount.toLocaleString()} so&apos;z)
+                </span>
+              </div>
+              <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                Aniqlandi
+              </span>
+            </div>
+
+            <div className="border-border/60 bg-background/60 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 sm:col-span-2">
+              <div className="min-w-0">
+                <span className="text-foreground-muted block text-[10px]">Aniqlangan tuzilma:</span>
+                <span className="text-foreground block font-semibold break-words">
+                  {analysis.structureSummary}
+                </span>
+              </div>
+              <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                Aniqlandi
+              </span>
+            </div>
+
+            {analysis.subject.value && (
+              <div className="border-border/60 bg-background/60 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 sm:col-span-2">
+                <div className="min-w-0">
+                  <span className="text-foreground-muted block text-[10px]">Namunadagi fan:</span>
+                  <span className="text-foreground block font-semibold break-words">
+                    {analysis.subject.value}
+                  </span>
+                </div>
+                <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
+                  Tekshirish kerak
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Shaxsiy ma'lumotlarni ajratish haqida ogohlantirish (5-bo'lim talabi) */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200">
+            <div className="mb-1 flex items-center gap-1.5 font-bold text-amber-300">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>Eski shaxsiy ma&apos;lumotlar va eski mavzu bloklandi (Himoyalangan)</span>
+            </div>
+            <p className="text-amber-100/90">
+              Namunadan <strong>faqat tuzilma, boblar iyerarxiyasi va format</strong> olindi.
+              {hasIsolatedPii ? (
+                <>
+                  {" "}
+                  Fayl ichidagi eski ma&apos;lumotlar (
+                  {[
+                    analysis.isolatedOldMetadata.oldStudentName
+                      ? `talaba: ${analysis.isolatedOldMetadata.oldStudentName}`
+                      : null,
+                    analysis.isolatedOldMetadata.oldTeacherName
+                      ? `rahbar: ${analysis.isolatedOldMetadata.oldTeacherName}`
+                      : null,
+                    analysis.isolatedOldMetadata.oldTopic
+                      ? `eski mavzu: «${analysis.isolatedOldMetadata.oldTopic.slice(0, 45)}...»`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                  ) yangi hujjatga <strong>ko&apos;chirilmaydi</strong>.
+                </>
+              ) : (
+                " Yangi hujjat faqat siz pastda kiritgan mavzu va ism-familiya asosida yoziladi."
+              )}
+            </p>
+          </div>
         </div>
       )}
 
@@ -294,7 +443,7 @@ export function SecureFileUploadZone({
       {errorMessage && (
         <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div className="flex-1">{errorMessage}</div>
+          <div className="flex-1 break-words">{errorMessage}</div>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
@@ -306,7 +455,7 @@ export function SecureFileUploadZone({
       )}
 
       {/* Success Notification */}
-      {successMessage && !errorMessage && (
+      {successMessage && !errorMessage && !showAnalysisCard && (
         <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-300">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
           <span className="truncate">{successMessage}</span>

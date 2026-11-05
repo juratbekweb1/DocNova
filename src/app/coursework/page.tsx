@@ -26,6 +26,8 @@ import {
   Zap,
   Plus,
   Trash2,
+  AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import {
@@ -35,10 +37,11 @@ import {
   exportElementsToPdf,
   inAppHint,
 } from "@/lib/pdf-export";
+import { downloadAcademicDocx } from "@/lib/docx-download-client";
 import { useToast } from "@/hooks/use-toast";
 import type { CourseworkOutline, CourseworkPage } from "@/app/api/generate-coursework/route";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
-import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
+import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
 
 const FACULTIES_AND_SUBJECTS: {
   category: string;
@@ -334,6 +337,24 @@ export default function CourseworkGenerator() {
   const [showTitleDetails, setShowTitleDetails] = useState(false);
   const [isFastGenerating, setIsFastGenerating] = useState(false);
   const [isCustomPageCount, setIsCustomPageCount] = useState(false);
+  const [generationError, setGenerationError] = useState<{
+    message: string;
+    creditRefunded?: boolean;
+    retryMode: "fast" | "outline" | "full";
+  } | null>(null);
+
+  const handleRetryGeneration = () => {
+    if (!generationError) return;
+    const mode = generationError.retryMode;
+    setGenerationError(null);
+    if (mode === "outline") {
+      void handleProceedToOutline();
+    } else if (mode === "full") {
+      void handleStartFullGeneration();
+    } else {
+      void handleOneClickGenerate();
+    }
+  };
 
   const handleCustomPageCountChange = (raw: string) => {
     setIsCustomPageCount(true);
@@ -375,6 +396,7 @@ export default function CourseworkGenerator() {
       outline: matchedOutline,
     };
 
+    setGenerationError(null);
     setIsFastGenerating(true);
     setCurrentStep(3);
     setLoading(true);
@@ -391,15 +413,20 @@ export default function CourseworkGenerator() {
       });
     }, 1300);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 48_000);
+
     try {
       const res = await fetch("/api/academic/coursework/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       clearInterval(stepInterval);
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         if (res.status === 401 || data.requireLogin) {
@@ -428,7 +455,11 @@ export default function CourseworkGenerator() {
           });
           return;
         }
-        throw new Error(data.error || "Kurs ishini yaratishda xatolik yuz berdi");
+        const errObj = new Error(data.error || "Kurs ishini yaratishda xatolik yuz berdi") as Error & {
+          creditRefunded?: boolean;
+        };
+        errObj.creditRefunded = Boolean(data.creditRefunded);
+        throw errObj;
       }
 
       setProgressPercent(100);
@@ -442,16 +473,26 @@ export default function CourseworkGenerator() {
       });
     } catch (err: unknown) {
       clearInterval(stepInterval);
+      clearTimeout(timeoutId);
       setLoading(false);
       setIsFastGenerating(false);
       setCurrentStep(1);
-      const e = err as Error;
+      const e = err as Error & { creditRefunded?: boolean };
+      const isTimeout = e?.name === "AbortError";
+      const friendlyMessage = isTimeout
+        ? "Server javob berishi kutilganidan ko'proq vaqt oldi (Timeout). Limitingiz saqlab qolindi — 'Qayta urinish' tugmasini bosing."
+        : e.message?.includes("fetch") || e.message?.includes("network")
+          ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, 'Qayta urinish' tugmasini bosing."
+          : e.message || "Iltimos, qayta urinib ko'ring.";
+
+      setGenerationError({
+        message: friendlyMessage,
+        creditRefunded: isTimeout ? true : Boolean(e.creditRefunded ?? true),
+        retryMode: "fast",
+      });
       toast({
-        title: "Generatsiyada xatolik",
-        description:
-          e.message?.includes("fetch") || e.message?.includes("network")
-            ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
-            : e.message || "Iltimos, qayta urinib ko'ring.",
+        title: isTimeout ? "Vaqt tugadi (Timeout)" : "Generatsiyada xatolik",
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
@@ -462,8 +503,8 @@ export default function CourseworkGenerator() {
   // ------------------------------------------------------------------
   // STEP 1 -> STEP 2: Generate Outline Preview
   // ------------------------------------------------------------------
-  const handleProceedToOutline = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProceedToOutline = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const cleanTopic = formData.topic.trim();
     if (!cleanTopic) {
       toast({
@@ -476,7 +517,11 @@ export default function CourseworkGenerator() {
     const cleanSubject =
       formData.subject.trim() || activeCategory.subjects[0] || "Mutaxassislik fani";
 
+    setGenerationError(null);
     setIsOutlineLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35_000);
 
     try {
       const res = await fetch("/api/academic/coursework/generate", {
@@ -488,9 +533,11 @@ export default function CourseworkGenerator() {
           topic: cleanTopic,
           subject: cleanSubject,
         }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      clearTimeout(timeoutId);
       if (!res.ok) {
         if (res.status === 401 || data.requireLogin) {
           toast({
@@ -527,10 +574,20 @@ export default function CourseworkGenerator() {
         description: "Boblar va paragraflarni ko'rib chiqing va zarur bo'lsa tahrirlang.",
       });
     } catch (err: unknown) {
+      clearTimeout(timeoutId);
       const e = err as Error;
+      const isTimeout = e?.name === "AbortError";
+      const friendlyMessage = isTimeout
+        ? "Reja tuzish vaqti cho'zilib ketdi. Limitingiz yechilmadi — qayta urinib ko'ring."
+        : e.message || "Iltimos, qayta urinib ko'ring.";
+      setGenerationError({
+        message: friendlyMessage,
+        creditRefunded: true,
+        retryMode: "outline",
+      });
       toast({
         title: "Reja tuzishda xatolik",
-        description: e.message || "Iltimos, qayta urinib ko'ring.",
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
@@ -608,6 +665,7 @@ export default function CourseworkGenerator() {
         ? outline
         : undefined;
 
+    setGenerationError(null);
     setCurrentStep(3);
     setLoading(true);
     setResult(null);
@@ -623,6 +681,9 @@ export default function CourseworkGenerator() {
       });
     }, 1300);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 48_000);
+
     try {
       const res = await fetch("/api/academic/coursework/generate", {
         method: "POST",
@@ -633,10 +694,12 @@ export default function CourseworkGenerator() {
           topic: cleanTopic,
           outline: matchedOutline,
         }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       clearInterval(stepInterval);
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         if (res.status === 403 || data.requireUpgrade) {
@@ -654,9 +717,11 @@ export default function CourseworkGenerator() {
           });
           return;
         }
-        throw new Error(
+        const errObj = new Error(
           data.upgradeMessage || data.error || "Kurs ishini generatsiya qilishda xatolik yuz berdi"
-        );
+        ) as Error & { creditRefunded?: boolean };
+        errObj.creditRefunded = Boolean(data.creditRefunded);
+        throw errObj;
       }
 
       setProgressPercent(100);
@@ -676,208 +741,71 @@ export default function CourseworkGenerator() {
       }, 500);
     } catch (err: unknown) {
       clearInterval(stepInterval);
+      clearTimeout(timeoutId);
       setLoading(false);
       setCurrentStep(2); // return to outline on error
-      const e = err as Error;
+      const e = err as Error & { creditRefunded?: boolean };
+      const isTimeout = e?.name === "AbortError";
+      const friendlyMessage = isTimeout
+        ? "Server javob berishi kutilganidan ko'proq vaqt oldi (Timeout). Limitingiz saqlab qolindi — 'Qayta urinish' tugmasini bosing."
+        : e.message?.includes("fetch") || e.message?.includes("network")
+          ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, 'Qayta urinish' tugmasini bosing."
+          : e.message || "Iltimos, qayta urinib ko'ring.";
+
+      setGenerationError({
+        message: friendlyMessage,
+        creditRefunded: isTimeout ? true : Boolean(e.creditRefunded ?? true),
+        retryMode: "full",
+      });
       toast({
-        title: "Generatsiyada xatolik",
-        description:
-          e.message?.includes("fetch") || e.message?.includes("network")
-            ? "Tarmoqda uzilish yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
-            : e.message || "Iltimos, qayta urinib ko'ring.",
+        title: isTimeout ? "Vaqt tugadi (Timeout)" : "Generatsiyada xatolik",
+        description: friendlyMessage,
         variant: "destructive",
       });
     }
   };
 
   // ------------------------------------------------------------------
-  // Word (.doc / .docx compatible) Export
+  // Word (.docx + QR Verification) Export
   // ------------------------------------------------------------------
-  function formatMarkdownToWordHTML(md: string): string {
-    const lines = md.split("\n");
-    const resultLines: string[] = [];
-    let inTable = false;
-    let tableRows: string[][] = [];
-
-    const flushTable = () => {
-      if (tableRows.length === 0) return;
-      let tableHtml =
-        "<table border='1' cellspacing='0' cellpadding='6' style='width:100%; border-collapse:collapse; margin-top:14pt; margin-bottom:14pt;'>";
-      tableRows.forEach((row, rowIdx) => {
-        tableHtml += "<tr>";
-        row.forEach((cell) => {
-          const tag = rowIdx === 0 ? "th" : "td";
-          const style =
-            rowIdx === 0
-              ? "style='background-color:#f1f5f9; font-weight:bold; text-align:center; border:1pt solid #000; padding:6pt; font-size:12pt;'"
-              : "style='text-align:left; border:1pt solid #000; padding:6pt; font-size:12pt;'";
-          tableHtml += `<${tag} ${style}>${cell}</${tag}>`;
-        });
-        tableHtml += "</tr>";
-      });
-      tableHtml += "</table>";
-      resultLines.push(tableHtml);
-      tableRows = [];
-      inTable = false;
-    };
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith("|") && line.endsWith("|")) {
-        const isSeparator = /^\|[\s\-:|]+\|$/.test(line);
-        if (isSeparator) continue;
-        const cells = line
-          .slice(1, -1)
-          .split("|")
-          .map((c) => c.trim());
-        inTable = true;
-        tableRows.push(cells);
-      } else {
-        if (inTable) flushTable();
-        resultLines.push(lines[i]);
-      }
-    }
-    if (inTable) flushTable();
-
-    let html = resultLines.join("\n");
-    html = html.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n");
-    html = html
-      .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-      .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-      .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-      .replace(/\*(.*?)\*/g, "<i>$1</i>")
-      .replace(/^-\s+(.*$)/gim, "<li>$1</li>")
-      .replace(/\n\n/g, "</p><p>")
-      .replace(/\n/g, "<br/>");
-
-    return `<p>${html}</p>`;
-  }
-
-  const handleDownloadWord = () => {
+  const handleDownloadWord = async () => {
     if (!result && pages.length === 0) return;
 
-    const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Kurs_Ishi";
-    const titleText = formData.topic;
+    try {
+      setDownloading(true);
+      setDownloadProgress("Word (.docx) fayl tayyorlanmoqda...");
 
-    const htmlContent =
-      pages.length > 0
-        ? pages
-            .map(
-              (p, idx) => `
-        <div class="page-container ${idx > 0 ? "page-break" : ""}">
-          ${formatMarkdownToWordHTML(p.content)}
-          ${p.pageNumber > 1 ? `<div class="footer-page-num">${p.pageNumber}</div>` : ""}
-        </div>
-      `
-            )
-            .join("\n")
-        : formatMarkdownToWordHTML(result || "");
+      const exported = await downloadAcademicDocx({
+        topic: formData.topic || "Kurs ishi",
+        markdownContent: result || "",
+        pages: pages.length > 0 ? pages : undefined,
+        workType: "Kurs ishi",
+        subject: formData.subject,
+        university: formData.university,
+        faculty: formData.faculty,
+        studentName: formData.studentName,
+        teacherName: formData.teacherName,
+        language: formData.language,
+        year: formData.year,
+      });
 
-    const wordDocHTML = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>${titleText}</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-            <w:DoNotOptimizeForBrowser/>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          @page Section1 {
-            size: 210mm 297mm;
-            margin: 20mm 20mm 20mm 25mm; /* Chapdan 25mm, qolgan hoshiyalar 20mm */
-            mso-header-margin: 15mm;
-            mso-footer-margin: 15mm;
-            mso-paper-source: 0;
-          }
-          div.Section1 { page: Section1; }
-          body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 14pt;
-            line-height: 1.5;
-            color: #000000;
-            text-align: justify;
-          }
-          h1 {
-            font-size: 16pt;
-            font-weight: bold;
-            text-align: center;
-            text-transform: uppercase;
-            margin-top: 24pt;
-            margin-bottom: 18pt;
-          }
-          h2 {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-top: 18pt;
-            margin-bottom: 12pt;
-          }
-          h3 {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-top: 12pt;
-            margin-bottom: 6pt;
-          }
-          p {
-            text-indent: 1.25cm;
-            margin-top: 0;
-            margin-bottom: 6pt;
-            line-height: 1.5;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 12pt;
-            margin-bottom: 12pt;
-          }
-          th, td {
-            border: 1pt solid #000000;
-            padding: 5pt;
-            font-size: 12pt;
-          }
-          th {
-            background-color: #f1f5f9;
-            font-weight: bold;
-            text-align: center;
-          }
-          .page-break {
-            page-break-before: always;
-            mso-break-type: page-break;
-          }
-          .footer-page-num {
-            text-align: center;
-            font-size: 11pt;
-            margin-top: 18pt;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="Section1">
-          ${htmlContent}
-        </div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([wordDocHTML], { type: "application/msword;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Kurs_Ishi_${cleanTopic}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Word fayl yuklab olindi! 📄",
-      description:
-        "Hujjat MOVSO talablariga mos Times New Roman 14pt, 1.5 interval va standart hoshiyalar bilan saqlandi.",
-    });
+      if (exported.deliveryMethod !== "cancelled") {
+        toast({
+          title: "Word (.docx) fayl yuklab olindi! 📄",
+          description: "OTM va GOST standartiga mos tahrirlanadigan Word (.docx) hujjat saqlandi.",
+        });
+      }
+    } catch (err) {
+      console.error("[COURSEWORK_DOCX_EXPORT_ERR]", err);
+      toast({
+        title: "Word yuklab olishda xatolik",
+        description: err instanceof Error ? err.message : "Iltimos, qayta urinib ko'ring.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(null);
+    }
   };
 
   // ------------------------------------------------------------------
@@ -1098,33 +1026,117 @@ export default function CourseworkGenerator() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* ========================================================= */}
+        {/* GLOBAL ERROR RECOVERY & CREDIT REFUND BANNER (WITH RETRY) */}
+        {/* ========================================================= */}
+        {generationError && currentStep !== 3 && (
+          <div className="mx-auto mb-6 max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/5 p-4 shadow-md sm:p-5 print:hidden">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-xl bg-red-500/15 p-2.5 text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <h3 className="text-foreground text-sm font-bold break-words sm:text-base">
+                  Generatsiyada uzilish yuz berdi
+                </h3>
+                <p className="text-foreground-secondary text-xs leading-relaxed break-words sm:text-sm">
+                  {generationError.message}
+                </p>
+              </div>
+            </div>
+
+            {generationError.creditRefunded && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
+                <span className="break-words">
+                  Xatolik sababli sarflangan AI limitingiz (kreditingiz) avtomatik tarzda
+                  hisobingizga qaytarildi.
+                </span>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleRetryGeneration}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-md transition-all sm:text-sm"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Qayta urinish (Retry)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerationError(null)}
+                className="border-border bg-surface text-foreground-secondary hover:text-foreground flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-xs font-semibold transition-colors"
+              >
+                Yopish
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================= */}
         {/* STEP 1: ULTRA-SIMPLE STUDENT-FRIENDLY WIZARD */}
         {/* ========================================================= */}
         {currentStep === 1 && (
           <div className="mx-auto max-w-3xl">
-            <div className="border-border bg-surface rounded-2xl border p-5 shadow-sm sm:p-7">
-              <div className="border-border mb-6 flex items-center justify-between border-b pb-4">
-                <div>
-                  <h2 className="text-foreground flex items-center gap-2 text-lg font-bold sm:text-xl">
-                    <Sparkles className="text-primary h-5 w-5" />
+            <div className="border-border bg-surface min-w-0 rounded-2xl border p-4 shadow-sm sm:p-7">
+              <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-2 border-b pb-4">
+                <div className="min-w-0">
+                  <h2 className="text-foreground flex items-center gap-2 text-lg font-bold break-words sm:text-xl">
+                    <Sparkles className="text-primary h-5 w-5 shrink-0" />
                     <span>Kurs ishi generatori</span>
                   </h2>
-                  <p className="text-foreground-secondary mt-0.5 text-xs sm:text-sm">
+                  <p className="text-foreground-secondary mt-0.5 text-xs break-words sm:text-sm">
                     Mavzuni kiriting va bir klikda OTM talablariga mos to&apos;liq kurs ishiga ega
                     bo&apos;ling.
                   </p>
                 </div>
-                <span className="text-primary bg-primary/10 border-primary/20 rounded-full border px-3 py-1 text-xs font-bold">
+                <span className="text-primary bg-primary/10 border-primary/20 shrink-0 rounded-full border px-3 py-1 text-xs font-bold">
                   {formData.pageCount || "19"} bet
                 </span>
               </div>
 
               <div className="space-y-5">
+                {/* 0. YARATISH USULI: NOLDAN YARATISH YOKI NAMUNA FAYLIM BOR (3, 4, 5-bo'limlar) */}
+                <CreationModeSelector
+                  moduleType="coursework"
+                  accentColor="blue"
+                  onSampleBlueprintReady={(blueprint) => {
+                    // MUHIM: Namuna fayldagi eski mavzu va eski talaba F.I.Sh. yangi hujjatga avtomatik ko'chirilmaydi!
+                    setFormData((prev) => ({
+                      ...prev,
+                      templateText: blueprint,
+                    }));
+                  }}
+                  onSampleCleared={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      templateText: "",
+                    }))
+                  }
+                  onNaturalPromptParsed={(parsed) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic: parsed.topic || prev.topic,
+                      subject: parsed.subject || prev.subject,
+                      pageCount: parsed.pageCount || prev.pageCount,
+                      language: parsed.language || prev.language,
+                    }));
+                  }}
+                  onApplySampleStructureHint={(hint) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      subject: hint.subject || prev.subject,
+                      pageCount: hint.pageCount || prev.pageCount,
+                    }));
+                  }}
+                />
+
                 {/* 1. MAVZU (HERO INPUT) */}
                 <div>
-                  <label className="text-foreground mb-1.5 flex items-center justify-between text-xs font-bold sm:text-sm">
+                  <label className="text-foreground mb-1.5 flex flex-wrap items-center justify-between gap-1 text-xs font-bold sm:text-sm">
                     <span>Kurs ishi mavzusi *</span>
                     <span className="text-foreground-muted text-[11px] font-normal">
                       Aniq va to&apos;liq yozing
@@ -1139,13 +1151,13 @@ export default function CourseworkGenerator() {
                       handleTopicChange(e.target.value)
                     }
                     placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari..."
-                    className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-xs leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
+                    className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-base leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
                   />
 
                   {/* QUICK TOPIC SUGGESTIONS */}
                   <div className="mt-2.5">
                     <span className="text-foreground-muted mb-1.5 flex items-center gap-1 text-[11px] font-semibold">
-                      <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                      <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-400" />
                       <span>Ommabop mavzulardan tezkor tanlash:</span>
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -1159,7 +1171,7 @@ export default function CourseworkGenerator() {
                           key={i}
                           type="button"
                           onClick={() => handleSelectTopicSuggestion(item)}
-                          className="border-border bg-surface-elevated hover:bg-primary/10 hover:border-primary/50 text-foreground-secondary hover:text-foreground cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all"
+                          className="border-border bg-surface-elevated hover:bg-primary/10 hover:border-primary/50 text-foreground-secondary hover:text-foreground cursor-pointer rounded-lg border px-2.5 py-1.5 text-left text-[11px] font-medium break-words transition-all"
                         >
                           ⚡ {item}
                         </button>
@@ -1181,7 +1193,7 @@ export default function CourseworkGenerator() {
                       value={formData.subject}
                       onChange={handleChange}
                       placeholder="Masalan: Bank ishi, Informatika, Iqtisodiyot..."
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3.5 py-2.5 text-xs focus:outline-none sm:text-sm"
+                      className="border-border bg-background text-foreground focus:border-primary min-h-[44px] w-full rounded-xl border px-3.5 py-2.5 text-base focus:outline-none sm:text-sm"
                     />
                   </div>
 
@@ -1203,7 +1215,7 @@ export default function CourseworkGenerator() {
                           }));
                         }
                       }}
-                      className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2.5 text-xs focus:outline-none sm:text-sm"
+                      className="border-border bg-background text-foreground focus:border-primary min-h-[44px] w-full rounded-xl border px-3 py-2.5 text-base focus:outline-none sm:text-sm"
                     >
                       {FACULTIES_AND_SUBJECTS.map((item, idx) => (
                         <option key={idx} value={idx}>
@@ -1221,7 +1233,7 @@ export default function CourseworkGenerator() {
                     <label className="text-foreground mb-1.5 block text-xs font-bold">
                       Hajm (sahifalar soni: 1 — 500 betgacha)
                     </label>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
                       {[
                         { cnt: "15", label: "15 bet" },
                         { cnt: "25", label: "25 bet" },
@@ -1237,7 +1249,7 @@ export default function CourseworkGenerator() {
                             setIsCustomPageCount(false);
                             setFormData((prev) => ({ ...prev, pageCount: item.cnt }));
                           }}
-                          className={`flex h-10 cursor-pointer items-center justify-center rounded-xl border px-3 text-xs font-bold transition-all ${
+                          className={`flex min-h-[42px] cursor-pointer items-center justify-center rounded-xl border px-3 text-xs font-bold whitespace-nowrap transition-all ${
                             !isCustomPageCount && formData.pageCount === item.cnt
                               ? "bg-primary border-primary ring-primary/40 text-white shadow-md ring-1"
                               : "bg-surface-elevated border-border text-foreground hover:border-primary/50"
@@ -1261,7 +1273,7 @@ export default function CourseworkGenerator() {
                         placeholder="Ixtiyoriy (masalan: 75)"
                         aria-label="Boshqa sahifalar soni (1-500)"
                         title="O'zingiz xohlagan sahifalar sonini kiriting (1 dan 500 gacha)"
-                        className={`h-10 max-w-[160px] rounded-xl border px-3 text-center text-xs font-bold transition-all focus:outline-none ${
+                        className={`col-span-3 min-h-[42px] w-full rounded-xl border px-3 text-center text-base font-bold transition-all focus:outline-none sm:max-w-[160px] sm:text-xs ${
                           isCustomPageCount ||
                           (!["15", "25", "50", "100", "200", "300"].includes(formData.pageCount) &&
                             formData.pageCount !== "")
@@ -1301,28 +1313,6 @@ export default function CourseworkGenerator() {
                 </div>
 
                 {/* 4. OPTIONAL TITUL DETAILS COLLAPSIBLE ACCORDION */}
-                <div className="space-y-3">
-                  <div className="border-border/80 bg-surface-elevated/40 rounded-xl border p-3.5">
-                    <label className="text-foreground mb-2 block text-xs font-bold">
-                      Namuna yoki tayyor matn fayli (Ixtiyoriy)
-                    </label>
-                    <SecureFileUploadZone
-                      onTextExtracted={(text, fileName) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          templateText: text,
-                          // If topic is empty, suggest extracting from filename
-                          topic: prev.topic || fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
-                        }));
-                      }}
-                      onClear={() => setFormData((prev) => ({ ...prev, templateText: "" }))}
-                      title="Kurs ishi namunasi yoki rejasini yuklash (.txt, .docx, .pdf)"
-                      description="AI ushbu fayldagi matn, talablar va tuzilmani to'liq hisobga oladi."
-                    />
-                  </div>
-                </div>
-
-                {/* 5. OPTIONAL TITUL DETAILS COLLAPSIBLE ACCORDION */}
                 <div className="border-border/80 bg-surface-elevated/40 rounded-xl border">
                   <button
                     type="button"
@@ -1714,62 +1704,63 @@ export default function CourseworkGenerator() {
         {currentStep === 4 && (pages.length > 0 || cleanResult) && (
           <div className="flex flex-col items-center">
             {/* Top Export Toolbar */}
-            <div className="border-border bg-surface mb-6 flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 shadow-sm print:hidden">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+            <div className="border-border bg-surface mb-6 flex w-full max-w-5xl flex-col gap-3 rounded-2xl border p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between print:hidden">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
-                <div>
-                  <h3 className="text-foreground text-sm font-bold">
+                <div className="min-w-0">
+                  <h3 className="text-foreground text-sm font-bold break-words">
                     Kurs ishi tayyor (
                     {pages.length > 0 ? `${pages.length} sahifa` : `${formData.pageCount} sahifa`})
                   </h3>
-                  <span className="text-foreground-secondary text-xs">
+                  <span className="text-foreground-secondary block text-xs break-words">
                     MOVSO standarti • Times New Roman 14pt • Chapdan 25mm
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                 {/* Word Download */}
                 <button
                   onClick={handleDownloadWord}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 hover:bg-blue-500"
+                  disabled={downloading}
+                  className="flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 hover:bg-blue-500 disabled:opacity-50"
                 >
-                  <FileDown className="h-4 w-4" />
-                  <span>Word (.doc)</span>
+                  <FileDown className="h-4 w-4 shrink-0" />
+                  <span>Word (.docx)</span>
                 </button>
 
                 {/* PDF Download */}
                 <button
                   onClick={handleDownloadPDF}
                   disabled={downloading}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground flex cursor-pointer items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all hover:scale-105 disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all hover:scale-105 disabled:opacity-50"
                 >
                   <span>{downloading ? "⏳" : "📥"}</span>
-                  <span>{downloading ? downloadProgress || "Yuklanmoqda..." : "PDF"}</span>
+                  <span>{downloading ? downloadProgress || "Yuklanmoqda..." : "PDF (.pdf)"}</span>
                 </button>
 
                 {/* Print */}
                 <button
                   onClick={handlePrint}
-                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
                   title="Chop etish yoki PDF sifatida saqlash"
                 >
-                  <Printer className="h-3.5 w-3.5" />
-                  <span>PDFni chop etish / saqlash</span>
+                  <Printer className="h-3.5 w-3.5 shrink-0" />
+                  <span>Chop etish</span>
                 </button>
 
                 {/* Copy */}
                 <button
                   onClick={handleCopy}
-                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+                  className="border-border bg-surface-elevated text-foreground hover:bg-border/60 flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
                 >
                   {copied ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
                   ) : (
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy className="h-3.5 w-3.5 shrink-0" />
                   )}
                   <span>{copied ? "Nusxalandi" : "Nusxa"}</span>
                 </button>

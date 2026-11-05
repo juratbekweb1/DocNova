@@ -7,6 +7,7 @@ import {
   checkUserLimit,
   trackAIUsage,
   deductUserAiCredit,
+  refundUserAiCredit,
   getUserSubscription,
 } from "@/lib/limits";
 import {
@@ -14,11 +15,14 @@ import {
   CourseworkAiChapters,
   CourseworkData,
 } from "@/app/api/generate-coursework/route";
+import { analyzeSampleDocument } from "@/lib/academic-sample-intelligence";
 
 export async function POST(req: Request) {
   const startTime = Date.now();
   let userId: string | undefined;
   let plan = "FREE";
+  let creditDeducted = false;
+  let trackedUsageId: string | null = null;
 
   try {
     const session = await getServerSession(authOptions).catch(() => null);
@@ -62,8 +66,17 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { action, part, length, language = "uz", templateText = "" } = body;
-    const sanitizedTemplate =
-      typeof templateText === "string" ? templateText.trim().slice(0, 8000) : "";
+    const rawTemplateStr =
+      typeof templateText === "string" ? templateText.trim().slice(0, 12000) : "";
+    const sanitizedTemplate = rawTemplateStr
+      ? rawTemplateStr.startsWith("[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI")
+        ? rawTemplateStr.slice(0, 4000)
+        : analyzeSampleDocument({
+            rawText: rawTemplateStr,
+            fileName: "namuna.docx",
+            fileSize: rawTemplateStr.length,
+          }).structuralBlueprint
+      : "";
     const topic = String(body.topic || "")
       .trim()
       .slice(0, 300);
@@ -144,6 +157,7 @@ Quyidagi parametrlar bo'yicha eng yuqori akademik darajadagi Bitiruv Malakaviy I
 - Ish turi: "${workType || "Bakalavr Bitiruv Malakaviy Ishi (BMI)"}"
 - Shakllantiriladigan qism: "${selectedPart}"
 - Kutilayotgan hajm (sahifalar soni): ${bmiPages} bet
+${sanitizedTemplate ? `\nNAMUNA TUZILMA QOLIPI (Faqat maket va boblar ketma-ketligi uchun, eski ma'lumotlar ko'chirilmasin):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY TALABLAR (O'zbekiston OTM standartlari va GOST bo'yicha):
 1. TITUL VARAG'I: O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi, OTM, Kafedra, Ish turi, Mavzu, Bajaruvchi, Ilmiy rahbar, Toshkent - ${currentYear}.
@@ -195,8 +209,9 @@ Matnni Markdown formatida, #, ##, ### sarlavhalar, qalin shrift va II Bobda stat
 
           if (userId) {
             await deductUserAiCredit(userId);
+            creditDeducted = true;
           }
-          await trackAIUsage({
+          trackedUsageId = await trackAIUsage({
             userId,
             plan,
             feature: "BMI_DIPLOM",
@@ -590,8 +605,9 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
 
       if (userId) {
         await deductUserAiCredit(userId);
+        creditDeducted = true;
       }
-      await trackAIUsage({
+      trackedUsageId = await trackAIUsage({
         userId,
         plan,
         feature: "BMI_DIPLOM",
@@ -628,13 +644,19 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
         }
       }
 
+      const isIndependentWork = /mustaqil/i.test(workType || "");
       const wTypeTitle = (
         workType || (isRu ? "РЕФЕРАТ / САМОСТОЯТЕЛЬНАЯ РАБОТА" : "MUSTAQIL ISH VA REFERAT")
       ).toUpperCase();
       const subjName =
         subject || (isRu ? "Профильная дисциплина" : "Umumta'lim va mutaxassislik fani");
 
+      const moduleSpecificRules = isIndependentWork
+        ? `MODUL TALABI (MUSTAQIL ISH — AMALIY VA TAHLILIY TOPSHIRIQ): Topshiriq va «${subjName}» fani talablariga mos amaliy tuzilma, aniq amaliy misollar, keys-stadi va yechimlar berilsin.`
+        : `MODUL TALABI (REFERAT — NAZARIY VA TIZIMLI SHARH): Mavzuga mos qisqa reja, kirish, asosiy qism, xulosa va adabiyotlar uzviy bog'langan bo'lsin.`;
+
       const chapterPrompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga to'liq javob beradigan yetakchi professor va ilmiy ekspertsiz.
+${moduleSpecificRules}
 Quyidagi parametrlar bo'yicha "${wTypeTitle}" uchun Kirish, 3 ta bobning barcha fasllari (1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3), qiyosiy tahliliy jadval, Xulosa va 15 ta GOST adabiyotlardan iborat chuqur ilmiy matnni JSON formatida tayyorlang:
 - Fan: "${subjName}"
 - Mavzu: "${topic}"
@@ -723,8 +745,9 @@ QAT'IY TALABLAR:
 
       if (userId) {
         await deductUserAiCredit(userId);
+        creditDeducted = true;
       }
-      await trackAIUsage({
+      trackedUsageId = await trackAIUsage({
         userId,
         plan,
         feature: "REFERAT",
@@ -851,8 +874,32 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
   } catch (err: unknown) {
     const error = err as Error;
     console.error("Academic API Error:", error);
+
+    let creditRefunded = false;
+    if (userId && (creditDeducted || trackedUsageId)) {
+      creditRefunded = await refundUserAiCredit({
+        userId,
+        usageId: trackedUsageId,
+        errorCode: "REFUNDED_AFTER_ERROR",
+      });
+    }
+
+    await trackAIUsage({
+      userId,
+      plan,
+      feature: "ACADEMIC_GENERATION",
+      provider: "gemini",
+      status: "FAILED",
+      requestDurationMs: Date.now() - startTime,
+      errorCode: error?.message?.slice(0, 120) || "SERVER_ERROR",
+    });
+
     return NextResponse.json(
-      { error: error.message || "Serverda xatolik yuz berdi" },
+      {
+        error: error.message || "Serverda xatolik yuz berdi",
+        creditRefunded,
+        retryable: true,
+      },
       { status: 500 }
     );
   }

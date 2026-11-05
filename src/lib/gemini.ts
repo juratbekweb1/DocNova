@@ -167,13 +167,26 @@ export async function generateGeminiContent(
     : CANDIDATE_MODELS;
 
   const startTime = Date.now();
+  const hardDeadline = startTime + timeoutMs;
   let lastError: unknown = null;
   const aiClient = getGenAI(currentApiKey);
 
   for (const modelCandidate of modelsToTry) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const remainingMs = hardDeadline - Date.now();
+      if (remainingMs <= 1200) {
+        break;
+      }
+
       try {
         await rateLimiter.acquire();
+
+        const attemptRemainingMs = Math.max(1500, hardDeadline - Date.now());
+        // Cap individual model attempt so a single slow model doesn't consume 100% of budget when fallbacks exist
+        const perAttemptTimeoutMs =
+          modelsToTry.length > 1
+            ? Math.min(attemptRemainingMs, Math.max(12_000, Math.floor(timeoutMs * 0.65)))
+            : attemptRemainingMs;
 
         const model = aiClient.getGenerativeModel({
           model: modelCandidate,
@@ -193,7 +206,7 @@ export async function generateGeminiContent(
 
         const apiResponse = await withTimeout(
           generatePromise,
-          timeoutMs,
+          perAttemptTimeoutMs,
           `Gemini generation with ${modelCandidate}`
         );
 

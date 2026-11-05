@@ -364,87 +364,130 @@ export function getRegenConfirmKeyboard() {
     .text("⬅️ Orqaga", "ed_menu");
 }
 
+function formatInlineMd(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.*?)__/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
 /**
- * Converts Markdown academic content to clean HTML for Microsoft Word export
+ * Converts Markdown academic content to clean, multi-page HTML for Microsoft Word (.doc) export.
+ * Supports explicit page breaks (---), Markdown tables, headings, lists, and GOST paragraphs.
  */
 export function markdownToWordHtml(markdown: string): string {
-  let html = markdown;
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const resultLines: string[] = [];
+  let inTable = false;
+  let tableRows: string[][] = [];
 
-  // Tables
-  html = html.replace(/((?:\|[^\n]+\|\r?\n)+)/g, (match) => {
-    const lines = match.trim().split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) return match;
-
-    const headers = lines[0]
-      .split("|")
-      .slice(1, -1)
-      .map((s) => s.trim());
-    // skip separator lines like |---|---|
-    const rows = lines.slice(2).map((l) =>
-      l
-        .split("|")
-        .slice(1, -1)
-        .map((s) => s.trim())
-    );
-
-    let tableHtml = "<table><thead><tr>";
+  const flushTable = () => {
+    if (tableRows.length === 0) return;
+    let tableHtml =
+      "<table><thead><tr>";
+    const headers = tableRows[0];
     headers.forEach((h) => {
-      tableHtml += `<th>${h}</th>`;
+      tableHtml += `<th>${formatInlineMd(h)}</th>`;
     });
     tableHtml += "</tr></thead><tbody>";
-    rows.forEach((r) => {
+    tableRows.slice(1).forEach((row) => {
       tableHtml += "<tr>";
-      r.forEach((c) => {
-        tableHtml += `<td>${c}</td>`;
+      row.forEach((cell) => {
+        tableHtml += `<td>${formatInlineMd(cell)}</td>`;
       });
       tableHtml += "</tr>";
     });
     tableHtml += "</tbody></table>";
-    return tableHtml;
-  });
+    resultLines.push(tableHtml);
+    tableRows = [];
+    inTable = false;
+  };
 
-  // Headers
-  html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
-  html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
-  html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
-  html = html.replace(/^#### (.*$)/gim, "<h4>$1</h4>");
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
 
-  // Bold & Italic
-  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-  // Unordered list items
-  html = html.replace(
-    /^\s*[-*•]\s+(.*$)/gim,
-    "<p style='margin-left: 20pt; text-indent: -10pt;'>• $1</p>"
-  );
-
-  // Numbered list items
-  html = html.replace(
-    /^\s*(\d+)\.\s+(.*$)/gim,
-    "<p style='margin-left: 20pt; text-indent: -10pt;'>$1. $2</p>"
-  );
-
-  // Paragraphs
-  const paragraphs = html.split(/\n{2,}/);
-  html = paragraphs
-    .map((p) => {
-      const trimmed = p.trim();
-      if (!trimmed) return "";
-      if (
-        trimmed.startsWith("<h1") ||
-        trimmed.startsWith("<h2") ||
-        trimmed.startsWith("<h3") ||
-        trimmed.startsWith("<table") ||
-        trimmed.startsWith("<p")
-      ) {
-        return trimmed;
+    // Table detection
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      const cells = trimmed
+        .slice(1, -1)
+        .split("|")
+        .map((c) => c.trim());
+      if (cells.every((c) => /^:?-+:?$/.test(c))) {
+        continue;
       }
-      return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;
-    })
-    .join("\n");
+      inTable = true;
+      tableRows.push(cells);
+      continue;
+    } else if (inTable) {
+      flushTable();
+    }
 
-  return html;
+    if (!trimmed) {
+      continue;
+    }
+
+    // Page break marker (--- or ===PAGE_BREAK===)
+    if (
+      trimmed === "---" ||
+      trimmed === "***" ||
+      trimmed === "___" ||
+      trimmed === "<!-- PAGE_BREAK -->"
+    ) {
+      resultLines.push(
+        `<br clear="all" style="page-break-before:always; mso-break-type:page-break" />`
+      );
+      continue;
+    }
+
+    // Headings (always rendered as standalone block elements, never glued to adjacent text)
+    if (trimmed.startsWith("# ")) {
+      resultLines.push(`<h1>${formatInlineMd(trimmed.slice(2).trim())}</h1>`);
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      resultLines.push(`<h2>${formatInlineMd(trimmed.slice(3).trim())}</h2>`);
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      resultLines.push(`<h3>${formatInlineMd(trimmed.slice(4).trim())}</h3>`);
+      continue;
+    }
+    if (trimmed.startsWith("#### ")) {
+      resultLines.push(`<h4>${formatInlineMd(trimmed.slice(5).trim())}</h4>`);
+      continue;
+    }
+
+    // Unordered list items
+    if (/^[-*•]\s+/.test(trimmed)) {
+      resultLines.push(
+        `<p style="margin-left: 18pt; text-indent: -10pt; margin-bottom: 6pt;">• ${formatInlineMd(
+          trimmed.replace(/^[-*•]\s+/, "")
+        )}</p>`
+      );
+      continue;
+    }
+
+    // Numbered list items
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (numMatch) {
+      resultLines.push(
+        `<p style="margin-left: 18pt; text-indent: -12pt; margin-bottom: 6pt;">${numMatch[1]}. ${formatInlineMd(
+          numMatch[2]
+        )}</p>`
+      );
+      continue;
+    }
+
+    // Standard academic paragraph
+    resultLines.push(`<p>${formatInlineMd(trimmed)}</p>`);
+  }
+
+  if (inTable) {
+    flushTable();
+  }
+
+  return resultLines.join("\n");
 }
 
 /**

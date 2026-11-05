@@ -6,9 +6,15 @@ import {
   checkUserLimit,
   trackAIUsage,
   deductUserAiCredit,
+  refundUserAiCredit,
   getUserSubscription,
 } from "@/lib/limits";
 import { generateGeminiJson } from "@/lib/gemini";
+import {
+  auditAndSanitizeAcademicContent,
+  buildControlledAcademicPrompt,
+} from "@/lib/academic-content-architect";
+import { analyzeSampleDocument } from "@/lib/academic-sample-intelligence";
 
 export interface CourseworkOutlineChapter {
   number: number;
@@ -1565,6 +1571,8 @@ export async function POST(req: Request) {
   const startTime = Date.now();
   let userId: string | undefined;
   let plan = "FREE";
+  let creditDeducted = false;
+  let trackedUsageId: string | null = null;
 
   try {
     const session = await getServerSession(authOptions).catch(() => null);
@@ -1622,8 +1630,17 @@ export async function POST(req: Request) {
       outline: clientOutline,
       templateText = "",
     } = body;
-    const sanitizedTemplate =
-      typeof templateText === "string" ? templateText.trim().slice(0, 8000) : "";
+    const rawTemplateStr =
+      typeof templateText === "string" ? templateText.trim().slice(0, 12000) : "";
+    const sanitizedTemplate = rawTemplateStr
+      ? rawTemplateStr.startsWith("[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI")
+        ? rawTemplateStr.slice(0, 4000)
+        : analyzeSampleDocument({
+            rawText: rawTemplateStr,
+            fileName: "namuna.docx",
+            fileSize: rawTemplateStr.length,
+          }).structuralBlueprint
+      : "";
 
     const cleanTopic = String(topic || "")
       .trim()
@@ -1756,19 +1773,26 @@ Faqat quyidagi JSON formatida qaytaring:
     let status: "SUCCESS" | "FAILED" = "SUCCESS";
     let errorCode: string | undefined;
 
+    const architected = buildControlledAcademicPrompt({
+      moduleType: "COURSEWORK",
+      topic: data.topic,
+      subject: data.subject,
+      faculty: data.faculty,
+      university: data.university,
+      studentName: data.studentName,
+      teacherName: data.teacherName,
+      pageCount: data.pageCount,
+      language: lang,
+      templateText: sanitizedTemplate,
+    });
+
     try {
-      const chapterPrompt = `
-Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga mos ilmiy kurs ishlari bo'yicha yetakchi professorsiz.
-Quyidagi parametrlar bo'yicha kirish, har bir bobning 3 ta mustaqil bo'limi, tahliliy jadval, xulosa va 15 ta GOST adabiyotlardan iborat to'liq ilmiy matnni JSON formatida tayyorlang:
-Fan: "${data.subject}"
-Mavzu: "${data.topic}"
-Kafedra/Fakultet: "${data.faculty || "Tegishli soha"}"
-Reja:
+      const chapterPrompt = `${architected.userPrompt}
+
+TASDIQLANGAN REJA:
 - Kirish
 ${data.outline?.chapters.map((ch) => `- ${ch.title}:\n${ch.subsections.map((s) => `  * ${s}`).join("\n")}`).join("\n")}
 - Xulosa va amaliy tavsiyalar
-Til: "${lang}"
-${sanitizedTemplate ? `\nFoydalanuvchi taqdim etgan namuna/tayyor matn (kurs ishi uslubi va mazmunida shunga to'liq amal qiling):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY AKADEMIK TALABLAR VA CHEKLOV (MAVZUGA 100% MOSLIK):
 1. Siz FAQAT VA FAQAT «${data.topic}» mavzusi bo'yicha yozasiz. Boshqa umumiy yoki begona mavzularga chalg'ish qat'iyan taqiqlanadi!
@@ -1783,7 +1807,7 @@ QAT'IY AKADEMIK TALABLAR VA CHEKLOV (MAVZUGA 100% MOSLIK):
 6. sub3_2: Kutilayotgan ijtimoiy-iqtisodiy, ilmiy yoki tarmoq samaradorligi tahlili.
 7. sub3_3: Universitetlar, vazirliklar yoki korxonalar uchun amaliy tavsiyalar.
 8. xulosaContent: 5-6 ta tizimli, chuqur ilmiy xulosa va tavsiyalar.
-9. references: «${data.topic}» va «${data.subject}»ga bevosita aloqador kamida 15 ta real GOST manbalari (Qonunlar, Farmonlar, sohaviy darsliklar, ilmiy maqolalar, lex.uz, edu.uz).
+9. references: «${data.topic}» va «${data.subject}»ga bevosita aloqador kamida ${architected.budget.requiredReferencesCount} ta real GOST manbalari (Qonunlar, Farmonlar, sohaviy darsliklar, ilmiy maqolalar, lex.uz, edu.uz).
 
 Javobni FAQAT quyidagi JSON formatida qaytaring:
 {
@@ -1809,10 +1833,9 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
 `;
       const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
         temperature: 0.2,
-        maxOutputTokens: 8192,
+        maxOutputTokens: architected.budget.recommendedGeminiMaxTokens,
         timeoutMs: 28_000,
-        systemInstruction:
-          "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy kurs ishlari bo'yicha yetakchi ekspertsiz. Matnni faqat kiritilgan mavzuga 100% bog'langan holda, akademik tilda, hech qanday takrorlanishlarsiz va faqat JSON formatida qaytaring.",
+        systemInstruction: architected.systemInstruction,
       });
 
       if (
@@ -1838,20 +1861,27 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
       console.warn("[COURSEWORK_VALIDATION_WARNINGS]", validation.errors);
     }
 
-    const fullAcademicMarkdown = academicPages.map((p) => p.content).join("\n\n---\n\n");
+    const rawAcademicMarkdown = academicPages.map((p) => p.content).join("\n\n---\n\n");
+    const qualityAudit = auditAndSanitizeAcademicContent(
+      rawAcademicMarkdown,
+      cleanTopic,
+      architected.budget
+    );
+    const fullAcademicMarkdown = qualityAudit.cleanedText || rawAcademicMarkdown;
 
     if (outputTokens === 0) {
       outputTokens = Math.ceil(fullAcademicMarkdown.length / 4);
       inputTokens = Math.ceil(JSON.stringify(data).length / 4);
     }
 
-    // Deduct user credits & track usage
+    // Deduct user credits & track usage ONLY after valid content is assembled
     const duration = Date.now() - startTime;
     if (userId) {
       await deductUserAiCredit(userId);
+      creditDeducted = true;
     }
 
-    await trackAIUsage({
+    trackedUsageId = await trackAIUsage({
       userId,
       plan,
       feature: "COURSEWORK",
@@ -1885,8 +1915,33 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
   } catch (error: unknown) {
     console.error("Coursework Generation Exception:", error);
     const err = error as Error;
+
+    // Automatic Credit Refund if an error happened after credit deduction
+    let creditRefunded = false;
+    if (userId && creditDeducted) {
+      creditRefunded = await refundUserAiCredit({
+        userId,
+        usageId: trackedUsageId,
+        errorCode: "COURSEWORK_EXCEPTION_REFUND",
+      });
+    } else if (userId) {
+      await trackAIUsage({
+        userId,
+        plan,
+        feature: "COURSEWORK",
+        provider: "gemini",
+        status: "FAILED",
+        requestDurationMs: Date.now() - startTime,
+        errorCode: "GENERATION_FAILED_NO_CHARGE",
+      });
+    }
+
     return NextResponse.json(
-      { error: err?.message || "Kurs ishini yaratishda xatolik yuz berdi" },
+      {
+        error: err?.message || "Kurs ishini yaratishda xatolik yuz berdi",
+        creditRefunded,
+        retryable: true,
+      },
       { status: 500 }
     );
   }

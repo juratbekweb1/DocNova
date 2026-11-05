@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 :root {
   --primary: #0ea5e9;
@@ -35,7 +35,7 @@
   --secondary-foreground: #f8fafc;
   --accent: #38bdf8;
   --accent-foreground: #0f172a;
-  --background: #020617;
+  --background: #020817;
   --surface: #0b1220;
   --surface-elevated: #0f172a;
   --border: #1e293b;
@@ -85,25 +85,59 @@
 
 /* Base resets & typography scale */
 html {
+  width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
+  border: none !important;
+  outline: none !important;
 }
 
 body {
+  width: 100%;
   max-width: 100vw;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
   position: relative;
   background-color: var(--background);
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center top;
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Full-width continuous starfield dots pattern across 100% of screen */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(#38bdf8 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.05;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.dark body::before {
+  opacity: 0.14;
+}
+
+/* Ensure no container or layout wrapper adds vertical side lines */
+main,
+#__next,
+section {
+  border-left: none !important;
+  border-right: none !important;
+  outline: none !important;
 }
 
 *,
@@ -151,20 +185,20 @@ body {
   border-color: var(--border-hover);
 }
 
-/* Scrollbar Styling */
+/* Scrollbar Styling - Seamless & Non-intrusive */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-hover);
-  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground-secondary);
+  background: rgba(56, 189, 248, 0.38);
 }
 
 /* Hide scrollbars but keep touch/wheel scrolling */
@@ -174,6 +208,43 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+}
+
+/* Mobile Performance Optimization (Lag & Stutter Prevention) */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Smooth touch deceleration */
+  html, body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cap expensive backdrop filters on mobile devices to preserve GPU fillrate */
+  .backdrop-blur-3xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* Cap massive Gaussian blur radiuses on mobile GPU */
+  .blur-3xl {
+    filter: blur(20px) !important;
+    -webkit-filter: blur(20px) !important;
+  }
+  .blur-2xl {
+    filter: blur(14px) !important;
+    -webkit-filter: blur(14px) !important;
+  }
+
+  /* Force GPU layer composition for fixed/sticky headers to prevent scroll jitter */
+  header,
+  .sticky {
+    transform: translateZ(0);
+    will-change: transform;
+  }
 }
 
 /* Mobile responsive document paper */

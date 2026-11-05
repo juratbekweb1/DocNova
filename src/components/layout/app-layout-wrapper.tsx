@@ -61,13 +61,14 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/super-admin") ||
-    pathname.startsWith("/tools");
+    pathname.startsWith("/tools") ||
+    (pathname.startsWith("/help") && status === "authenticated");
 
   return (
     <>
       {!isDashboard && <Navbar />}
       <main
-        className={`w-full max-w-full min-w-0 flex-1 overflow-x-hidden ${
+        className={`w-full max-w-full min-w-0 flex-1 overflow-x-hidden border-none outline-none ${
           !isDashboard ? "pt-16 md:pt-20" : ""
         }`}
       >

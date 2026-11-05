@@ -1,31 +1,28 @@
 export interface NavItem {
   title: string;
   href: string;
+  key?: string;
 }
 
 export const mainNavConfig: NavItem[] = [
   {
-    title: "AI bilan aloqa",
-    href: "/chat",
+    title: "Bosh sahifa",
+    href: "/",
+    key: "home",
   },
   {
-    title: "Talabalar uchun",
-    href: "/academic",
-  },
-  {
-    title: "Asboblar",
+    title: "Xizmatlar",
     href: "/tools",
+    key: "services",
   },
   {
-    title: "Shablonlar",
-    href: "/dashboard/templates",
-  },
-  {
-    title: "Tariflar",
+    title: "Narxlar",
     href: "/pricing",
+    key: "pricing",
   },
   {
-    title: "FAQ",
+    title: "Yordam",
     href: "/#faq",
+    key: "help",
   },
 ];

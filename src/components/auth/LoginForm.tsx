@@ -2,6 +2,7 @@
 
 import { AuthCard } from "./AuthCard";
 import { KeyRound, Smartphone } from "lucide-react";
+import { InAppBrowserNotice } from "./InAppBrowserNotice";
 
 type LoginFormProps = {
   onOAuthProviderClick?: (provider: string) => void;
@@ -24,6 +25,9 @@ export function LoginForm({ onOAuthProviderClick }: LoginFormProps) {
           Через Telegram — SMS не нужен, 30 секунд.
         </p>
       </div>
+
+      {/* Notice for iPhone in-app browsers */}
+      <InAppBrowserNotice />
 
       <div className="mb-6 rounded-2xl bg-surface p-5 border border-border shadow-sm">
         <div className="space-y-4">

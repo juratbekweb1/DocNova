@@ -3,12 +3,73 @@ import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import { normalizeRole } from "@/lib/roles";
 
+const isProduction = process.env.NODE_ENV === "production";
+const useSecureCookies = isProduction;
+const cookiePrefix = useSecureCookies ? "__Secure-" : "";
+const hostCookiePrefix = useSecureCookies ? "__Host-" : "";
+
 export const authConfig = {
+  useSecureCookies,
+  cookies: {
+    sessionToken: {
+      name: `${cookiePrefix}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+    callbackUrl: {
+      name: `${cookiePrefix}next-auth.callback-url`,
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+    csrfToken: {
+      name: `${hostCookiePrefix}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+    pkceCodeVerifier: {
+      name: `${cookiePrefix}next-auth.pkce.code_verifier`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 900,
+      },
+    },
+    state: {
+      name: `${cookiePrefix}next-auth.state`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 900,
+      },
+    },
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
     }),
     GithubProvider({
       clientId: process.env.GITHUB_ID || "",
@@ -76,14 +137,20 @@ export const authConfig = {
         token.twoFactorEnabled = u.twoFactorEnabled;
       }
 
-      if (token.id && !token.role) {
-        const { prisma } = await import("@/lib/prisma");
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true },
-        });
+      if (token.id && token.role !== "SUPER_ADMIN") {
+        try {
+          const { prisma } = await import("@/lib/prisma");
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true },
+          });
 
-        token.role = normalizeRole(dbUser?.role) ?? "USER";
+          if (dbUser?.role) {
+            token.role = normalizeRole(dbUser.role) ?? "USER";
+          }
+        } catch {
+          // Ignore DB lookup errors in edge/jwt contexts
+        }
       }
 
       if (!token.role) {

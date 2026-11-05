@@ -68,7 +68,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+    { media: "(prefers-color-scheme: dark)", color: "#020817" },
   ],
 };
 
@@ -102,20 +102,8 @@ export default async function RootLayout({
         <meta charSet="utf-8" />
         <meta name="google" content="notranslate" />
       </head>
-      <body className="flex min-h-full flex-col overflow-x-hidden" suppressHydrationWarning>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (!window.location.pathname.startsWith('/dashboard') && 
-                  !window.location.pathname.startsWith('/admin') && 
-                  !window.location.pathname.startsWith('/super-admin') && 
-                  !window.location.pathname.startsWith('/tools')) {
-                document.body.classList.add('dark');
-              }
-            `,
-          }}
-        />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <body className="flex min-h-full flex-col overflow-x-hidden bg-background text-foreground transition-colors duration-300" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <ThemeEnforcer />
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>

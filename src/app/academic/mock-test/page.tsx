@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   Languages,
   Presentation,
+  Sliders,
+  Check,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -21,68 +23,77 @@ export default function MockTestHubPage() {
     {
       id: "english",
       title: "Ingliz tili Mock Test",
-      nativeTitle: "English Language Assessment",
-      standard: "IELTS & CEFR (A2 — C1)",
+      nativeTitle: "English Proficiency Diagnostic Assessment",
+      standard: "IELTS & CEFR (A1 — C2)",
       flag: "🇬🇧",
       href: "/academic/mock-test/english",
-      accent: "from-blue-600/20 via-sky-600/10 to-transparent hover:border-blue-500/50",
-      buttonBg: "bg-blue-600 hover:bg-blue-500",
-      badge: "IELTS 6.0 — 8.5",
+      accent:
+        "from-blue-600/20 via-sky-600/10 to-transparent hover:border-blue-500/50 shadow-blue-500/5",
+      buttonBg: "bg-blue-600 hover:bg-blue-500 shadow-blue-500/25",
+      badge: "A1 — C2 • IELTS 4.0 — 8.5",
       badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
       description:
-        "Xalqaro IELTS va CEFR standartlari asosida tuzilgan savollar. Grammatika, leksika, matn tahlili va yozma topshiriq orqali aniq Band bahosi.",
+        "Xalqaro IELTS va CEFR standartlari asosida tuzilgan adaptiv test. Har bir daraja (A1 dan C2 gacha va IELTS 4.0 — 8.5) uchun alohida savollar to'plami va yozma topshiriq.",
+      levels: ["A1", "A2", "B1", "B2", "C1", "C2", "IELTS 4-5", "IELTS 5.5-6.5", "IELTS 7-8.5"],
       features: [
-        "Reading & Grammar test savollari",
+        "Foydalanuvchi darajasini tanlash tugmalari (A1-C2, IELTS)",
+        "Reading, Grammar va Academic Vocabulary",
         "Writing task (Insho yozish tahlili)",
         "Darhol IELTS Band & CEFR darajasi",
-        "Xatolar va kamchiliklar ustida AI tahlil",
+        "Xatolar ustida qoida va tushuntirishlar",
       ],
       estimatedTime: "15 daqiqa",
-      questionsCount: "5 ta test + 1 ta insho",
+      questionsCount: "5 ta savol + 1 ta insho",
     },
     {
       id: "russian",
       title: "Rus tili Mock Test",
-      nativeTitle: "Тестирование по русскому языку",
-      standard: "ТРКИ & Деловая речь (A2 — C1)",
+      nativeTitle: "Тестирование по русскому языку (ТРКИ & CEFR)",
+      standard: "ТРКИ (TORFL) & CEFR (A1 — C2)",
       flag: "🇷🇺",
       href: "/academic/mock-test/russian",
-      accent: "from-purple-600/20 via-pink-600/10 to-transparent hover:border-purple-500/50",
-      buttonBg: "bg-purple-600 hover:bg-purple-500",
-      badge: "ТРКИ-1 / ТРКИ-2",
+      accent:
+        "from-purple-600/20 via-pink-600/10 to-transparent hover:border-purple-500/50 shadow-purple-500/5",
+      buttonBg: "bg-purple-600 hover:bg-purple-500 shadow-purple-500/25",
+      badge: "A1 — C2 • ТРКИ (ТЭУ, ТБУ, 1, 2)",
       badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
       description:
-        "Davlat xizmati, OTM va xalqaro tashkilotlar uchun TRKI talablariga mos rus tili darajasini aniqlash. Murakkab grammatik shakllar va ishbilarmonlik nutqi.",
+        "OTM, magistratura va xalqaro tashkilotlar uchun TRKI talablariga mos rus tili darajasini aniqlash. Darajani tanlash imkoniyati bilan mos grammatika va ishbilarmonlik nutqi.",
+      levels: ["A1", "A2", "B1", "B2", "C1", "C2", "ТРКИ-Элем", "ТРКИ-База", "ТРКИ-1", "ТРКИ-2"],
       features: [
-        "Падежные окончания и предлоги",
-        "Синтаксис и лексические нормы",
+        "Darajalar tanlovi (A1-C2, ТРКИ-Элементарный, Базовый, ТРКИ-1, ТРКИ-2)",
+        "Падежные окончания и глагольное управление",
+        "Синтаксис, деепричастия и научный стиль",
         "Деловое письмо / мини-эссе",
-        "Мгновенный отчет по уровню ТРКИ",
+        "Мгновенный отчет по уровню ТРКИ с разбором ошибок",
       ],
       estimatedTime: "15 daqiqa",
-      questionsCount: "5 ta test + 1 ta yozma",
+      questionsCount: "5 ta savol + 1 ta yozma",
     },
     {
       id: "turkish",
       title: "Turk tili Mock Test",
-      nativeTitle: "Türkçe Yeterlilik Sınavı",
-      standard: "TÖMER & Yunus Emre (A2 — C1)",
+      nativeTitle: "Türkçe Yeterlilik ve Seviye Sınavı (TÖMER)",
+      standard: "TÖMER & Yunus Emre (A1 — C2)",
       flag: "🇹🇷",
       href: "/academic/mock-test/turkish",
-      accent: "from-emerald-600/20 via-teal-600/10 to-transparent hover:border-emerald-500/50",
-      buttonBg: "bg-emerald-600 hover:bg-emerald-500",
-      badge: "TÖMER B1 — C1",
+      accent:
+        "from-emerald-600/20 via-teal-600/10 to-transparent hover:border-emerald-500/50 shadow-emerald-500/5",
+      buttonBg: "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25",
+      badge: "A1 — C2 • TÖMER Başlangıç — İleri",
       badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
       description:
-        "Turkiya universitetlari grantlari (Türkiye Bursları) va ish uchun TÖMER imtihon simulyatori. Fe'l zamonlari, qo'shimchalar va matn tahlili.",
+        "Turkiya universitetlari grantlari (Türkiye Bursları) va ish uchun TÖMER simulyatori. Tanlangan darajaga qarab fe'l zamonlari, qo'shimchalar va matn tahlili.",
+      levels: ["A1", "A2", "B1", "B2", "C1", "C2", "TÖMER Başlangıç", "TÖMER Orta", "TÖMER İleri"],
       features: [
-        "Fiil çekimleri ve ekler bilgisi",
-        "Cümle tamamlama ve anlam",
-        "Serbest yazma (Kompozisyon)",
-        "Anında TÖMER seviye raporu",
+        "Darajalar tanlovi (A1-C2, TÖMER Başlangıç, Orta, İleri)",
+        "Fiil çekimleri, zarf-fiil ve ekler bilgisi",
+        "Cümle tamamlama ve akademik anlam",
+        "Serbest yazma (Kompozisyon ve niyet mektubu)",
+        "Anında TÖMER seviye raporu ve çözüm analizi",
       ],
       estimatedTime: "15 daqiqa",
-      questionsCount: "5 ta test + 1 ta yozma",
+      questionsCount: "5 ta savol + 1 ta yozma",
     },
   ];
 
@@ -93,28 +104,34 @@ export default function MockTestHubPage() {
 
       {/* Hero Header */}
       <div className="border-border/60 bg-surface/30 relative overflow-hidden border-b py-12 md:py-16">
-        <div className="from-primary/5 pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
+        <div className="from-primary/10 pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
+        <div className="pointer-events-none absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
+
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-3xl flex-col items-center space-y-4 text-center">
             <div className="border-primary/30 bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-sm">
               <Globe2 className="h-3.5 w-3.5" />
-              <span>Xalqaro Til Simulyatori</span>
+              <span>DocNova Xalqaro Til Simulyatori 2026</span>
             </div>
 
             <h1 className="text-foreground text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
               Mock Test:{" "}
-              <span className="from-primary via-accent bg-gradient-to-r to-sky-400 bg-clip-text text-transparent">
-                Chet tillari
+              <span className="from-cyan-400 via-primary to-sky-400 bg-gradient-to-r bg-clip-text text-transparent">
+                Chet tillari diagnostikasi
               </span>
             </h1>
 
             <p className="text-foreground-secondary max-w-2xl text-base leading-relaxed sm:text-lg">
-              IELTS, CEFR, TRKI va TÖMER xalqaro standartlari asosida bilimingizni sinang. 3 ta
-              tildan birini tanlang va sun&apos;iy intellekt yordamida tezkor tahlil hamda
-              sertifikat darajasini oling.
+              IELTS, CEFR, ТРКИ va TÖMER xalqaro standartlari asosida bilimingizni sinang. O&apos;z
+              darajangizni (A1 dan C2 gacha) tanlang va sun&apos;iy intellekt yordamida tezkor
+              tahlil hamda sertifikat darajasini oling.
             </p>
 
             <div className="text-foreground-muted flex flex-wrap items-center justify-center gap-4 pt-2 text-xs font-medium">
+              <div className="flex items-center gap-1.5">
+                <Sliders className="h-4 w-4 text-sky-400" />
+                <span>Interaktiv daraja tanlash</span>
+              </div>
               <div className="flex items-center gap-1.5">
                 <Zap className="h-4 w-4 text-amber-400" />
                 <span>Bir zumda AI baholash</span>
@@ -125,7 +142,7 @@ export default function MockTestHubPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="text-primary h-4 w-4" />
-                <span>100% bepul amaliyot</span>
+                <span>100% to&apos;liq tahlil</span>
               </div>
             </div>
           </div>
@@ -140,8 +157,8 @@ export default function MockTestHubPage() {
             Sinov tilini tanlang
           </h2>
           <p className="text-foreground-secondary mt-1 text-xs sm:text-sm">
-            Har bir til uchun alohida interaktiv test ekrani va maxsus AI baholash rubrikasi
-            tayyorlangan
+            Har bir til uchun moslashuvchan daraja tanlash menyusi va maxsus AI baholash rubrikasi
+            ishlab chiqilgan
           </p>
         </div>
 
@@ -150,7 +167,7 @@ export default function MockTestHubPage() {
           {languageCards.map((card) => (
             <div
               key={card.id}
-              className={`group border-border relative flex flex-col justify-between rounded-2xl border bg-gradient-to-b ${card.accent} p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl`}
+              className={`group border-border relative flex flex-col justify-between rounded-3xl border bg-gradient-to-b ${card.accent} p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl`}
             >
               <div>
                 {/* Top Badge & Flag */}
@@ -176,14 +193,31 @@ export default function MockTestHubPage() {
                 </div>
 
                 {/* Description */}
-                <p className="text-foreground-secondary mb-6 text-xs leading-relaxed sm:text-sm">
+                <p className="text-foreground-secondary mb-5 text-xs leading-relaxed sm:text-sm">
                   {card.description}
                 </p>
 
+                {/* Supported Level Chips */}
+                <div className="mb-5">
+                  <div className="text-foreground-muted mb-2 text-[11px] font-bold tracking-wider uppercase">
+                    Qo&apos;llab-quvvatlanadigan darajalar:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {card.levels.map((lvl) => (
+                      <span
+                        key={lvl}
+                        className="rounded-lg border border-border bg-surface-elevated/80 px-2 py-0.5 text-[11px] font-semibold text-foreground-secondary"
+                      >
+                        {lvl}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Feature Checklist */}
-                <div className="border-border/80 bg-surface/70 mb-6 space-y-2.5 rounded-xl border p-4">
+                <div className="border-border/80 bg-surface/70 mb-6 space-y-2.5 rounded-2xl border p-4">
                   <div className="text-foreground-muted text-[11px] font-bold tracking-wider uppercase">
-                    Test tarkibi:
+                    Test imkoniyatlari:
                   </div>
                   {card.features.map((feature, idx) => (
                     <div key={idx} className="text-foreground flex items-center gap-2 text-xs">
@@ -206,9 +240,9 @@ export default function MockTestHubPage() {
               {/* Action Button */}
               <Link
                 href={card.href}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${card.buttonBg}`}
+                className={`flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${card.buttonBg}`}
               >
-                <span>Testni boshlash</span>
+                <span>Darajani tanlab, testni boshlash</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
@@ -219,7 +253,7 @@ export default function MockTestHubPage() {
         <div className="mt-10">
           <Link
             href="/academic/presentation?type=mock&slides=10"
-            className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent p-5 transition-all hover:border-cyan-500/60"
+            className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent p-5 transition-all hover:border-cyan-500/60 shadow-sm"
           >
             <div className="flex items-center gap-3.5">
               <div className="shrink-0 rounded-xl bg-cyan-500/20 p-3 text-cyan-400">
@@ -246,41 +280,50 @@ export default function MockTestHubPage() {
         </div>
 
         {/* How It Works Box */}
-        <div className="border-border bg-surface mt-10 rounded-2xl border p-8">
-          <h3 className="text-foreground mb-8 text-center text-lg font-bold">
+        <div className="border-border bg-surface mt-10 rounded-3xl border p-8 shadow-sm">
+          <h3 className="text-foreground mb-8 text-center text-lg font-bold sm:text-xl">
             Mock Test qanday ishlaydi?
           </h3>
-          <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-4">
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold">
+              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
                 1
+              </div>
+              <h4 className="text-foreground text-sm font-semibold">Darajangizni belgilang</h4>
+              <p className="text-foreground-secondary max-w-xs text-xs">
+                A1 dan C2 gacha yoki IELTS / TRKI / TÖMER standartini tanlang.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center space-y-2">
+              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+                2
               </div>
               <h4 className="text-foreground text-sm font-semibold">Savollarga javob bering</h4>
               <p className="text-foreground-secondary max-w-xs text-xs">
-                5 ta grammatik va leksik test savolini belgilang va qisqa yozma topshiriqni
-                bajaring.
+                Tanlangan darajaga mos 5 ta grammatik-leksik savolni yeching va qisqa insho yozing.
               </p>
             </div>
 
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold">
-                2
+              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+                3
               </div>
               <h4 className="text-foreground text-sm font-semibold">AI chuqur tahlil qiladi</h4>
               <p className="text-foreground-secondary max-w-xs text-xs">
-                Google Gemini API sizning so&apos;z boyligingiz, grammatik aniqligingiz va jumlalar
-                tuzilishini tekshiradi.
+                Google Gemini API so&apos;z boyligingiz, grammatik aniqlik va jumlalar tuzilishini
+                tekshiradi.
               </p>
             </div>
 
             <div className="flex flex-col items-center space-y-2">
-              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold">
-                3
+              <div className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold border border-primary/20">
+                4
               </div>
-              <h4 className="text-foreground text-sm font-semibold">Natija va Tavsiyalar</h4>
+              <h4 className="text-foreground text-sm font-semibold">Natija & Xatolar tahlili</h4>
               <p className="text-foreground-secondary max-w-xs text-xs">
-                Bir necha soniyada xalqaro darajangiz (Band / CEFR) va ballingizni oshirish
-                bo&apos;yicha yo&apos;l xaritasini oling.
+                Bir necha soniyada xalqaro darajangiz (Band / CEFR) va har bir savol bo&apos;yicha
+                tushuntirishni oling.
               </p>
             </div>
           </div>

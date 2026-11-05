@@ -20,25 +20,54 @@ export default function ResumeBuilderPage() {
           Create an ATS-friendly resume in minutes. Choose from our professional templates or let our AI build one for you from scratch.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
-          <div className="bg-surface border border-border rounded-2xl p-8 flex flex-col items-center text-center hover:border-primary/50 hover:-translate-y-1 transition-all">
-            <Search className="h-10 w-10 text-foreground-muted mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">Start from a Template</h3>
-            <p className="text-sm text-foreground-secondary mb-8">Browse our collection of ATS-optimized designs and customize them to fit your style.</p>
-            <Link href="/dashboard/templates" className="w-full">
-              <Button className="w-full bg-surface-elevated hover:bg-border/50 text-foreground border border-border">
-                Browse Templates
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mb-8">
+          <div className="bg-surface border-2 border-primary/40 shadow-lg rounded-2xl p-6 flex flex-col justify-between items-center text-center hover:border-primary hover:-translate-y-1 transition-all">
+            <div>
+              <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">Interaktiv Konstruktor</h3>
+              <p className="text-xs text-foreground-secondary mb-6 leading-relaxed">
+                Har bir bo'limni qadam-baqadam to'ldiring, real vaqtda dizaynni ko'ring va PDF yuklab oling.
+              </p>
+            </div>
+            <Link href="/cv-builder" className="w-full">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md">
+                Konstruktorni ochish
               </Button>
             </Link>
           </div>
-          
-          <div className="bg-surface border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(56,189,248,0.2)] rounded-2xl p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-all">
-            <Wand2 className="h-10 w-10 text-primary mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">AI Auto-Generate</h3>
-            <p className="text-sm text-foreground-secondary mb-8">Just paste your LinkedIn profile or tell us about your experience, and AI will do the rest.</p>
+
+          <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col justify-between items-center text-center hover:border-primary/50 hover:-translate-y-1 transition-all">
+            <div>
+              <div className="h-12 w-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-4">
+                <Wand2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">AI Auto-Generate</h3>
+              <p className="text-xs text-foreground-secondary mb-6 leading-relaxed">
+                Just paste your LinkedIn profile or tell us about your experience, and AI will do the rest.
+              </p>
+            </div>
             <Link href="/dashboard/documents/new" className="w-full">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/25">
+              <Button variant="outline" className="w-full border-border bg-surface-elevated hover:bg-border/50 text-foreground">
                 Generate with AI
+              </Button>
+            </Link>
+          </div>
+
+          <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col justify-between items-center text-center hover:border-primary/50 hover:-translate-y-1 transition-all">
+            <div>
+              <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4">
+                <Search className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">Start from a Template</h3>
+              <p className="text-xs text-foreground-secondary mb-6 leading-relaxed">
+                Browse our collection of ATS-optimized designs and customize them to fit your style.
+              </p>
+            </div>
+            <Link href="/dashboard/templates" className="w-full">
+              <Button variant="outline" className="w-full border-border bg-surface-elevated hover:bg-border/50 text-foreground">
+                Browse Templates
               </Button>
             </Link>
           </div>

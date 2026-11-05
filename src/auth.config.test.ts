@@ -15,13 +15,30 @@ describe("auth config", () => {
     expect(authConfig.pages?.signIn).toBe("/login");
   });
 
-  it("exposes OAuth providers (Google and GitHub)", () => {
+  it("exposes OAuth providers (Google and GitHub) with proper authorization params", () => {
     // authConfig now includes Google and GitHub OAuth providers
     expect(Array.isArray(authConfig.providers)).toBe(true);
     expect(authConfig.providers.length).toBeGreaterThanOrEqual(2);
     const providerIds = authConfig.providers.map((p: { id: string }) => p.id);
     expect(providerIds).toContain("google");
     expect(providerIds).toContain("github");
+
+    // Check Google provider authorization parameters for seamless 1-click account selection
+    const googleProvider = authConfig.providers.find(
+      (p: { id: string }) => p.id === "google"
+    ) as { options?: { authorization?: { params?: Record<string, string> } } };
+    expect(googleProvider?.options?.authorization?.params?.prompt).toBe("select_account");
+    expect(googleProvider?.options?.authorization?.params?.access_type).toBe("offline");
+    expect(googleProvider?.options?.authorization?.params?.response_type).toBe("code");
+  });
+
+  it("configures secure SameSite=lax cookies for iOS/Safari compatibility", () => {
+    expect(authConfig.cookies).toBeDefined();
+    expect(authConfig.cookies?.sessionToken?.options?.sameSite).toBe("lax");
+    expect(authConfig.cookies?.callbackUrl?.options?.sameSite).toBe("lax");
+    expect(authConfig.cookies?.csrfToken?.options?.sameSite).toBe("lax");
+    expect(authConfig.cookies?.pkceCodeVerifier?.options?.sameSite).toBe("lax");
+    expect(authConfig.cookies?.state?.options?.sameSite).toBe("lax");
   });
 
   it("hydrates the user role from the database for OAuth sessions", async () => {

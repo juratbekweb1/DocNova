@@ -1,6 +1,11 @@
-import { generateGeminiContent } from "@/lib/gemini";
+import { generateGeminiContent, generateGeminiJson } from "@/lib/gemini";
 import { checkUserLimit, deductUserAiCredit, trackAIUsage } from "@/lib/limits";
 import { generateWordDocumentBuffer } from "@/lib/telegram-docnova-ai";
+import {
+  generateAcademicPages,
+  CourseworkAiChapters,
+  CourseworkData,
+} from "@/app/api/generate-coursework/route";
 import {
   parseDocumentSections,
   replaceDocumentSection,
@@ -22,6 +27,109 @@ export interface AcademicGenResult {
   markdownContent?: string;
   error?: string;
   requireUpgrade?: boolean;
+}
+
+async function generateMultiPageAcademicMarkdown(params: {
+  topic: string;
+  subject: string;
+  studentName: string;
+  pageCount: number;
+  workTypeTitle: string;
+  language?: "uz" | "ru";
+}): Promise<{
+  markdown: string;
+  pagesCount: number;
+  modelUsed: string;
+  inputTokens: number;
+  outputTokens: number;
+}> {
+  const { topic, subject, studentName, pageCount, workTypeTitle, language = "uz" } = params;
+  const targetPages = Math.max(5, Math.min(500, pageCount || 25));
+
+  const chapterPrompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga to'liq javob beradigan yetakchi professor va ilmiy ekspertsiz.
+Quyidagi parametrlar bo'yicha "${workTypeTitle}" uchun Kirish, 3 ta bobning barcha fasllari (1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3), qiyosiy tahliliy jadval, Xulosa va 15 ta GOST adabiyotlardan iborat chuqur ilmiy matnni JSON formatida tayyorlang:
+- Fan / Yo'nalish: "${subject}"
+- Mavzu: "${topic}"
+- Kutilayotgan hajm: ${targetPages} bet
+- Til: "${language}"
+
+QAT'IY TALABLAR:
+1. Barcha bo'limlar FAQAT VA FAQAT «${topic}» mavzusiga 100% bog'langan bo'lsin.
+2. Har bir bo'limda (sub1_1, sub1_2, sub1_3, sub2_1, sub2_2, sub2_3, sub3_1, sub3_2, sub3_3) kamida 2-3 ta to'liq, mukammal ilmiy abzas yozilsin (hech qachon jumlani yarim so'zda uzib qo'ymang!).
+3. sub2_table obyektida 5 ustunli va kamida 4 qatorli qiyosiy tahliliy jadval bo'lsin.
+4. Javobni FAQAT quyidagi JSON formatida qaytaring:
+{
+  "kirishContent": "...",
+  "sub1_1": "...",
+  "sub1_2": "...",
+  "sub1_3": "...",
+  "sub2_1": "...",
+  "sub2_table": {
+    "title": "...",
+    "headers": ["№", "Ko'rsatkich / Mezon", "An'anaviy holat", "Zamonaviy yondashuv", "Amaliy samara"],
+    "rows": [["1", "...", "...", "...", "..."]],
+    "sourceNote": "Manba: Tadqiqot asosida shakllantirildi."
+  },
+  "sub2_2": "...",
+  "sub2_3": "...",
+  "sub3_1": "...",
+  "sub3_2": "...",
+  "sub3_3": "...",
+  "xulosaContent": "...",
+  "references": ["1. ...", "2. ..."]
+}`;
+
+  let aiChapters: CourseworkAiChapters | undefined;
+  let modelUsed = "docnova-academic-engine";
+  let inputTokens = Math.ceil(chapterPrompt.length / 4);
+  let outputTokens = 0;
+
+  try {
+    const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
+      systemInstruction:
+        "Siz O'zbekiston OTMlarining yetakchi ilmiy professori va metodistisiz. Matnni faqat kiritilgan mavzuga 100% bog'langan holda, tugallangan ilmiy abzaslar bilan JSON formatida qaytaring.",
+      temperature: 0.2,
+      maxOutputTokens: 8192,
+      timeoutMs: 22_000,
+    });
+
+    if (
+      geminiRes.data &&
+      (geminiRes.data.kirishContent || geminiRes.data.sub1_1 || geminiRes.data.chapter1Content)
+    ) {
+      aiChapters = geminiRes.data;
+      modelUsed = geminiRes.modelUsed;
+      inputTokens = geminiRes.usage.promptTokenCount;
+      outputTokens = geminiRes.usage.candidatesTokenCount;
+    }
+  } catch (aiErr) {
+    console.warn("[TELEGRAM_MULTI_PAGE_AI_FALLBACK]", aiErr);
+  }
+
+  const courseworkData: CourseworkData = {
+    subject,
+    topic,
+    studentName,
+    year: new Date().getFullYear().toString(),
+    pageCount: String(targetPages),
+    language,
+    workTypeTitle,
+  };
+
+  const pages = generateAcademicPages(courseworkData, aiChapters);
+  const fullMarkdown = pages.map((p) => p.content).join("\n\n---\n\n");
+
+  if (outputTokens === 0) {
+    outputTokens = Math.ceil(fullMarkdown.length / 4);
+  }
+
+  return {
+    markdown: fullMarkdown,
+    pagesCount: pages.length,
+    modelUsed,
+    inputTokens,
+    outputTokens,
+  };
 }
 
 /**
@@ -48,47 +156,19 @@ export async function generateCourseworkDoc(params: {
   const currentYear = new Date().getFullYear();
   const subjectName = params.subject || "Umumkasbiy va mutaxassislik fanlari";
   const authorName = params.studentName || "DocNova talabasi";
-  const targetPageCount = params.pageCount || "25";
-
-  const prompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) talablariga to'liq javob beradigan professor va ilmiy ekspertsiz.
-Quyidagi parametrlar bo'yicha eng yuqori darajadagi KURs ISHIni to'liq matn sifatida yozib bering:
-- Fan: "${subjectName}"
-- Kurs ishi mavzusi: "${params.topic}"
-- Bajaruvchi: "${authorName}"
-- Kutilayotgan hajm: ${targetPageCount} bet
-- Yil: ${currentYear}
-
-QAT'IY STRUKTURA VA TALABLAR:
-1. TITUL VARAG'I (Vazirlik, OTM, Kafedra, Fan, Mavzu, Bajaruvchi, Ilmiy rahbar, Toshkent - ${currentYear})
-2. MUNDARIJA (Kirish, I Bob 3 ta fasl bilan, II Bob 3 ta fasl bilan, III Bob 3 ta fasl bilan, Xulosa, Foydalanilgan adabiyotlar — sahifa raqamlari ${targetPageCount} betlik hajmga mos taqsimlansin)
-3. KIRISH:
-   - Mavzuning dolzarbligi ("O'zbekiston - 2030" strategiyasi bilan bog'langan);
-   - Muammoning ilmiy o'rganilganlik darajasi;
-   - Tadqiqot obyekti va predmeti;
-   - Tadqiqot maqsadi va 4 ta ilmiy vazifasi;
-   - Tadqiqot usullari va amaliy ahamiyati.
-4. I BOB. MAVZUNING NAZARIY-METODOLOGIK ASOSLARI:
-   - 1.1, 1.2, 1.3 fasllari (nazariy tahlil, asosiy tushunchalar).
-5. II BOB. MAVZUNI AMALIY VA STATISTIK TAHLIL QILISH:
-   - 2.1, 2.2, 2.3 fasllari;
-   - Qat'iy talab: II Bobda kamida bitta batafsil qiyosiy Markdown jadval (Table) bo'lishi shart!
-6. III BOB. MAVZUNI RIVOJLANTIRISH BO'YICHA TAKLIFLAR VA TAVSIYALAR:
-   - 3.1, 3.2, 3.3 fasllari (innovatsion yechimlar va amaliy tavsiyalar).
-7. XULOSA: Barcha boblar bo'yicha aniq xulosalar va amaliy natijalar.
-8. FOYDALANILGAN ADABIYOTLAR: Kamida 15 ta real GOST manbasi (O'zbekiston qonunlari, Prezident farmonlari, darsliklar, ilmiy maqolalar).
-
-Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bilan yozing. Mavzudan chetga chiqmang!`;
+  const parsedPages = Math.max(10, Math.min(300, parseInt(params.pageCount || "25", 10) || 25));
 
   try {
-    const res = await generateGeminiContent(prompt, {
-      systemInstruction:
-        "Siz O'zbekiston OTMlarining yetakchi ilmiy professori va metodistisiz. Kurs ishlarini MOVSO RUz standartida benuqson yozasiz.",
-      temperature: 0.25,
-      maxOutputTokens: 4500,
-      timeoutMs: 35_000,
+    const gen = await generateMultiPageAcademicMarkdown({
+      topic: params.topic,
+      subject: subjectName,
+      studentName: authorName,
+      pageCount: parsedPages,
+      workTypeTitle: "KURS ISHI",
+      language: "uz",
     });
 
-    const content = res.text.trim();
+    const content = gen.markdown.trim();
     if (!content || content.length < 500) {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
@@ -98,10 +178,10 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
       userId: params.userId,
       plan: params.userPlan,
       feature: "COURSEWORK",
-      model: res.modelUsed,
+      model: gen.modelUsed,
       status: "SUCCESS",
-      inputTokens: res.usage.promptTokenCount,
-      outputTokens: res.usage.candidatesTokenCount,
+      inputTokens: gen.inputTokens,
+      outputTokens: gen.outputTokens,
       requestDurationMs: Date.now() - startTime,
     });
 
@@ -119,14 +199,14 @@ Matnni to'liq, qisqartirmasdan, Markdown formatida sarlavhalar (#, ##, ###) bila
     }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
-    const fileName = `Kurs_Ishi_${safeTopic}_DocNova.doc`;
+    const fileName = `Kurs_Ishi_${safeTopic}_${gen.pagesCount}bet_DocNova.doc`;
 
     return {
       success: true,
       docBuffer: buffer,
       fileName,
       markdownContent: content,
-      summaryText: `📘 *Kurs ishi muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📏 *Hajm:* ${targetPageCount} bet\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+      summaryText: `📘 *Kurs ishi muvaffaqiyatli tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📏 *Hajm:* ${gen.pagesCount} bet (to'liq sahifalangan)\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
     console.error("[TELEGRAM_COURSEWORK_GEN_ERR]", err);
@@ -165,47 +245,33 @@ export async function generateReferatDoc(params: {
   const authorName = params.studentName || "DocNova talabasi";
   const isRu = params.language === "ru";
 
-  let lengthGuide = "5-8 sahifaga mo'ljallangan to'liq akademik hajm (kamida 2500 so'z)";
+  let targetPages = 10;
   if (params.pageCount) {
-    lengthGuide = `${params.pageCount} sahifaga mo'ljallangan keng qamrovli akademik hajm (mundarija sahifalari ${params.pageCount} betga mos taqsimlansin)`;
+    targetPages = Math.max(5, Math.min(300, parseInt(params.pageCount, 10) || 10));
   } else if (params.lengthOption === "short") {
-    lengthGuide = "3-5 sahifaga mo'ljallangan ixcham hajm (kamida 1500 so'z)";
+    targetPages = 6;
+  } else if (params.lengthOption === "standard") {
+    targetPages = 10;
   } else if (params.lengthOption === "extended") {
-    lengthGuide =
-      "10-15 sahifaga mo'ljallangan kengaytirilgan batafsil hajm (kamida 4000-5000 so'z, chuqur tahlil)";
-  } else if (
-    params.lengthOption &&
-    !["short", "standard", "extended"].includes(params.lengthOption)
-  ) {
-    lengthGuide = `${params.lengthOption} betlik to'liq akademik hajm`;
+    targetPages = 15;
+  } else if (params.lengthOption) {
+    const parsed = parseInt(params.lengthOption, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      targetPages = Math.max(5, Math.min(300, parsed));
+    }
   }
 
-  const prompt = isRu
-    ? `Подготовьте академический реферат / самостоятельную работу высокого научного уровня:
-- Тема: "${params.topic}"
-- Предмет: "${subjectName}"
-- Автор: "${authorName}"
-- Объем: ${lengthGuide}
-- Структура: Титульный лист, План, Введение, 2-3 основных раздела с анализом, Заключение, Список литературы (ГОСТ).
-Формат: Markdown с заголовками (#, ##, ###) и таблицей при необходимости.`
-    : `O'zbekiston OTMlari talablariga mos yuqori sifatli REFERAT / MUSTAQIL ISH tayyorlang:
-- Mavzu: "${params.topic}"
-- Fan: "${subjectName}"
-- Bajaruvchi: "${authorName}"
-- Hajm: ${lengthGuide}
-- Qat'iy struktura: Titul varag'i, Reja, Kirish (dolzarbligi, maqsadi), Asosiy qism (2-3 ta band, chuqur tahliliy ma'lumotlar), Xulosa, Foydalanilgan adabiyotlar (kamida 8-10 ta manba).
-Matnni Markdown formatida yozing.`;
-
   try {
-    const res = await generateGeminiContent(prompt, {
-      systemInstruction:
-        "Siz referat va mustaqil ishlar bo'yicha ilmiy ekspertsiz. Belgilangan hajm va mavzuga qat'iy rioya qiling.",
-      temperature: 0.25,
-      maxOutputTokens: 4000,
-      timeoutMs: 35_000,
+    const gen = await generateMultiPageAcademicMarkdown({
+      topic: params.topic,
+      subject: subjectName,
+      studentName: authorName,
+      pageCount: targetPages,
+      workTypeTitle: isRu ? "РЕФЕРАТ / САМОСТОЯТЕЛЬНАЯ РАБОТА" : "MUSTAQIL ISH VA REFERAT",
+      language: isRu ? "ru" : "uz",
     });
 
-    const content = res.text.trim();
+    const content = gen.markdown.trim();
     if (!content || content.length < 400) {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
@@ -215,10 +281,10 @@ Matnni Markdown formatida yozing.`;
       userId: params.userId,
       plan: params.userPlan,
       feature: "REFERAT",
-      model: res.modelUsed,
+      model: gen.modelUsed,
       status: "SUCCESS",
-      inputTokens: res.usage.promptTokenCount,
-      outputTokens: res.usage.candidatesTokenCount,
+      inputTokens: gen.inputTokens,
+      outputTokens: gen.outputTokens,
       requestDurationMs: Date.now() - startTime,
     });
 
@@ -236,14 +302,14 @@ Matnni Markdown formatida yozing.`;
     }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
-    const fileName = `Referat_${safeTopic}_DocNova.doc`;
+    const fileName = `Referat_${safeTopic}_${gen.pagesCount}bet_DocNova.doc`;
 
     return {
       success: true,
       docBuffer: buffer,
       fileName,
       markdownContent: content,
-      summaryText: `📑 *Referat / Mustaqil ish tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+      summaryText: `📑 *Referat / Mustaqil ish tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n📚 *Fan:* ${subjectName}\n📏 *Hajm:* ${gen.pagesCount} bet (to'liq sahifalangan)\n📄 *Format:* Microsoft Word (.doc)\n🏛 *Standart:* MOVSO RUz / GOST\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
     console.error("[TELEGRAM_REFERAT_GEN_ERR]", err);
@@ -278,37 +344,19 @@ export async function generateBmiDoc(params: {
   const currentYear = new Date().getFullYear();
   const specialtyName = params.specialty || "Axborot texnologiyalari va iqtisodiyot";
   const authorName = params.studentName || "Bitiruvchi talaba";
-  const targetPageCount = params.pageCount || "70";
-
-  const prompt = `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi standartlariga to'liq javob beradigan professor va dissertatsiya rahbari sifatida, quyidagi mavzuda eng yuqori ilmiy darajadagi BITIRUV MALAKAVIY ISHI (BMI) / DIPLOM ISHIning to'liq kompleksini yozib bering:
-- Tadqiqot mavzusi: "${params.topic}"
-- Mutaxassislik: "${specialtyName}"
-- Bajaruvchi: "${authorName}"
-- Kutilayotgan hajm: ${targetPageCount} bet
-- Yil: ${currentYear}
-
-TALABLAR:
-1. TITUL VARAG'I (To'liq rasmiy O'zbekiston OTM formati)
-2. MUNDARIJA (Nuqtalar va sahifalar bilan — sahifa raqamlari umumiy ${targetPageCount} betlik hajmga mos taqsimlansin)
-3. KIRISH (To'liq ilmiy apparat: Dolzarblik, "O'zbekiston-2030" strategiyasi, O'rganilganlik darajasi, Obyekt, Predmet, Maqsad, 5 ta vazifa, Metodologiya, Ilmiy yangilik, Amaliy ahamiyat)
-4. I BOB. NAZARIY-METODOLOGIK ASOSLAR (1.1, 1.2, 1.3 fasllar)
-5. II BOB. AMALIY VA TAHLILIY TADQIQOT (2.1, 2.2, 2.3 fasllar + Kamida bitta qiyosiy tahliliy jadval)
-6. III BOB. TAKLIFLAR, INNOVATSION MEXANIZMLAR VA YO'L XARITASI (3.1, 3.2, 3.3 fasllar)
-7. XULOSA VA TAVSIYALAR
-8. ADABIYOTLAR RO'YXATI (Kamida 25-30 ta dolzarb GOST manbasi: Qonunlar, Farmonlar, Scopus / Web of Science, Lex.uz).
-
-Matnni Markdown formatida yozing.`;
+  const parsedPages = Math.max(20, Math.min(350, parseInt(params.pageCount || "70", 10) || 70));
 
   try {
-    const res = await generateGeminiContent(prompt, {
-      systemInstruction:
-        "Siz bitiruv malakaviy ishlari va dissertatsiyalar bo'yicha bosh ekspertsiz. Ilmiy apparat va standartlarga qat'iy amal qiling.",
-      temperature: 0.2,
-      maxOutputTokens: 8192,
-      timeoutMs: 35_000,
+    const gen = await generateMultiPageAcademicMarkdown({
+      topic: params.topic,
+      subject: specialtyName,
+      studentName: authorName,
+      pageCount: parsedPages,
+      workTypeTitle: "BITIRUV MALAKAVIY ISHI (BMI)",
+      language: "uz",
     });
 
-    const content = res.text.trim();
+    const content = gen.markdown.trim();
     if (!content || content.length < 600) {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
@@ -318,10 +366,10 @@ Matnni Markdown formatida yozing.`;
       userId: params.userId,
       plan: params.userPlan,
       feature: "BMI_DIPLOM",
-      model: res.modelUsed,
+      model: gen.modelUsed,
       status: "SUCCESS",
-      inputTokens: res.usage.promptTokenCount,
-      outputTokens: res.usage.candidatesTokenCount,
+      inputTokens: gen.inputTokens,
+      outputTokens: gen.outputTokens,
       requestDurationMs: Date.now() - startTime,
     });
 
@@ -339,14 +387,14 @@ Matnni Markdown formatida yozing.`;
     }
 
     const safeTopic = params.topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
-    const fileName = `BMI_${safeTopic}_DocNova.doc`;
+    const fileName = `BMI_${safeTopic}_${gen.pagesCount}bet_DocNova.doc`;
 
     return {
       success: true,
       docBuffer: buffer,
       fileName,
       markdownContent: content,
-      summaryText: `🎓 *Bitiruv malakaviy ishi (BMI) tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n🏛 *Yo'nalish:* ${specialtyName}\n📄 *Format:* Microsoft Word (.doc)\n📚 *Tarkib:* Titul, Mundarija, Kirish, 3 ta Bob, Jadval, Xulosa, 25+ Adabiyotlar\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+      summaryText: `🎓 *Bitiruv malakaviy ishi (BMI) tayyorlandi!*\n\n📌 *Mavzu:* ${params.topic}\n🏛 *Yo'nalish:* ${specialtyName}\n📏 *Hajm:* ${gen.pagesCount} bet (to'liq sahifalangan)\n📄 *Format:* Microsoft Word (.doc)\n📚 *Tarkib:* Titul, Mundarija, Kirish, 3 ta Bob, Jadval, Xulosa, Adabiyotlar\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
     };
   } catch (err) {
     console.error("[TELEGRAM_BMI_GEN_ERR]", err);
@@ -837,41 +885,94 @@ export async function adjustAcademicLength(params: {
   topic?: string;
   subject?: string;
 }): Promise<AcademicGenResult> {
-  let instruction = "";
+  const startTime = Date.now();
+  const limitCheck = await checkUserLimit(params.userId, "rewrite");
+  if (!limitCheck.allowed) {
+    return {
+      success: false,
+      error: limitCheck.error || "Ushbu oy uchun qayta tahrirlash limitingiz tugadi.",
+      requireUpgrade: true,
+    };
+  }
+
+  const currentPagesCount = Math.max(
+    5,
+    params.currentMarkdown.split(/\n\s*---\s*\n/).filter(Boolean).length
+  );
+
+  let targetPages = 25;
   if (params.lengthOption === "expand_2x") {
-    instruction =
-      "Hujjatning barcha boblari va bandlarini chuqurroq nazariy tahlillar, qo'shimcha statistik jadvallar, 2024-2026 yillardagi rasmiy ko'rsatkichlar va amaliy misollar bilan boyitib, matn hajmini 1.5 - 2 barobar kengaytiring. Barcha standart bo'limlar saqlansin.";
+    targetPages = Math.min(300, Math.max(15, currentPagesCount * 2));
   } else if (params.lengthOption === "shorten_2x") {
-    instruction =
-      "Hujjatdagi barcha ortiqcha gaplar, suv matnlar va takroriy fikrlarni olib tashlab, asosiy ilmiy mohiyat, ilmiy apparat, xulosalar va adabiyotlarni to'liq saqlagan holda matn hajmini 2 barobar qisqartiring va ixchamlashtiring.";
+    targetPages = Math.max(5, Math.round(currentPagesCount / 2));
   } else if (params.lengthOption === "10_15") {
-    instruction =
-      "Hujjatni 10-15 betlik hajmga (taxminan 3000-4500 so'z) moslab qayta tahrirlang. Strukturaviy yaxlitlik va MOVSO talablari saqlansin.";
+    targetPages = 15;
   } else if (params.lengthOption === "20_25") {
-    instruction =
-      "Hujjatni 20-25 betlik to'liq kurs ishi hajmiga (taxminan 6000-7500 so'z) moslab chuqur tahlillar va statistik jadvallar bilan kengaytiring.";
+    targetPages = 25;
+  } else if (params.lengthOption === "30_plus") {
+    targetPages = 35;
   } else if (
-    params.lengthOption === "30_plus" ||
     params.lengthOption === "50" ||
     params.lengthOption === "100" ||
     params.lengthOption === "200" ||
     params.lengthOption === "300"
   ) {
-    const pagesLabel = params.lengthOption === "30_plus" ? "30+" : params.lengthOption;
-    instruction = `Hujjatni ${pagesLabel} betlik to'liq ilmiy ish darajasida maksimal darajada batafsil, keng qamrovli tahlillar, mundarijada ${pagesLabel} betga mos sahifa raqamlari va 25+ adabiyotlar bilan shakllantiring.`;
+    targetPages = parseInt(params.lengthOption, 10);
   } else if (params.lengthOption === "custom") {
-    instruction = `Hujjatni aynan foydalanuvchi so'ragan hajmda (${params.customPages || "belgilangan hajmda"}) tayyorlang va mundarija sahifa raqamlarini ushbu hajmga moslashtiring. Akademik talablarga to'liq rioya qiling.`;
+    const parsed = parseInt(params.customPages || "25", 10);
+    targetPages = !isNaN(parsed) && parsed >= 5 ? Math.min(300, parsed) : 25;
   }
 
-  return rewriteAcademicDoc({
-    userId: params.userId,
-    userPlan: params.userPlan,
-    currentMarkdown: params.currentMarkdown,
-    instruction,
-    workType: params.workType,
-    topic: params.topic,
-    subject: params.subject,
-  });
+  const topic = params.topic || "Akademik tadqiqot";
+  const subject = params.subject || "Mutaxassislik fani";
+  const workTypeLabel = params.workType || "Kurs ishi";
+
+  try {
+    const gen = await generateMultiPageAcademicMarkdown({
+      topic,
+      subject,
+      studentName: "DocNova talabasi",
+      pageCount: targetPages,
+      workTypeTitle: workTypeLabel.toUpperCase(),
+      language: "uz",
+    });
+
+    await deductUserAiCredit(params.userId);
+    await trackAIUsage({
+      userId: params.userId,
+      plan: params.userPlan,
+      feature: "REWRITE",
+      model: gen.modelUsed,
+      status: "SUCCESS",
+      inputTokens: gen.inputTokens,
+      outputTokens: gen.outputTokens,
+      requestDurationMs: Date.now() - startTime,
+    });
+
+    const buffer = generateWordDocumentBuffer({
+      title: topic,
+      bodyContent: gen.markdown,
+      workType: workTypeLabel,
+      subject,
+    });
+
+    const safeTopic = topic.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").slice(0, 30);
+    const fileName = `${workTypeLabel.replace(/\s+/g, "_")}_${safeTopic}_${gen.pagesCount}bet.doc`;
+
+    return {
+      success: true,
+      docBuffer: buffer,
+      fileName,
+      markdownContent: gen.markdown,
+      summaryText: `📏 *Hujjat hajmi ${gen.pagesCount} betga moslashtirildi!*\n\n📌 *Mavzu:* ${topic}\n📄 *Yangi hajm:* ${gen.pagesCount} bet (to'liq sahifalangan)\n⏱ *Vaqt:* ${Math.round((Date.now() - startTime) / 1000)} soniya`,
+    };
+  } catch (err) {
+    console.error("[TELEGRAM_ADJUST_LENGTH_ERR]", err);
+    return {
+      success: false,
+      error: "Hujjat hajmini o'zgartirishda xatolik yuz berdi.",
+    };
+  }
 }
 
 /**

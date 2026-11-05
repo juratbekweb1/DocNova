@@ -21,9 +21,14 @@ import {
   TrendingUp,
   Stethoscope,
   Compass,
+  RotateCcw,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
+import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
 import {
   StaleBuildError,
   deliverPdf,
@@ -31,6 +36,7 @@ import {
   exportElementsToPdf,
   inAppHint,
 } from "@/lib/pdf-export";
+import { downloadAcademicDocx } from "@/lib/docx-download-client";
 
 interface SpecialtyOption {
   id: string;
@@ -238,66 +244,6 @@ const markdownComponents = {
   hr: () => <hr className="my-4 border-t-2 border-slate-300" />,
 };
 
-function formatMarkdownToWordHTML(md: string): string {
-  const lines = md.split("\n");
-  const resultLines: string[] = [];
-  let inTable = false;
-  let tableRows: string[][] = [];
-
-  const flushTable = () => {
-    if (tableRows.length === 0) return;
-    let tableHtml =
-      "<table border='1' cellspacing='0' cellpadding='6' style='width:100%; border-collapse:collapse; margin-top:14pt; margin-bottom:14pt;'>";
-    tableRows.forEach((row, rowIdx) => {
-      tableHtml += "<tr>";
-      row.forEach((cell) => {
-        const tag = rowIdx === 0 ? "th" : "td";
-        const style =
-          rowIdx === 0
-            ? "style='background-color:#f1f5f9; font-weight:bold; text-align:center; border:1pt solid #000; padding:6pt; font-size:12pt;'"
-            : "style='text-align:left; border:1pt solid #000; padding:6pt; font-size:12pt;'";
-        tableHtml += `<${tag} ${style}>${cell}</${tag}>`;
-      });
-      tableHtml += "</tr>";
-    });
-    tableHtml += "</table>";
-    resultLines.push(tableHtml);
-    tableRows = [];
-    inTable = false;
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line.startsWith("|") && line.endsWith("|")) {
-      const isSeparator = /^\|[\s\-:|]+\|$/.test(line);
-      if (isSeparator) continue;
-      const cells = line
-        .slice(1, -1)
-        .split("|")
-        .map((c) => c.trim());
-      inTable = true;
-      tableRows.push(cells);
-    } else {
-      if (inTable) flushTable();
-      resultLines.push(lines[i]);
-    }
-  }
-  if (inTable) flushTable();
-
-  let html = resultLines.join("\n");
-  html = html
-    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-    .replace(/\*(.*?)\*/g, "<i>$1</i>")
-    .replace(/^-\s+(.*$)/gim, "<li>$1</li>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br/>");
-
-  return `<p>${html}</p>`;
-}
-
 export default function DiplomBmiPage() {
   const { toast } = useToast();
   const documentRef = useRef<HTMLDivElement>(null);
@@ -316,14 +262,20 @@ export default function DiplomBmiPage() {
     language: "uz" as "uz" | "ru",
     part: "To'liq BMI majmuasi (Barcha boblar va 30 ta adabiyot)",
     pageCount: "70",
+    templateText: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
+  const [generationError, setGenerationError] = useState<{
+    message: string;
+    creditRefunded?: boolean;
+  } | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [slidesCount, setSlidesCount] = useState<number>(15);
+  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -350,8 +302,8 @@ export default function DiplomBmiPage() {
     });
   };
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGenerate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formData.topic.trim()) {
       toast({
         title: "Mavzuni kiriting",
@@ -362,6 +314,7 @@ export default function DiplomBmiPage() {
     }
 
     setLoading(true);
+    setGenerationError(null);
     setResult(null);
     setCurrentStepIdx(0);
     setProgressPercent(12);
@@ -379,6 +332,9 @@ export default function DiplomBmiPage() {
       });
     }, 1100);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 50_000);
+
     try {
       const res = await fetch("/api/ai/academic", {
         method: "POST",
@@ -387,13 +343,10 @@ export default function DiplomBmiPage() {
           action: "generate-bmi",
           ...formData,
         }),
+        signal: controller.signal,
       });
 
-      clearInterval(stepInterval);
-      setProgressPercent(100);
-      setCurrentStepIdx(GENERATION_STEPS.length - 1);
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 401 || data.requireLogin) {
           toast({
@@ -414,9 +367,15 @@ export default function DiplomBmiPage() {
           });
           return;
         }
-        throw new Error(data.error || "Generatsiyada xatolik yuz berdi");
+        const errObj = new Error(data.error || "Generatsiyada xatolik yuz berdi") as Error & {
+          creditRefunded?: boolean;
+        };
+        errObj.creditRefunded = Boolean(data.creditRefunded);
+        throw errObj;
       }
 
+      setProgressPercent(100);
+      setCurrentStepIdx(GENERATION_STEPS.length - 1);
       setResult(data.result);
       toast({
         title: "Diplom (BMI) muvaffaqiyatli tayyorlandi! 🎓",
@@ -424,14 +383,24 @@ export default function DiplomBmiPage() {
           "Vazirlik talablariga mos ilmiy apparat, mundarija, boblar va 25-30 ta adabiyot shakllandi.",
       });
     } catch (err: unknown) {
-      clearInterval(stepInterval);
-      const e = err as Error;
+      const e = err as Error & { creditRefunded?: boolean };
+      const isTimeout = e?.name === "AbortError";
+      const friendlyMessage = isTimeout
+        ? "Server javob berishi kutilganidan ko'proq vaqt oldi (Timeout). Limitingiz saqlab qolindi — 'Qayta urinish' tugmasini bosing."
+        : e.message || "Tarmoq yoki server xatoligi yuz berdi. Iltimos, qayta urinib ko'ring.";
+
+      setGenerationError({
+        message: friendlyMessage,
+        creditRefunded: isTimeout ? true : Boolean(e.creditRefunded ?? true),
+      });
       toast({
-        title: "Xatolik yuz berdi",
-        description: e.message || "Iltimos, qayta urinib ko'ring.",
+        title: isTimeout ? "Vaqt tugadi (Timeout)" : "Xatolik yuz berdi",
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
+      clearInterval(stepInterval);
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -444,109 +413,39 @@ export default function DiplomBmiPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Professional Word export with exact MOVSO RUz margins & real tables
-  const handleDownloadDoc = () => {
-    if (!result) return;
-    const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Diplom_BMI";
-    const formattedHtml = formatMarkdownToWordHTML(result);
+  // Professional Word (.docx) export with exact MOVSO RUz margins & tables
+  const handleDownloadDoc = async () => {
+    if (!result || isDownloadingDocx) return;
+    setIsDownloadingDocx(true);
+    try {
+      const exported = await downloadAcademicDocx({
+        topic: formData.topic,
+        markdownContent: result,
+        workType: formData.workType,
+        subject: formData.specialty,
+        university: formData.university,
+        faculty: formData.faculty,
+        studentName: formData.studentName,
+        teacherName: formData.teacherName,
+        language: formData.language,
+      });
 
-    const wordDocHTML = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>${formData.topic}</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-            <w:DoNotOptimizeForBrowser/>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          @page Section1 {
-            size: 210mm 297mm;
-            margin: 20mm 20mm 20mm 25mm; /* GOST: chapdan 25mm, yuqori/o'ng/past 20mm */
-            mso-header-margin: 15mm;
-            mso-footer-margin: 15mm;
-          }
-          div.Section1 { page: Section1; }
-          body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 14pt;
-            line-height: 1.5;
-            color: #000000;
-            text-align: justify;
-          }
-          h1 {
-            font-size: 16pt;
-            font-weight: bold;
-            text-align: center;
-            text-transform: uppercase;
-            margin-top: 24pt;
-            margin-bottom: 18pt;
-          }
-          h2 {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-top: 18pt;
-            margin-bottom: 12pt;
-          }
-          h3 {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-top: 12pt;
-            margin-bottom: 6pt;
-          }
-          p {
-            text-indent: 1.25cm;
-            margin-top: 0;
-            margin-bottom: 8pt;
-            line-height: 1.5;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 14pt;
-            margin-bottom: 14pt;
-          }
-          th, td {
-            border: 1pt solid #000000;
-            padding: 6pt;
-            font-size: 12pt;
-          }
-          th {
-            background-color: #f1f5f9;
-            font-weight: bold;
-            text-align: center;
-          }
-          .page-break {
-            page-break-before: always;
-            mso-break-type: page-break;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="Section1">
-          ${formattedHtml}
-        </div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([wordDocHTML], { type: "application/msword;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `BMI_${cleanTopic}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Word (.doc) yuklandi!",
-      description: "Hujjat GOST standartlariga to'liq mos holda saqlandi.",
-    });
+      if (exported.deliveryMethod !== "cancelled") {
+        toast({
+          title: "Word (.docx) yuklandi! 📄",
+          description: "GOST A4 standartlariga mos toza .docx hujjat saqlandi.",
+        });
+      }
+    } catch (err) {
+      console.error("[BMI_DOCX_EXPORT_ERR]", err);
+      toast({
+        title: "Word (.docx) yuklashda xatolik",
+        description: err instanceof Error ? err.message : "Iltimos, qayta urinib ko'ring.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingDocx(false);
+    }
   };
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -651,6 +550,44 @@ export default function DiplomBmiPage() {
             </div>
 
             <form onSubmit={handleGenerate} className="space-y-4">
+              {/* Ikki xil hujjat yaratish yo'li: Noldan yaratish / Namuna faylim bor */}
+              <CreationModeSelector
+                moduleType="diplom-bmi"
+                accentColor="amber"
+                onSampleBlueprintReady={(blueprint) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    templateText: blueprint,
+                  }));
+                }}
+                onSampleCleared={() => setFormData((prev) => ({ ...prev, templateText: "" }))}
+                onApplySampleStructureHint={(hint) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    pageCount: hint.pageCount || prev.pageCount,
+                  }));
+                  toast({
+                    title: "Namuna tuzilmasi qo'llanildi!",
+                    description: "BMI boblar qolipi va sahifalar soni shaklga moslandi.",
+                  });
+                }}
+                onNaturalPromptParsed={(parsed) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: parsed.topic || prev.topic,
+                    pageCount: parsed.pageCount || prev.pageCount,
+                    language: parsed.language || prev.language,
+                  }));
+                  toast({
+                    title: "So'rov tahlil qilindi ✨",
+                    description:
+                      parsed.missingFields.length > 0
+                        ? `Iltimos, yetishmayotgan maydonlarni tekshiring: ${parsed.missingFields.join(", ")}`
+                        : "Mavzu va hajm shaklga kiritildi!",
+                  });
+                }}
+              />
+
               {/* Yo'nalish va Kafedra */}
               <div>
                 <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
@@ -1045,6 +982,41 @@ export default function DiplomBmiPage() {
               </div>
             )}
 
+            {/* Xatolik va Qayta urinish bloki */}
+            {!loading && generationError && (
+              <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-5 shadow-lg print:hidden">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/20 text-red-400">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <h4 className="text-foreground text-sm font-bold sm:text-base">
+                      Generatsiya vaqtincha to&apos;xtatildi
+                    </h4>
+                    <p className="text-foreground-secondary text-xs leading-relaxed break-words sm:text-sm">
+                      {generationError.message}
+                    </p>
+                    {generationError.creditRefunded && (
+                      <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                        <span>Generatsiya limitingiz (kreditingiz) avtomatik qaytarildi</span>
+                      </div>
+                    )}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerate()}
+                        className="inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-500 sm:text-sm"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        <span>Qayta urinish (Bepul)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {result ? (
               <div className="space-y-4">
                 {/* Cross-Sell Slides Banner */}
@@ -1104,10 +1076,15 @@ export default function DiplomBmiPage() {
                     </button>
                     <button
                       onClick={handleDownloadDoc}
-                      className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-500"
+                      disabled={isDownloadingDocx}
+                      className="flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-500 disabled:opacity-50"
                     >
-                      <FileDown className="h-3.5 w-3.5" />
-                      <span>Word (.doc)</span>
+                      {isDownloadingDocx ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <FileDown className="h-3.5 w-3.5" />
+                      )}
+                      <span>{isDownloadingDocx ? "Yuklanmoqda..." : "Word (.docx)"}</span>
                     </button>
                     <button
                       onClick={handleDownloadPdf}

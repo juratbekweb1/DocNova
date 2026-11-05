@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { X, Smartphone } from "lucide-react";
 import { signIn } from "next-auth/react";
+import { InAppBrowserNotice } from "@/components/auth/InAppBrowserNotice";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -37,7 +38,11 @@ export function AuthModal({
   if (!isOpen) return null;
 
   const handleOAuth = (provider: string) => {
-    signIn(provider, { callbackUrl });
+    signIn(
+      provider,
+      { callbackUrl },
+      provider === "google" ? { prompt: "select_account" } : undefined
+    );
   };
 
   return (
@@ -62,6 +67,9 @@ export function AuthModal({
           <h2 className="text-foreground text-xl font-extrabold sm:text-2xl">{title}</h2>
           <p className="text-foreground-secondary mt-1.5 max-w-xs text-xs">{description}</p>
         </div>
+
+        {/* In-App Browser Guide for iPhone */}
+        <InAppBrowserNotice />
 
         {/* Telegram Fast Login Card */}
         <div className="bg-surface-elevated/70 border-border/80 text-foreground-secondary mb-5 space-y-2 rounded-2xl border p-4 text-xs">

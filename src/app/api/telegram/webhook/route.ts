@@ -3,6 +3,7 @@ import { bot } from "@/lib/telegram";
 import { prisma } from "@/lib/prisma";
 import { QUIZ_SUBJECTS } from "@/lib/quiz-bank";
 import { TelegramQuizService } from "@/lib/telegram-quiz-service";
+import { getDetailedAiReport, formatTelegramReport } from "@/lib/telegram-ai-report";
 
 if (bot) {
   // Command: /start [token]
@@ -273,6 +274,45 @@ if (bot) {
     }
   });
 
+  // Command: /hisobot or /report (Super Admin / Admin full platform report)
+  bot.command(["hisobot", "report", "admin"], async (ctx) => {
+    if (!ctx.from?.id) return;
+    try {
+      const fromIdStr = ctx.from.id.toString();
+      const chatIdStr = ctx.chat?.id?.toString();
+      const adminEnvId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+
+      const linkedUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ telegramId: fromIdStr }, ...(chatIdStr ? [{ telegramChatId: chatIdStr }] : [])],
+        },
+        select: { role: true },
+      });
+
+      const isAuthorized =
+        (adminEnvId && (fromIdStr === adminEnvId || chatIdStr === adminEnvId)) ||
+        linkedUser?.role === "SUPER_ADMIN" ||
+        linkedUser?.role === "ADMIN";
+
+      if (!isAuthorized) {
+        await ctx.reply("⛔ Ushbu buyruq faqat Super Admin uchun mo'ljallangan.");
+        return;
+      }
+
+      const summary = await getDetailedAiReport();
+      const reportText = formatTelegramReport(summary);
+
+      try {
+        await ctx.reply(reportText, { parse_mode: "Markdown" });
+      } catch {
+        await ctx.reply(reportText.replace(/[*_`]/g, ""));
+      }
+    } catch (error) {
+      console.error("[TELEGRAM_REPORT_COMMAND_ERROR]", error);
+      await ctx.reply("❌ Hisobotni shakllantirishda xatolik yuz berdi.");
+    }
+  });
+
   // Command: /help
   bot.command("help", async (ctx) => {
     await ctx.reply(
@@ -281,6 +321,7 @@ if (bot) {
         "/test - 30 talik imtihon testini topshirish (Fisher-Yates himoyasi bilan)\n" +
         "/stop - Faol testni to'xtatish\n" +
         "/status - DocNova balansingiz va tarifingizni tekshirish\n" +
+        "/hisobot - To'liq kunlik platforma hisoboti (Admin)\n" +
         "/help - Ushbu yordam xabarini ko'rsatish\n\n" +
         "Savollar yoki qo'llab-quvvatlash uchun: @docnova_support",
       { parse_mode: "Markdown" }

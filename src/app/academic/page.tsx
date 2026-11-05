@@ -404,16 +404,16 @@ export default function AcademicHubPage() {
                   )}
                 </div>
 
-                <div className="border-border/50 mt-6 flex flex-col items-start justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
+                <div className="border-border/50 mt-6 flex flex-col items-start justify-between gap-3 border-t pt-4 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="text-foreground-muted text-[11px] font-medium">
                     {module.stats}
                   </span>
                   <Link
                     href={module.href}
-                    className="bg-surface-elevated hover:bg-primary hover:text-primary-foreground border-border text-foreground group-hover:bg-primary group-hover:text-primary-foreground inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold shadow-sm transition-all sm:w-auto"
+                    className="bg-surface-elevated hover:bg-primary hover:text-primary-foreground border-border text-foreground group-hover:bg-primary group-hover:text-primary-foreground inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap shadow-sm transition-all sm:w-auto"
                   >
                     <span>{module.cta}</span>
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>
               </div>

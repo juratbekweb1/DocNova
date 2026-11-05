@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
 import { useToast } from "@/hooks/use-toast";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
+import { downloadAcademicDocx } from "@/lib/docx-download-client";
 
 export default function AcademicEssayBuilderPage() {
   useRecentTool("essay-builder", "Essay Builder", "Academic Hub", "/academic/essay-builder");
@@ -79,26 +80,30 @@ Quyidagi tuzilmani qat'iy saqla:
     toast({ title: "Nusxalandi!", description: "Insho xotiraga nusxalandi." });
   };
 
-  const downloadWordDoc = () => {
+  const downloadWordDoc = async () => {
     if (!result) return;
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>DocNova Academic Essay</title><style>
-      body { font-family: 'Times New Roman', Times, serif; font-size: 14pt; line-height: 1.5; color: #000; margin: 25mm 20mm 20mm 30mm; }
-      h1 { font-size: 16pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 12pt; }
-      h2 { font-size: 14pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt; }
-      p { text-indent: 1.25cm; margin-bottom: 6pt; text-align: justify; }
-    </style></head><body>`;
-    const footer = "</body></html>";
-    const formattedHtml = result.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>");
-    const sourceHTML = header + `<p>${formattedHtml}</p>` + footer;
-    const source = "data:application/vnd.ms-word;charset=utf-8," + encodeURIComponent(sourceHTML);
-    const fileDownload = document.createElement("a");
-    document.body.appendChild(fileDownload);
-    fileDownload.href = source;
-    fileDownload.download = `Insho_${topic.replace(/\s+/g, "_").slice(0, 30) || "DocNova"}.doc`;
-    fileDownload.click();
-    document.body.removeChild(fileDownload);
-    toast({ title: "Yuklab olindi", description: "Insho Word (.doc) formatida saqlandi." });
+    try {
+      const exported = await downloadAcademicDocx({
+        topic: topic || "Akademik Insho",
+        markdownContent: result,
+        workType: `Akademik Insho (${essayType})`,
+        subject: field,
+      });
+
+      if (exported.deliveryMethod !== "cancelled") {
+        toast({
+          title: "Word (.docx) yuklab olindi! 📄",
+          description: `Insho .docx formatida va QR-kod (${exported.verificationCode}) bilan saqlandi.`,
+        });
+      }
+    } catch (err) {
+      console.error("[ESSAY_DOCX_EXPORT_ERR]", err);
+      toast({
+        title: "Xatolik",
+        description: err instanceof Error ? err.message : "Word faylni yuklab olishda xatolik",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
