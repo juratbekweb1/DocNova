@@ -4,11 +4,16 @@ import { AuthCard } from "./AuthCard";
 import { KeyRound, Smartphone } from "lucide-react";
 import { InAppBrowserNotice } from "./InAppBrowserNotice";
 
+export type LoginFormData = {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+};
+
 type LoginFormProps = {
   onOAuthProviderClick?: (provider: string) => void;
-  // Kept for signature compatibility but unused
-  onLogin?: (...args: unknown[]) => void;
-  onForgotPassword?: (...args: unknown[]) => void;
+  onLogin?: (data: LoginFormData) => Promise<{ error?: string } | void> | void;
+  onForgotPassword?: (data?: unknown) => Promise<unknown> | void;
 };
 
 export function LoginForm({ onOAuthProviderClick }: LoginFormProps) {

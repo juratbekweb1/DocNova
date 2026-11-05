@@ -1,0 +1,8 @@
+.next
+node_modules
+.git
+prisma/pglite
+pglite-test-db*
+test-artifacts
+scratch
+*.log
