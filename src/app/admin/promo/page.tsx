@@ -3,16 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
 import { Trash2, Plus } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { isAdminRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPromoPage() {
-  const promos = await prisma.promoCode.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const promos = await prisma.promoCode
+    .findMany({
+      orderBy: { createdAt: "desc" },
+    })
+    .catch(() => []);
 
   async function createPromo(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const code = formData.get("code") as string;
     const discountType = formData.get("discountType") as string;
     const discountValue = parseFloat(formData.get("discountValue") as string) || 0;
@@ -34,7 +42,11 @@ export default async function AdminPromoPage() {
 
   async function deletePromo(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const id = formData.get("id") as string;
+    if (!id) return;
     await prisma.promoCode.delete({ where: { id } });
     revalidatePath("/admin/promo");
   }

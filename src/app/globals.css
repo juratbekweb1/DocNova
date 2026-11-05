@@ -228,7 +228,7 @@ section {
     display: none !important;
   }
 
-  /* Strictly guarantee no UI container, header, card, or interactive element ever gets foreground blur on mobile */
+  /* Strictly guarantee no UI container, header, card, or interactive element ever gets foreground or backdrop blur on mobile */
   header,
   nav,
   main,
@@ -238,9 +238,12 @@ section {
   footer,
   button,
   a,
-  [class*="backdrop-blur"] {
+  [class*="backdrop-blur"],
+  .glass {
     filter: none !important;
     -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* Disable offscreen backdrop-filter compositing on mobile/WebView to prevent blurry layer downscaling and GPU lag */
@@ -250,10 +253,16 @@ section {
   .backdrop-blur-lg,
   .backdrop-blur-md,
   .backdrop-blur-sm,
-  .backdrop-blur,
-  .glass {
+  .backdrop-blur {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  /* Hide heavy decorative Gaussian blur orbs inside cards/sections on mobile to keep cards 100% crisp */
+  .pointer-events-none.blur-3xl,
+  .pointer-events-none.blur-2xl,
+  .pointer-events-none.blur-xl {
+    display: none !important;
   }
 
   /* Disable continuous GPU-draining infinite CSS animations on mobile */

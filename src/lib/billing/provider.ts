@@ -335,7 +335,8 @@ export function buildProviderPaymentUrl(params: {
     return `https://checkout.paycom.uz/${encoded}`;
   }
 
-  return `${redirectUrl}&transaction_id=${encodeURIComponent(params.transactionId)}`;
+  const separator = redirectUrl.includes("?") ? "&" : "?";
+  return `${redirectUrl}${separator}transaction_id=${encodeURIComponent(params.transactionId)}`;
 }
 
 /**

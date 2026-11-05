@@ -100,7 +100,7 @@ export function SubPageHeader({
   return (
     <div
       className={cn(
-        "border-border/60 bg-surface/40 w-full border-b px-4 py-2.5 backdrop-blur-md transition-all sm:px-6 lg:px-8 print:hidden",
+        "border-border/60 bg-surface/95 md:bg-surface/40 w-full border-b px-4 py-2.5 transition-all sm:px-6 md:backdrop-blur-md lg:px-8 print:hidden",
         className
       )}
     >

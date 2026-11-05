@@ -147,7 +147,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     "style-src 'self' 'unsafe-inline' https://accounts.google.com",
     "img-src 'self' data: https: blob: https://lh3.googleusercontent.com",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.stripe.com https://accounts.google.com https://my.click.uz https://checkout.paycom.uz https://backend.payx.uz",
+    "connect-src 'self' https: wss: data:",
     "frame-src 'self' https://js.stripe.com https://accounts.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",

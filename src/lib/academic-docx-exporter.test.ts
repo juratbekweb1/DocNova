@@ -23,7 +23,7 @@ vi.mock("@/lib/prisma", () => ({
           update: { identifier: string; expires: Date };
         }) => {
           const token = where.token;
-          const record = { token, ...create, ...update };
+          const record = { ...create, ...update, token };
           mockVerificationDb.set(token, record);
           return record;
         }

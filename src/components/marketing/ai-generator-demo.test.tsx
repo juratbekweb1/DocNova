@@ -6,7 +6,12 @@ import { AiGeneratorDemo } from "./ai-generator-demo";
 // Mock motion/react
 vi.mock("motion/react", () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => <div {...props}>{children}</div>,
+    div: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+      <div {...props}>{children}</div>
+    ),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -67,7 +72,7 @@ describe("AiGeneratorDemo", () => {
     const button = screen.getByRole("button", { name: /generate resume/i });
     // Button should be disabled because input is < 10 chars
     expect(button).toBeDisabled();
-    
+
     // Attempting to click shouldn't trigger fetch
     fireEvent.click(button);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -103,19 +108,25 @@ describe("AiGeneratorDemo", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Experienced product designer with 5 years driving impact.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Experienced product designer with 5 years driving impact.")
+      ).toBeInTheDocument();
     });
 
-    expect(onGenerated).toHaveBeenCalledWith(expect.objectContaining({
-      summary: VALID_RESULT.summary,
-    }));
+    expect(onGenerated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        summary: VALID_RESULT.summary,
+      })
+    );
     expect(screen.getByText("Figma")).toBeInTheDocument();
   });
 
   // Test 7: Invalid AI response (missing required fields) is handled safely
   it("shows error when API returns invalid/malformed data", async () => {
     // API returns 502 with AI_PARSE_ERROR
-    mockFetch.mockReturnValue(errorResponse(502, "AI_PARSE_ERROR", "Javobni qayta ishlashda xatolik"));
+    mockFetch.mockReturnValue(
+      errorResponse(502, "AI_PARSE_ERROR", "Javobni qayta ishlashda xatolik")
+    );
 
     render(<AiGeneratorDemo />);
 
@@ -158,7 +169,9 @@ describe("AiGeneratorDemo", () => {
   // Test 9: Duplicate requests are prevented
   it("prevents a second fetch while first is still loading", async () => {
     let resolveFirst!: (value: Response) => void;
-    const firstRequest = new Promise<Response>((res) => { resolveFirst = res; });
+    const firstRequest = new Promise<Response>((res) => {
+      resolveFirst = res;
+    });
     mockFetch.mockReturnValueOnce(firstRequest);
 
     render(<AiGeneratorDemo />);
@@ -179,7 +192,11 @@ describe("AiGeneratorDemo", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     // Clean up
-    resolveFirst(new Response(JSON.stringify({ success: true, data: VALID_RESULT }), { status: 200 }));
+    await act(async () => {
+      resolveFirst(
+        new Response(JSON.stringify({ success: true, data: VALID_RESULT }), { status: 200 })
+      );
+    });
   });
 
   // Test 10: Fallback provider path works correctly
@@ -196,7 +213,9 @@ describe("AiGeneratorDemo", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Experienced product designer with 5 years driving impact.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Experienced product designer with 5 years driving impact.")
+      ).toBeInTheDocument();
     });
 
     // Should show provider as "Mahalliy" (local fallback)

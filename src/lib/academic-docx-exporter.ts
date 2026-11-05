@@ -211,28 +211,26 @@ export async function verifyDocumentByCode(
   }
 
   // 1. Bazadan qidirish
-  if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-    try {
-      const { prisma } = await import("@/lib/prisma");
-      if (prisma?.verificationToken?.findUnique) {
-        const record = await prisma.verificationToken.findUnique({
-          where: { token: `doc_verify_${cleanCode}` },
-        });
-        if (record && record.expires > new Date()) {
-          const parsed = JSON.parse(
-            Buffer.from(record.identifier, "base64").toString("utf-8")
-          ) as AcademicVerificationPayload & { sig?: string };
-          const expectedSig = signVerificationData(parsed.code, parsed.contentHash);
-          return {
-            verified: true,
-            payload: parsed,
-            signatureValid: !parsed.sig || parsed.sig === expectedSig,
-          };
-        }
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    if (prisma?.verificationToken?.findUnique) {
+      const record = await prisma.verificationToken.findUnique({
+        where: { token: `doc_verify_${cleanCode}` },
+      });
+      if (record && record.expires > new Date()) {
+        const parsed = JSON.parse(
+          Buffer.from(record.identifier, "base64").toString("utf-8")
+        ) as AcademicVerificationPayload & { sig?: string };
+        const expectedSig = signVerificationData(parsed.code, parsed.contentHash);
+        return {
+          verified: true,
+          payload: parsed,
+          signatureValid: !parsed.sig || parsed.sig === expectedSig,
+        };
       }
-    } catch (err) {
-      console.warn("[DOC_VERIFY_LOOKUP_WARN]", err);
     }
+  } catch (err) {
+    console.warn("[DOC_VERIFY_LOOKUP_WARN]", err);
   }
 
   // 2. Agar bazada topilmasa, URL ichidagi kriptografik kompakt ma'lumotni tekshirish

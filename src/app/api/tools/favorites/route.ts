@@ -71,12 +71,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Tool ID is required" }, { status: 400 });
     }
 
-    await prisma.userFavoriteTool.delete({
+    await prisma.userFavoriteTool.deleteMany({
       where: {
-        userId_toolId: {
-          userId: session.user.id,
-          toolId,
-        },
+        userId: session.user.id,
+        toolId,
       },
     });
 

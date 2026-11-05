@@ -5,9 +5,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
   const [userCount, documentCount, activePlanCount] = await Promise.all([
-    prisma.user.count({ where: { deletedAt: null } }),
-    prisma.document.count({ where: { deletedAt: null } }),
-    prisma.plan.count({ where: { isActive: true } }),
+    prisma.user.count({ where: { deletedAt: null } }).catch(() => 0),
+    prisma.document.count({ where: { deletedAt: null } }).catch(() => 0),
+    prisma.plan.count({ where: { isActive: true } }).catch(() => 0),
   ]);
 
   return (

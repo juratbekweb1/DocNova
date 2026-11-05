@@ -5,13 +5,12 @@ import { Pool as PgPool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { env } from "../core/config/env";
 import ws from "ws";
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
-  const isProduction = env.NODE_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production";
   const databaseUrl = process.env.DATABASE_URL || "";
 
   if (databaseUrl.includes("neon.tech")) {
@@ -34,7 +33,7 @@ function createPrismaClient(): PrismaClient {
   }
 
   // Fallback to local PGlite (use in-memory instance in test environment to avoid concurrent WASM lock crashes)
-  const isTest = env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
   const client = isTest ? new PGlite() : new PGlite("./prisma/pglite");
   const adapter = new PrismaPGlite(client);
   return new PrismaClient({ adapter, log: isTest ? ["error"] : ["query", "error", "warn"] });
@@ -42,6 +41,6 @@ function createPrismaClient(): PrismaClient {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }

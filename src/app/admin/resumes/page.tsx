@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const dynamic = "force-dynamic";
 
 export default async function AdminResumesPage() {
-  const documents = await prisma.document.findMany({
-    where: { deletedAt: null },
-    orderBy: { updatedAt: "desc" },
-    take: 100,
-    include: { user: { select: { name: true, email: true } } },
-  });
+  const documents = await prisma.document
+    .findMany({
+      where: { deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      include: { user: { select: { name: true, email: true } } },
+    })
+    .catch(() => []);
 
   return (
     <div className="space-y-6">

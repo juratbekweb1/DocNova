@@ -8,7 +8,8 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const authHeader = req.headers.get("authorization");
-    const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    const isCron =
+      Boolean(process.env.CRON_SECRET) && authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
     if (!isCron) {
       if (!session?.user?.email) {

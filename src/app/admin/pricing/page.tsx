@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { isAdminRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +40,9 @@ export default async function AdminPricingPage() {
 
   async function updatePlan(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const id = formData.get("id") as string;
     const priceMonthly = parseFloat(formData.get("priceMonthly") as string) || 0;
     const priceYearly = parseFloat(formData.get("priceYearly") as string) || 0;

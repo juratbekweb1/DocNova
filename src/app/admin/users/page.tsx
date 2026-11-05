@@ -6,6 +6,9 @@ import { AutoSubmitSelect } from "@/components/admin/auto-submit-select";
 import { revalidatePath } from "next/cache";
 import { UserRole, SubscriptionTier } from "@prisma/client";
 import { Users, Sparkles, CreditCard, Calendar, CheckCircle } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { isAdminRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +38,14 @@ export default async function AdminUsersPage() {
   // Action: Update user role (USER, ADMIN, SUPER_ADMIN)
   async function updateUserRole(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const id = formData.get("id") as string;
     const roleValue = formData.get("role");
     if (!roleValue || !Object.values(UserRole).includes(roleValue as UserRole)) return;
     const role = roleValue as UserRole;
+    if (role === UserRole.SUPER_ADMIN && session.user.role !== "SUPER_ADMIN") return;
     await prisma.user.update({ where: { id }, data: { role } });
     revalidatePath("/admin/users");
   }
@@ -46,6 +53,9 @@ export default async function AdminUsersPage() {
   // Action: Update user subscription tier (FREE, PRO, PREMIUM)
   async function updateUserPlan(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const id = formData.get("id") as string;
     const planValue = formData.get("plan");
     if (!planValue || !Object.values(SubscriptionTier).includes(planValue as SubscriptionTier))
@@ -68,6 +78,9 @@ export default async function AdminUsersPage() {
   // Action: Grant manual AI generation credits
   async function grantCredits(formData: FormData) {
     "use server";
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !isAdminRole(session.user.role)) return;
+
     const id = formData.get("id") as string;
     const credits = parseInt(formData.get("credits") as string) || 0;
 

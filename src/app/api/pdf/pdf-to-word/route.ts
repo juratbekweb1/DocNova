@@ -13,7 +13,10 @@ export async function POST(req: NextRequest) {
       const hasLimit = await checkPdfLimit(session.user.id).catch(() => true);
       if (!hasLimit) {
         return NextResponse.json(
-          { error: "Kunlik PDF amallar limitingiz tugagan. Davom etish uchun tarifni yangilang.", requireUpgrade: true },
+          {
+            error: "Kunlik PDF amallar limitingiz tugagan. Davom etish uchun tarifni yangilang.",
+            requireUpgrade: true,
+          },
           { status: 403 }
         );
       }
@@ -32,7 +35,10 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(arrayBuffer);
-    const data = await pdfParse(buffer);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsePdf =
+      typeof pdfParse === "function" ? pdfParse : (pdfParse as any)?.default || pdfParse;
+    const data = await parsePdf(buffer);
 
     if (session?.user?.id) {
       await increasePdfLimit(session.user.id).catch((err) => {
@@ -43,7 +49,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text: data.text });
   } catch (error) {
     console.error("[PDF to Word API] Error:", error);
-    const message = error instanceof Error ? error.message : "PDF matnini ajratib olishda xatolik yuz berdi";
+    const message =
+      error instanceof Error ? error.message : "PDF matnini ajratib olishda xatolik yuz berdi";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
