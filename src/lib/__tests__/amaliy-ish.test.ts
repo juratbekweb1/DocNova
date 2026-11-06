@@ -104,14 +104,58 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(wordHtml).toContain("UMUMIY XULOSA");
   });
 
-  it("respects problemCount (2 or 3 problems) and variant offset", () => {
+  it("respects problemCount (2, 3, or 4 problems), computes exact totalPoints, and avoids referencing 3-masala when problemCount=2", () => {
     const doc2 = generateDeterministicAmaliyIsh({
       variant: "7-variant",
       problemCount: 2,
     });
     expect(doc2.meta.variant).toBe("7-VARIANT");
     expect(doc2.problems).toHaveLength(2);
+    expect(doc2.meta.totalPoints).toBe(5.5);
     expect(doc2.summarySection.comparisonTable.rows).toHaveLength(2);
+    expect(doc2.summarySection.conclusions.join(" ")).not.toContain("(3-masala)");
+
+    const doc3 = generateDeterministicAmaliyIsh({
+      variant: "10-variant",
+      problemCount: 3,
+    });
+    expect(doc3.problems).toHaveLength(3);
+    expect(doc3.meta.totalPoints).toBe(8.5);
+    expect(doc3.summarySection.conclusions.join(" ")).toContain("(3-masala)");
+  });
+
+  it("parses custom numerical group observations from customProblemText and computes exact ANOVA on student data", () => {
+    const customDoc = generateDeterministicAmaliyIsh({
+      subject: "Statistika",
+      topic: "Guruhlararo dispersion tahlil",
+      customProblemText: "1-sexi: 50, 52, 48, 50\n2-sexi: 40, 42, 38, 40\n3-sexi: 30, 32, 28, 30",
+      problemCount: 4,
+    });
+
+    expect(customDoc.problems[0].initialTable.rows).toHaveLength(3);
+    expect(customDoc.problems[0].initialTable.rows[0][0]).toBe("1-sexi");
+    // Group means are 50, 40, 30 -> grand mean = 40
+    // SS_within per group: (0+4+4+0)=8 -> total SS_within = 24
+    // SS_between: 4*(100 + 0 + 100) = 800 -> SS_total = 824
+    expect(customDoc.problems[0].stepB.verificationEquality).toContain("800 + 24 = 824");
+    expect(customDoc.problems[0].stepB.verificationEquality).toContain("df_umumiy = 2 + 9 = 11");
+    expect(customDoc.excelSection.tableTitle).toContain("9-jadval");
+  });
+
+  it("supports ru and en language metadata localization", () => {
+    const ruDoc = generateDeterministicAmaliyIsh({
+      variant: "5-variant",
+      language: "ru",
+    });
+    expect(ruDoc.meta.variant).toBe("ВАРИАНТ 5");
+    expect(ruDoc.meta.workType).toContain("ПРАКТИЧЕСКАЯ РАБОТА");
+
+    const enDoc = generateDeterministicAmaliyIsh({
+      variant: "5-variant",
+      language: "en",
+    });
+    expect(enDoc.meta.variant).toBe("VARIANT 5");
+    expect(enDoc.meta.workType).toContain("PRACTICAL WORK");
   });
 
   it("API /api/ai/amaliy-ish returns 400 when both subject and topic are empty", async () => {
@@ -141,6 +185,7 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.document.meta.variant).toBe("12-VARIANT");
+    expect(json.document.meta.totalPoints).toBe(8.5);
     expect(json.document.problems).toHaveLength(3);
   });
 });

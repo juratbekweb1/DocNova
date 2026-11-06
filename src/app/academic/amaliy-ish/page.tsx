@@ -838,14 +838,14 @@ export default function AmaliyIshPage() {
               {/* ===================================================================
                   1. TITUL VARAG'I (COVER PAGE)
                  =================================================================== */}
-              <div className="mb-10 rounded-xl border-2 border-double border-slate-800 p-6 text-center sm:p-10 print:min-h-[245mm] print:break-after-page">
-                <p className="text-[11px] font-bold tracking-wider text-slate-700 uppercase sm:text-xs">
+              <div className="mb-10 overflow-hidden rounded-xl border-2 border-double border-slate-800 p-4 text-center break-words sm:p-10 print:min-h-[245mm] print:break-after-page">
+                <p className="text-[11px] font-bold tracking-wider break-words text-slate-700 uppercase sm:text-xs">
                   {doc.meta.ministry}
                 </p>
-                <h2 className="mt-2 text-base font-extrabold tracking-wide text-blue-950 uppercase sm:text-xl">
+                <h2 className="mt-2 text-base font-extrabold tracking-wide break-words text-blue-950 uppercase sm:text-xl">
                   {doc.meta.university}
                 </h2>
-                <p className="mt-1 text-xs text-slate-600 italic sm:text-sm">
+                <p className="mt-1 text-xs break-words text-slate-600 italic sm:text-sm">
                   {doc.meta.department}
                 </p>
 
@@ -856,37 +856,43 @@ export default function AmaliyIshPage() {
                   </div>
                 </div>
 
-                <p className="text-xs font-bold tracking-wider text-slate-800 uppercase sm:text-sm">
+                <p className="text-xs font-bold tracking-wider break-words text-slate-800 uppercase sm:text-sm">
                   «{doc.meta.subject}» FANIDAN
                 </p>
-                <h1 className="mt-2 text-3xl font-black tracking-widest text-slate-950 uppercase sm:text-4xl">
+                <h1 className="mt-2 text-2xl font-black tracking-widest break-words text-slate-950 uppercase sm:text-4xl">
                   {doc.meta.workType}
                 </h1>
                 <div className="mt-3 inline-block rounded-md bg-blue-900 px-5 py-1.5 text-sm font-extrabold tracking-wider text-white uppercase">
                   {doc.meta.variant}
                 </div>
 
-                <div className="mx-auto my-7 max-w-xl rounded-lg border border-slate-300 bg-slate-50 p-4 text-left text-xs sm:text-sm">
-                  <p className="mb-1.5">
+                <div className="mx-auto my-7 max-w-xl rounded-lg border border-slate-300 bg-slate-50 p-3.5 text-left text-xs break-words sm:p-4 sm:text-sm">
+                  <p className="mb-1.5 break-words">
                     <span className="font-bold text-slate-950">Mavzu:</span> {doc.meta.topic}
                   </p>
-                  <p>
+                  <p className="break-words">
                     <span className="font-bold text-slate-950">Vaziyat:</span> {doc.meta.situation}
                   </p>
                 </div>
 
                 <div className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-xs sm:text-sm">
-                  <div className="flex items-baseline justify-between border-b border-slate-300 pb-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
                     <span className="font-bold text-slate-800">Tayyorladi:</span>
-                    <span className="font-semibold text-slate-950">{doc.meta.studentName}</span>
+                    <span className="font-semibold break-words text-slate-950">
+                      {doc.meta.studentName}
+                    </span>
                   </div>
-                  <div className="flex items-baseline justify-between border-b border-slate-300 pb-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
                     <span className="font-bold text-slate-800">Guruh:</span>
-                    <span className="font-semibold text-slate-950">{doc.meta.studentGroup}</span>
+                    <span className="font-semibold break-words text-slate-950">
+                      {doc.meta.studentGroup}
+                    </span>
                   </div>
-                  <div className="flex items-baseline justify-between border-b border-slate-300 pb-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
                     <span className="font-bold text-slate-800">Vazifa berdi:</span>
-                    <span className="font-semibold text-slate-950">{doc.meta.teacherName}</span>
+                    <span className="font-semibold break-words text-slate-950">
+                      {doc.meta.teacherName}
+                    </span>
                   </div>
                 </div>
 

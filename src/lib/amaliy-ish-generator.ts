@@ -303,6 +303,108 @@ function parseVariantOffset(variantStr: string): number {
   return ((num % 15) - 7) * 2;
 }
 
+const GROUP_COLORS = ["#2563eb", "#0ea5e9", "#6366f1", "#10b981", "#f59e0b", "#8b5cf6"];
+
+function getFCritical05(df1: number, df2: number): number {
+  const tableDf1_2: Record<number, number> = {
+    3: 9.5521,
+    4: 6.9443,
+    5: 5.7861,
+    6: 5.1433,
+    7: 4.7374,
+    8: 4.459,
+    9: 4.2565,
+    10: 4.1028,
+    11: 3.9823,
+    12: 3.8853,
+    13: 3.8056,
+    14: 3.7389,
+    15: 3.6823,
+    16: 3.6337,
+    18: 3.5546,
+    20: 3.4928,
+  };
+  if (df1 === 2 && tableDf1_2[df2]) return tableDf1_2[df2];
+  if (df1 === 1) return round4(3.84 + 4.5 / Math.max(2, df2));
+  return round4(3.0 + 2.2 / Math.max(1, df1) + 6.8 / Math.max(2, df2));
+}
+
+function getTCritical05(df: number): number {
+  const tTable: Record<number, number> = {
+    3: 3.1824,
+    4: 2.7764,
+    5: 2.5706,
+    6: 2.4469,
+    7: 2.3646,
+    8: 2.306,
+    9: 2.2622,
+    10: 2.2281,
+    11: 2.201,
+    12: 2.1788,
+    13: 2.1604,
+    14: 2.1448,
+    15: 2.1314,
+  };
+  return tTable[df] || round4(1.96 + 2.6 / Math.max(3, df));
+}
+
+/**
+ * Agar talaba customProblemText ichida guruhlar bo'yicha sonli kuzatuvlarni
+ * (masalan: "1-guruh: 50, 55, 52, 58, 55\n2-guruh: 40, 42, 38, 44, 41...")
+ * kiritsa, ularni ajratib olib haqiqiy ANOVA hisob-kitobiga uzatadi.
+ */
+export function parseCustomGroupsFromText(
+  customText?: string
+): { name: string; values: number[]; color: string }[] | null {
+  if (!customText || !customText.trim()) return null;
+  const segments = customText
+    .split(/\r?\n|;/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const parsed: { name: string; values: number[]; color: string }[] = [];
+
+  for (const seg of segments) {
+    const colonIdx = seg.indexOf(":");
+    const pipeIdx = seg.indexOf("|");
+    let label = "";
+    let numPart = seg;
+
+    if (colonIdx !== -1) {
+      label = seg.slice(0, colonIdx).trim();
+      numPart = seg.slice(colonIdx + 1).trim();
+    } else if (pipeIdx !== -1) {
+      label = seg.slice(0, pipeIdx).trim();
+      numPart = seg.slice(pipeIdx + 1).trim();
+    }
+
+    const tokens = numPart
+      .replace(/,/g, " ")
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const nums = tokens
+      .filter((t) => /^-?\d+(?:\.\d+)?$/.test(t))
+      .map((t) => Number(t))
+      .filter((n) => Number.isFinite(n));
+
+    if (nums.length >= 2 && (colonIdx !== -1 || pipeIdx !== -1 || nums.length >= 3)) {
+      const idx = parsed.length;
+      parsed.push({
+        name: label || `${idx + 1}-guruh`,
+        values: nums.slice(0, 12),
+        color: GROUP_COLORS[idx % GROUP_COLORS.length],
+      });
+    }
+  }
+
+  if (parsed.length >= 2 && parsed.length <= 6) {
+    return parsed;
+  }
+  return null;
+}
+
 /**
  * 18-variant (yoki foydalanuvchi tanlagan variant/fan/mavzu) uchun
  * barcha 4 ta masala, jadvallar, grafiklar, Excel formulalari va xulosani
@@ -320,21 +422,27 @@ export function generateDeterministicAmaliyIsh(
   const variantRaw = input.variant?.trim() || "18-variant";
   const variantNumMatch = variantRaw.match(/\d+/);
   const variantNumber = variantNumMatch ? variantNumMatch[0] : "18";
-  const variantLabel = `${variantNumber}-VARIANT`;
+  const language = input.language || "uz";
+  const variantLabel =
+    language === "ru"
+      ? `ВАРИАНТ ${variantNumber}`
+      : language === "en"
+        ? `VARIANT ${variantNumber}`
+        : `${variantNumber}-VARIANT`;
   const problemCount = (input.problemCount || 4) as 2 | 3 | 4;
   const studentName = input.studentName?.trim() || "Karimov Sardorbek Anvar o'g'li";
   const studentGroup = input.studentGroup?.trim() || "IQT-22-18";
   const teacherName = input.teacherName?.trim() || "dots. Raximov B.SH.";
   const city = input.city?.trim() || "Toshkent";
   const year = input.year?.trim() || String(new Date().getFullYear());
-  const language = input.language || "uz";
 
   const delta = parseVariantOffset(variantNumber);
 
   // ============================================================================
-  // 1-MASALA (3,5 BALL): Bir omilli dispersion tahlil (Teng guruhlar: 3 smena x 5 kuzatuv)
+  // 1-MASALA (3,5 BALL): Bir omilli dispersion tahlil
   // ============================================================================
-  const p1Groups = [
+  const customGroups = parseCustomGroupsFromText(input.customProblemText);
+  const p1Groups = customGroups || [
     {
       name: "1-smena (Ertalabki)",
       values: [78 + delta, 82 + delta, 80 + delta, 84 + delta, 76 + delta],
@@ -351,25 +459,41 @@ export function generateDeterministicAmaliyIsh(
       color: "#6366f1",
     },
   ];
-  const p1Anova = computeOneWayAnova(p1Groups, 3.8853);
+  const p1Df1 = p1Groups.length - 1;
+  const p1Df2 = p1Groups.reduce((a, g) => a + g.values.length, 0) - p1Groups.length;
+  const p1FCrit = getFCritical05(p1Df1, p1Df2);
+  const p1Anova = computeOneWayAnova(p1Groups, p1FCrit);
+  const p1MaxCols = Math.max(...p1Groups.map((g) => g.values.length));
+  const p1RejectH0 = p1Anova.fObserved > p1Anova.fCritical;
+  const p1SortedByMean = [...p1Anova.groupStats].sort((a, b) => b.mean - a.mean);
+  const p1BestGroup = p1SortedByMean[0];
+  const p1WorstGroup = p1SortedByMean[p1SortedByMean.length - 1];
 
   const problem1: AmaliyIshProblem = {
     number: 1,
     title: "1-MASALA",
     points: "3,5 BALL",
     condition: input.customProblemText
-      ? `${input.customProblemText} (${situation} doirasida 3 ta ishlab chiqarish smenasi bo'yicha 5 tadan kuzatuv natijalari asosida bir omilli dispersion tahlil o'tkazing, α = 0,05).`
+      ? `${input.customProblemText} (${situation} doirasida ${p1Anova.k} ta guruh bo'yicha jami N = ${p1Anova.N} ta kuzatuv natijalari asosida bir omilli dispersion tahlil o'tkazing, α = 0,05).`
       : `Korxonaning 3 ta ishlab chiqarish smenasida (1-smena: Ertalabki, 2-smena: Kunduzgi, 3-smena: Tungi) tasodifiy tanlangan 5 ish kuni davomida smena bo'yicha ishlab chiqarilgan sifatli mahsulot hajmi (ming dona) kuzatildi. α = 0,05 ahamiyatlilik darajasida smena omilining mehnat unumdorligiga ta'sirini bir omilli dispersion tahlil (One-Way ANOVA) yordamida baholang.`,
     initialTable: {
       title: "1-masala dastlabki kuzatuv ma'lumotlari (ming dona)",
-      headers: ["Guruh (Smena)", "1-kuzatuv", "2-kuzatuv", "3-kuzatuv", "4-kuzatuv", "5-kuzatuv"],
-      rows: p1Groups.map((g) => [g.name, ...g.values]),
+      headers: [
+        "Guruh (Smena)",
+        ...Array.from({ length: p1MaxCols }, (_, i) => `${i + 1}-kuzatuv`),
+      ],
+      rows: p1Groups.map((g) => [
+        g.name,
+        ...Array.from({ length: p1MaxCols }, (_, i) =>
+          g.values[i] !== undefined ? g.values[i] : "—"
+        ),
+      ]),
     },
     stepA: {
       heading: "a) Statistik gipotezalar va boshlang'ich ko'rsatkichlar",
       hypotheses: [
-        "H₀ (Nol gipoteza): μ₁ = μ₂ = μ₃ — barcha 3 ta ishlab chiqarish smenasida o'rtacha ishlab chiqarish unumdorligi statistik jihatdan teng (smena omili mahsulot hajmiga sezilarli ta'sir ko'rsatmaydi).",
-        "H₁ (Muqobil gipoteza): kamida bitta μⱼ boshqalaridan farq qiladi — ishlab chiqarish smenasi o'zgarishi mahsulot ishlab chiqarish hajmiga statistik ahamiyatli ta'sir ko'rsatadi.",
+        `H₀ (Nol gipoteza): ${p1Anova.groupStats.map((_, i) => `μ_${i + 1}`).join(" = ")} — barcha ${p1Anova.k} ta guruhda o'rtacha ko'rsatkichlar statistik jihatdan teng (omil sezilarli ta'sir ko'rsatmaydi).`,
+        "H₁ (Muqobil gipoteza): kamida bitta μⱼ boshqalaridan farq qiladi — o'rganilayotgan omil o'zgarishi natijaviy ko'rsatkichga statistik ahamiyatli ta'sir ko'rsatadi.",
       ],
       helperTable: {
         title: "1-jadval. Yordamchi hisob-kitoblar jadvali (1-masala)",
@@ -401,10 +525,11 @@ export function generateDeterministicAmaliyIsh(
         ],
       },
       manualSampleCalc: [
-        `T₁ = ${p1Groups[0].values.join(" + ")} = ${fmt(p1Anova.groupStats[0].sum)};   x̄₁ = ${fmt(p1Anova.groupStats[0].sum)} / ${p1Anova.groupStats[0].n} = ${fmt(p1Anova.groupStats[0].mean)}`,
-        `T₂ = ${p1Groups[1].values.join(" + ")} = ${fmt(p1Anova.groupStats[1].sum)};   x̄₂ = ${fmt(p1Anova.groupStats[1].sum)} / ${p1Anova.groupStats[1].n} = ${fmt(p1Anova.groupStats[1].mean)}`,
-        `T₃ = ${p1Groups[2].values.join(" + ")} = ${fmt(p1Anova.groupStats[2].sum)};   x̄₃ = ${fmt(p1Anova.groupStats[2].sum)} / ${p1Anova.groupStats[2].n} = ${fmt(p1Anova.groupStats[2].mean)}`,
-        `Umumiy o'rtacha: X̄ = (${fmt(p1Anova.groupStats[0].sum)} + ${fmt(p1Anova.groupStats[1].sum)} + ${fmt(p1Anova.groupStats[2].sum)}) / ${p1Anova.N} = ${fmt(p1Anova.grandTotal)} / ${p1Anova.N} = ${fmt(p1Anova.grandMean)}`,
+        ...p1Anova.groupStats.map(
+          (g, idx) =>
+            `T_${idx + 1} = ${g.values.join(" + ")} = ${fmt(g.sum)};   x̄_${idx + 1} = ${fmt(g.sum)} / ${g.n} = ${fmt(g.mean)}`
+        ),
+        `Umumiy o'rtacha: X̄ = (${p1Anova.groupStats.map((g) => fmt(g.sum)).join(" + ")}) / ${p1Anova.N} = ${fmt(p1Anova.grandTotal)} / ${p1Anova.N} = ${fmt(p1Anova.grandMean)}`,
       ],
     },
     stepB: {
@@ -417,13 +542,15 @@ export function generateDeterministicAmaliyIsh(
           [
             "Guruhlararo SS (SS_omil)",
             "∑ nⱼ(x̄ⱼ − X̄)²",
-            `5·(${fmt(p1Anova.groupStats[0].mean)}−${fmt(p1Anova.grandMean)})² + 5·(${fmt(p1Anova.groupStats[1].mean)}−${fmt(p1Anova.grandMean)})² + 5·(${fmt(p1Anova.groupStats[2].mean)}−${fmt(p1Anova.grandMean)})²`,
+            p1Anova.groupStats
+              .map((g) => `${g.n}·(${fmt(g.mean)}−${fmt(p1Anova.grandMean)})²`)
+              .join(" + "),
             fmt(p1Anova.ssBetween),
           ],
           [
             "Guruh ichidagi SS (SS_qoldiq)",
             "∑∑ (xᵢⱼ − x̄ⱼ)²",
-            `${fmt(p1Anova.groupStats[0].ssWithin)} + ${fmt(p1Anova.groupStats[1].ssWithin)} + ${fmt(p1Anova.groupStats[2].ssWithin)}`,
+            p1Anova.groupStats.map((g) => fmt(g.ssWithin)).join(" + "),
             fmt(p1Anova.ssWithin),
           ],
           [
@@ -435,13 +562,13 @@ export function generateDeterministicAmaliyIsh(
           [
             "Erkinlik darajalari (df)",
             "df₁ = k − 1; df₂ = N − k",
-            `df₁ = 3 − 1 = 2;  df₂ = 15 − 3 = 12;  df_um = 15 − 1 = 14`,
-            "df₁=2; df₂=12",
+            `df₁ = ${p1Anova.k} − 1 = ${p1Anova.dfBetween};  df₂ = ${p1Anova.N} − ${p1Anova.k} = ${p1Anova.dfWithin};  df_um = ${p1Anova.N} − 1 = ${p1Anova.dfTotal}`,
+            `df₁=${p1Anova.dfBetween}; df₂=${p1Anova.dfWithin}`,
           ],
           [
             "O'rtacha kvadratlar (MS)",
             "MS₁ = SS_omil/df₁; MS₂ = SS_qoldiq/df₂",
-            `MS₁ = ${fmt(p1Anova.ssBetween)} / 2 = ${fmt(p1Anova.msBetween)};  MS₂ = ${fmt(p1Anova.ssWithin)} / 12 = ${fmt(p1Anova.msWithin)}`,
+            `MS₁ = ${fmt(p1Anova.ssBetween)} / ${p1Anova.dfBetween} = ${fmt(p1Anova.msBetween)};  MS₂ = ${fmt(p1Anova.ssWithin)} / ${p1Anova.dfWithin} = ${fmt(p1Anova.msWithin)}`,
             `MS₁=${fmt(p1Anova.msBetween)}; MS₂=${fmt(p1Anova.msWithin)}`,
           ],
           [
@@ -452,7 +579,7 @@ export function generateDeterministicAmaliyIsh(
           ],
         ],
       },
-      verificationEquality: `Tekshirish tengligi: SS_umumiy = SS_omil + SS_qoldiq ⇒ ${fmt(p1Anova.ssBetween)} + ${fmt(p1Anova.ssWithin)} = ${fmt(p1Anova.ssTotal)} (Tenglik 100% bajarildi); df_umumiy = 2 + 12 = 14.`,
+      verificationEquality: `Tekshirish tengligi: SS_umumiy = SS_omil + SS_qoldiq ⇒ ${fmt(p1Anova.ssBetween)} + ${fmt(p1Anova.ssWithin)} = ${fmt(p1Anova.ssTotal)} (Tenglik 100% bajarildi); df_umumiy = ${p1Anova.dfBetween} + ${p1Anova.dfWithin} = ${p1Anova.dfTotal}.`,
     },
     stepC: {
       heading: "c) Yakuniy dispersion tahlil (ANOVA) jadvali",
@@ -496,17 +623,19 @@ export function generateDeterministicAmaliyIsh(
       fCritical: p1Anova.fCritical,
       pValue: p1Anova.pValue,
       alpha: 0.05,
-      decisionTitle: `F_kuz (${fmt(p1Anova.fObserved)}) > F_kr (${fmt(p1Anova.fCritical)}) va p-qiymat (${p1Anova.pValue}) < α (0,05) ⇒ H₀ gipoteza rad etiladi!`,
-      decisionExplanation: `Fisher taqsimoti jadvalidan α = 0,05 ahamiyatlilik darajasi hamda df₁ = 2 va df₂ = 12 erkinlik darajalari uchun kritik qiymat F_kr(0,05; 2; 12) = 3,8853 ga teng. Hisoblangan F_kuz = ${fmt(p1Anova.fObserved)} qiymati kritik chegaradan ancha katta bo'lgani sababli H₀ rad etiladi va H₁ muqobil gipoteza qabul qilinadi. Demak, ishlab chiqarish smenalari o'rtasidagi unumdorlik farqi tasodifiy emas, balki statistik jihatdan yuqori ahamiyatli.`,
+      decisionTitle: p1RejectH0
+        ? `F_kuz (${fmt(p1Anova.fObserved)}) > F_kr (${fmt(p1Anova.fCritical)}) va p-qiymat (${p1Anova.pValue}) < α (0,05) ⇒ H₀ gipoteza rad etiladi!`
+        : `F_kuz (${fmt(p1Anova.fObserved)}) ≤ F_kr (${fmt(p1Anova.fCritical)}) ⇒ H₀ nol gipoteza rad etilmaydi (farq tasodifiy)!`,
+      decisionExplanation: `Fisher taqsimoti jadvalidan α = 0,05 ahamiyatlilik darajasi hamda df₁ = ${p1Anova.dfBetween} va df₂ = ${p1Anova.dfWithin} erkinlik darajalari uchun kritik qiymat F_kr(0,05; ${p1Anova.dfBetween}; ${p1Anova.dfWithin}) = ${fmt(p1Anova.fCritical)} ga teng. Hisoblangan F_kuz = ${fmt(p1Anova.fObserved)} qiymati kritik chegaradan ${p1RejectH0 ? "katta bo'lgani sababli H₀ rad etiladi va H₁ muqobil gipoteza qabul qilinadi. Demak, guruhlar o'rtasidagi farq tasodifiy emas, balki statistik jihatdan yuqori ahamiyatli." : "kichik bo'lgani sababli H₀ gipoteza kuchda qoladi."}`,
     },
     stepE: {
       heading: "e) Omil kuchi (η²) va iqtisodiy-boshqaruv talqini",
       etaSquaredPercent: p1Anova.etaSquared,
       etaFormula: `η² = (SS_omil / SS_umumiy) × 100% = (${fmt(p1Anova.ssBetween)} / ${fmt(p1Anova.ssTotal)}) × 100% = ${fmt(p1Anova.etaSquared, 2)}%`,
-      economicInterpretation: `Determinatsiya koeffitsiyenti η² = ${fmt(p1Anova.etaSquared, 2)}% ni tashkil etdi. Bu shuni anglatadiki, korxonada mahsulot ishlab chiqarish hajmidagi umumiy o'zgaruvchanlikning ${fmt(p1Anova.etaSquared, 2)}% qismi bevosita ishlab chiqarish smenasi (ish vaqti rejimi) omili bilan, qolgan ${fmt(100 - p1Anova.etaSquared, 2)}% qismi esa smena ichidagi boshqa tasodifiy omillar bilan izohlanadi. Eng yuqori ko'rsatkich 1-smenada (x̄₁ = ${fmt(p1Anova.groupStats[0].mean)} ming dona), eng past ko'rsatkich esa 3-smenada (x̄₃ = ${fmt(p1Anova.groupStats[2].mean)} ming dona) kuzatildi.`,
+      economicInterpretation: `Determinatsiya koeffitsiyenti η² = ${fmt(p1Anova.etaSquared, 2)}% ni tashkil etdi. Bu shuni anglatadiki, korxonada mahsulot ishlab chiqarish hajmidagi umumiy o'zgaruvchanlikning ${fmt(p1Anova.etaSquared, 2)}% qismi bevosita o'rganilayotgan guruh (smena) omili bilan, qolgan ${fmt(100 - p1Anova.etaSquared, 2)}% qismi esa guruh ichidagi boshqa tasodifiy omillar bilan izohlanadi. Eng yuqori ko'rsatkich «${p1BestGroup.name}» guruhida (x̄ = ${fmt(p1BestGroup.mean)}), eng past ko'rsatkich esa «${p1WorstGroup.name}» guruhida (x̄ = ${fmt(p1WorstGroup.mean)}) kuzatildi.`,
       recommendations: [
-        `Tungi (3-smena) smenada mehnat unumdorligi ertalabki smenaga nisbatan o'rtacha ${fmt(p1Anova.groupStats[0].mean - p1Anova.groupStats[2].mean)} ming donaga past ekanligini inobatga olib, tungi smenada yoritish, mikroiqlim va texnologik nazoratni kuchaytirish zarur.`,
-        "Murakkab va yuqori aniqlik talab qiladigan buyurtmalarni asosan 1-smena va 2-smenaga taqsimlash orqali yaroqsiz mahsulotlar ulushini kamaytirish tavsiya etiladi.",
+        `«${p1WorstGroup.name}» guruhida o'rtacha ko'rsatkich «${p1BestGroup.name}» guruhiga nisbatan o'rtacha ${fmt(p1BestGroup.mean - p1WorstGroup.mean)} birlikka past ekanligini inobatga olib, texnologik nazorat va mehnat sharoitini kuchaytirish zarur.`,
+        "Murakkab va yuqori aniqlik talab qiladigan buyurtmalarni yuqori unumdorlik ko'rsatgan guruhlarga taqsimlash orqali yaroqsiz mahsulotlar ulushini kamaytirish tavsiya etiladi.",
       ],
       chart: {
         figureNumber: "1-rasm",
@@ -895,18 +1024,21 @@ export function generateDeterministicAmaliyIsh(
   // ============================================================================
   // 4-MASALA (1,5 BALL): Juftliklararo taqqoslash (Fisher LSD / Tukey) va yakuniy diagnostika
   // ============================================================================
-  const diff12 = round4(Math.abs(p1Anova.groupStats[0].mean - p1Anova.groupStats[1].mean));
-  const diff13 = round4(Math.abs(p1Anova.groupStats[0].mean - p1Anova.groupStats[2].mean));
-  const diff23 = round4(Math.abs(p1Anova.groupStats[1].mean - p1Anova.groupStats[2].mean));
-  const tCrit = 2.1788; // t(0.05; df=12)
-  const sePair = round4(Math.sqrt(p1Anova.msWithin * (1 / 5 + 1 / 5)));
+  const g1 = p1Anova.groupStats[0];
+  const g2 = p1Anova.groupStats[1] || p1Anova.groupStats[0];
+  const g3 = p1Anova.groupStats[2] || g2;
+  const diff12 = round4(Math.abs(g1.mean - g2.mean));
+  const diff13 = round4(Math.abs(g1.mean - g3.mean));
+  const diff23 = round4(Math.abs(g2.mean - g3.mean));
+  const tCrit = getTCritical05(p1Anova.dfWithin);
+  const sePair = round4(Math.sqrt(p1Anova.msWithin * (1 / g1.n + 1 / g2.n)) || 0.0001);
   const lsdVal = round4(tCrit * sePair);
 
   const problem4: AmaliyIshProblem = {
     number: 4,
     title: "4-MASALA",
     points: "1,5 BALL",
-    condition: `1-masalada olingan dispersion tahlil natijalari (x̄₁ = ${fmt(p1Anova.groupStats[0].mean)}, x̄₂ = ${fmt(p1Anova.groupStats[1].mean)}, x̄₃ = ${fmt(p1Anova.groupStats[2].mean)}, MS_qoldiq = ${fmt(p1Anova.msWithin)}, df₂ = 12, n = 5) asosida qaysi smenalar juftligi o'rtasida statistik ahamiyatli farq borligini Fisherning eng kichik ahamiyatli farq mezoni (LSD — Least Significant Difference) orqali α = 0,05 darajada aniqlang va amaliy boshqaruv qarorini shakllantiring.`,
+    condition: `1-masalada olingan dispersion tahlil natijalari (x̄₁ = ${fmt(g1.mean)}, x̄₂ = ${fmt(g2.mean)}, x̄₃ = ${fmt(g3.mean)}, MS_qoldiq = ${fmt(p1Anova.msWithin)}, df₂ = ${p1Anova.dfWithin}, n = ${g1.n}) asosida qaysi smenalar juftligi o'rtasida statistik ahamiyatli farq borligini Fisherning eng kichik ahamiyatli farq mezoni (LSD — Least Significant Difference) orqali α = 0,05 darajada aniqlang va amaliy boshqaruv qarorini shakllantiring.`,
     initialTable: {
       title: "4-masala dastlabki ko'rsatkichlari (1-masala ANOVA natijalaridan)",
       headers: [
@@ -915,17 +1047,10 @@ export function generateDeterministicAmaliyIsh(
         "2-smena (x̄₂)",
         "3-smena (x̄₃)",
         "MS_qoldiq",
-        "t_kr (α=0,05; df=12)",
+        `t_kr (α=0,05; df=${p1Anova.dfWithin})`,
       ],
       rows: [
-        [
-          "Qiymat",
-          fmt(p1Anova.groupStats[0].mean),
-          fmt(p1Anova.groupStats[1].mean),
-          fmt(p1Anova.groupStats[2].mean),
-          fmt(p1Anova.msWithin),
-          fmt(tCrit),
-        ],
+        ["Qiymat", fmt(g1.mean), fmt(g2.mean), fmt(g3.mean), fmt(p1Anova.msWithin), fmt(tCrit)],
       ],
     },
     stepA: {
@@ -944,29 +1069,14 @@ export function generateDeterministicAmaliyIsh(
           "Standart xatolik SE",
         ],
         rows: [
-          [
-            "1-smena va 2-smena",
-            `${fmt(p1Anova.groupStats[0].mean)} va ${fmt(p1Anova.groupStats[1].mean)}`,
-            fmt(diff12),
-            fmt(sePair),
-          ],
-          [
-            "1-smena va 3-smena",
-            `${fmt(p1Anova.groupStats[0].mean)} va ${fmt(p1Anova.groupStats[2].mean)}`,
-            fmt(diff13),
-            fmt(sePair),
-          ],
-          [
-            "2-smena va 3-smena",
-            `${fmt(p1Anova.groupStats[1].mean)} va ${fmt(p1Anova.groupStats[2].mean)}`,
-            fmt(diff23),
-            fmt(sePair),
-          ],
+          ["1-smena va 2-smena", `${fmt(g1.mean)} va ${fmt(g2.mean)}`, fmt(diff12), fmt(sePair)],
+          ["1-smena va 3-smena", `${fmt(g1.mean)} va ${fmt(g3.mean)}`, fmt(diff13), fmt(sePair)],
+          ["2-smena va 3-smena", `${fmt(g2.mean)} va ${fmt(g3.mean)}`, fmt(diff23), fmt(sePair)],
         ],
       },
       manualSampleCalc: [
-        `Standart xatolik: SE = √(MS_qoldiq · (1/n₁ + 1/n₂)) = √(${fmt(p1Anova.msWithin)} · (1/5 + 1/5)) = ${fmt(sePair)}`,
-        `Kritik LSD chegarasi: LSD₀.₀₅ = t_kr(0,05; 12) · SE = ${fmt(tCrit)} · ${fmt(sePair)} = ${fmt(lsdVal)}`,
+        `Standart xatolik: SE = √(MS_qoldiq · (1/n₁ + 1/n₂)) = √(${fmt(p1Anova.msWithin)} · (1/${g1.n} + 1/${g2.n})) = ${fmt(sePair)}`,
+        `Kritik LSD chegarasi: LSD₀.₀₅ = t_kr(0,05; ${p1Anova.dfWithin}) · SE = ${fmt(tCrit)} · ${fmt(sePair)} = ${fmt(lsdVal)}`,
       ],
     },
     stepB: {
@@ -1001,7 +1111,7 @@ export function generateDeterministicAmaliyIsh(
           ],
         ],
       },
-      verificationEquality: `Tekshirish: |x̄₁ − x̄₃| = |x̄₁ − x̄₂| + |x̄₂ − x̄₃| ⇒ ${fmt(diff12)} + ${fmt(diff23)} = ${fmt(diff13)} (Barcha juftlik farqlari LSD = ${fmt(lsdVal)} dan katta).`,
+      verificationEquality: `Tekshirish: |x̄₁ − x̄₃| = ${fmt(diff13)}; LSD₀.₀₅ = ${fmt(lsdVal)}.`,
     },
     stepC: {
       heading: "c) Post-hoc juftlik taqqoslash yakuniy jadvali",
@@ -1023,7 +1133,7 @@ export function generateDeterministicAmaliyIsh(
             fmt(lsdVal),
             fmt(diff12 / sePair),
             fmt(tCrit),
-            "Farq ahamiyatli (H₀ rad etiladi)",
+            diff12 > lsdVal ? "Farq ahamiyatli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
           ],
           [
             "1-smena vs 3-smena",
@@ -1031,7 +1141,7 @@ export function generateDeterministicAmaliyIsh(
             fmt(lsdVal),
             fmt(diff13 / sePair),
             fmt(tCrit),
-            "Farq juda kuchli (H₀ rad etiladi)",
+            diff13 > lsdVal ? "Farq juda kuchli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
           ],
           [
             "2-smena vs 3-smena",
@@ -1039,7 +1149,7 @@ export function generateDeterministicAmaliyIsh(
             fmt(lsdVal),
             fmt(diff23 / sePair),
             fmt(tCrit),
-            "Farq ahamiyatli (H₀ rad etiladi)",
+            diff23 > lsdVal ? "Farq ahamiyatli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
           ],
         ],
       },
@@ -1050,13 +1160,13 @@ export function generateDeterministicAmaliyIsh(
       fCritical: tCrit,
       pValue: "< 0.001",
       alpha: 0.05,
-      decisionTitle: `Barcha 3 ta juftlikda |x̄ᵢ − x̄ⱼ| > LSD (${fmt(lsdVal)}) bo'lgani uchun har uchala smena bir-biridan statistik jihatdan sezilarli farq qiladi!`,
-      decisionExplanation: `Eng katta uzilish 1-smena va 3-smena o'rtasida (${fmt(diff13)} ming dona > ${fmt(lsdVal)}), shuningdek 2- va 3-smena o'rtasida (${fmt(diff23)} ming dona > ${fmt(lsdVal)}) kuzatildi.`,
+      decisionTitle: `Juftliklarda |x̄ᵢ − x̄ⱼ| va LSD (${fmt(lsdVal)}) taqqosovi asosida smenalar bir-biridan statistik jihatdan sezilarli farq qilishi tasdiqlandi!`,
+      decisionExplanation: `Eng katta uzilish 1-smena va 3-smena o'rtasida (${fmt(diff13)} > ${fmt(lsdVal)}), shuningdek 2- va 3-smena o'rtasida (${fmt(diff23)} > ${fmt(lsdVal)}) kuzatildi.`,
     },
     stepE: {
       heading: "e) Amaliy talqin va smena me'yorlarini optimallashtirish",
       etaSquaredPercent: p1Anova.etaSquared,
-      etaFormula: `Maksimal juftlik effekti: Δ_max = x̄₁ − x̄₃ = ${fmt(diff13)} ming dona (${fmt((diff13 / p1Anova.grandMean) * 100, 2)}% umumiy o'rtachaga nisbatan)`,
+      etaFormula: `Maksimal juftlik effekti: Δ_max = |x̄₁ − x̄₃| = ${fmt(diff13)} (${fmt((diff13 / (p1Anova.grandMean || 1)) * 100, 2)}% umumiy o'rtachaga nisbatan)`,
       economicInterpretation: `Post-hoc tahlil shuni isbotladiki, unumdorlik faqatgina tungi smenada emas, balki kunduzgi (2-smena) va ertalabki (1-smena) smenalar orasida ham statistik farqqa ega. Bu korxonada rejalashtirish me'yorlarini smenalar bo'yicha tabaqalashtirish zarurligini ko'rsatadi.`,
       recommendations: [
         "Har bir smena uchun yagona tekis norma o'rniga smena koeffitsiyentli (K₁=1.08; K₂=1.00; K₃=0.92) moslashuvchan reja-grafik joriy etish.",
@@ -1079,6 +1189,12 @@ export function generateDeterministicAmaliyIsh(
   };
 
   const allProblems = [problem1, problem2, problem3, problem4].slice(0, problemCount);
+  const totalPoints = round2(
+    allProblems.reduce((sum, p) => {
+      const m = p.points.replace(",", ".").match(/\d+(?:\.\d+)?/);
+      return sum + (m ? Number(m[0]) : 0);
+    }, 0)
+  );
 
   const excelFormulas: AmaliyIshExcelRow[] = [
     {
@@ -1086,28 +1202,28 @@ export function generateDeterministicAmaliyIsh(
       indicator: "Guruhlar yig'indisi (Tⱼ)",
       formulaEn: "=SUM(B2:B6)",
       formulaRu: "=СУММ(B2:B6)",
-      result: `${fmt(p1Anova.groupStats[0].sum)}; ${fmt(p1Anova.groupStats[1].sum)}; ${fmt(p1Anova.groupStats[2].sum)}`,
+      result: p1Anova.groupStats.map((g) => fmt(g.sum)).join("; "),
     },
     {
       cell: "B9:D9",
       indicator: "Guruhlar o'rtachasi (x̄ⱼ)",
       formulaEn: "=AVERAGE(B2:B6)",
       formulaRu: "=СРЗНАЧ(B2:B6)",
-      result: `${fmt(p1Anova.groupStats[0].mean)}; ${fmt(p1Anova.groupStats[1].mean)}; ${fmt(p1Anova.groupStats[2].mean)}`,
+      result: p1Anova.groupStats.map((g) => fmt(g.mean)).join("; "),
     },
     {
       cell: "B10:D10",
       indicator: "Tanlanma dispersiya (sⱼ²)",
       formulaEn: "=VAR.S(B2:B6)",
       formulaRu: "=ДИСП.В(B2:B6)",
-      result: `${fmt(p1Anova.groupStats[0].variance)}; ${fmt(p1Anova.groupStats[1].variance)}; ${fmt(p1Anova.groupStats[2].variance)}`,
+      result: p1Anova.groupStats.map((g) => fmt(g.variance)).join("; "),
     },
     {
       cell: "B11:D11",
       indicator: "Guruh ichidagi kv. chetlanish",
       formulaEn: "=DEVSQ(B2:B6)",
       formulaRu: "=КВАДРОТКЛ(B2:B6)",
-      result: `${fmt(p1Anova.groupStats[0].ssWithin)}; ${fmt(p1Anova.groupStats[1].ssWithin)}; ${fmt(p1Anova.groupStats[2].ssWithin)}`,
+      result: p1Anova.groupStats.map((g) => fmt(g.ssWithin)).join("; "),
     },
     {
       cell: "E9",
@@ -1140,33 +1256,51 @@ export function generateDeterministicAmaliyIsh(
     {
       cell: "E15",
       indicator: "Kuzatilgan Fisher mezoni (F_kuz)",
-      formulaEn: "=(E14/2)/(E13/12)",
-      formulaRu: "=(E14/2)/(E13/12)",
+      formulaEn: `=(E14/${p1Anova.dfBetween})/(E13/${p1Anova.dfWithin})`,
+      formulaRu: `=(E14/${p1Anova.dfBetween})/(E13/${p1Anova.dfWithin})`,
       result: fmt(p1Anova.fObserved),
     },
     {
       cell: "E16",
       indicator: "Kritik Fisher qiymati (F_kr, α=0.05)",
-      formulaEn: "=F.INV.RT(0.05, 2, 12)",
-      formulaRu: "=F.ОБР.ПХ(0,05; 2; 12)",
+      formulaEn: `=F.INV.RT(0.05, ${p1Anova.dfBetween}, ${p1Anova.dfWithin})`,
+      formulaRu: `=F.ОБР.ПХ(0,05; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
       result: fmt(p1Anova.fCritical),
     },
     {
       cell: "E17",
       indicator: "Ehtimollik darajasi (p-qiymat)",
-      formulaEn: "=F.DIST.RT(E15, 2, 12)",
-      formulaRu: "=F.РАСП.ПХ(E15; 2; 12)",
+      formulaEn: `=F.DIST.RT(E15, ${p1Anova.dfBetween}, ${p1Anova.dfWithin})`,
+      formulaRu: `=F.РАСП.ПХ(E15; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
       result: p1Anova.pValue,
     },
   ];
 
+  const conclusionsList = [
+    `1. «${subject}» fanidan ${variantLabel} doirasida «${topic}» mavzusi va «${situation}» amaliy vaziyati bo'yicha jami ${problemCount} ta kompleks masala (${totalPoints} ballik tizimda) dispersion tahlil (ANOVA) metodologiyasi asosida to'liq yechildi.`,
+    `2. Bir omilli dispersion tahlil (1- va 2-masalalar) natijalari shuni ko'rsatdiki, ishlab chiqarish smenasi (F_kuz = ${fmt(p1Anova.fObserved)}, F_kr = ${fmt(p1Anova.fCritical)}; η² = ${fmt(p1Anova.etaSquared, 2)}%) hamda sexlar kesimidagi mehnat sharoitlari (F_kuz = ${fmt(p2Anova.fObserved)}, F_kr = ${fmt(p2Anova.fCritical)}; η² = ${fmt(p2Anova.etaSquared, 2)}%) yakuniy ko'rsatkichlarga yuqori statistik ishonchlilik bilan ta'sir ko'rsatadi.`,
+    problemCount >= 3
+      ? `3. Takrorlanishsiz ikki omilli dispersion tahlilda (3-masala) smena omili bilan bir qatorda xodimlarning malaka toifasi o'rganilganda, umumiy variatsiyaning ${fmt(p3Anova.etaTotal, 2)}% qismi aynan shu ikki omil birgalikdagi ta'siri bilan izohlanishi isbotlandi.`
+      : `3. O'tkazilgan hisob-kitoblar va MS Excel tekshiruvlari asosida guruhlararo tafovutlarni qisqartirish hamda past ko'rsatkichli bo'limlarni eng ilg'or guruh («${p1BestGroup.name}», x̄ = ${fmt(p1BestGroup.mean)}) darajasiga olib chiqish bo'yicha aniq boshqaruv qarorlari ishlab chiqildi.`,
+  ];
+
   const docWithoutMarkdown: Omit<AmaliyIshDocument, "markdown"> = {
     meta: {
-      ministry: "O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI",
+      ministry:
+        language === "ru"
+          ? "МИНИСТЕРСТВО ВЫСШЕГО ОБРАЗОВАНИЯ, НАУКИ И ИННОВАЦИЙ РЕСПУБЛИКИ УЗБЕКИСТАН"
+          : language === "en"
+            ? "MINISTRY OF HIGHER EDUCATION, SCIENCE AND INNOVATIONS OF THE REPUBLIC OF UZBEKISTAN"
+            : "O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI",
       university,
       department,
       subject,
-      workType: "AMALIY ISH",
+      workType:
+        language === "ru"
+          ? "ПРАКТИЧЕСКАЯ РАБОТА (AMALIY ISH)"
+          : language === "en"
+            ? "PRACTICAL WORK (AMALIY ISH)"
+            : "AMALIY ISH",
       variant: variantLabel,
       topic,
       situation,
@@ -1176,10 +1310,15 @@ export function generateDeterministicAmaliyIsh(
       city,
       year,
       language,
-      totalPoints: 10,
+      totalPoints,
     },
     methodologicalNote: {
-      title: "Uslubiy eslatma va hisoblash qoidalari",
+      title:
+        language === "ru"
+          ? "Методические указания и правила расчёта"
+          : language === "en"
+            ? "Methodological Note & Calculation Rules"
+            : "Uslubiy eslatma va hisoblash qoidalari",
       rules: [
         "Yaxlitlash qoidasi: Barcha oraliq va yakuniy statistik ko'rsatkichlar (SS, MS, F_kuz, F_kr, SE, LSD) 4 ta o'nli xonagacha (0,0001) aniqlikda, ulush ko'rsatkichlari (η²) esa 2 ta o'nli xonagacha (0,01%) yaxlitlanadi.",
         "Gipotezalar ketma-ketligi: Har bir masalada avval nol gipoteza (H₀ — o'rtachalar tengligi) va muqobil gipoteza (H₁ — omil ta'siri mavjudligi) aniq matematik belgilarda ifodalanadi.",
@@ -1196,16 +1335,17 @@ export function generateDeterministicAmaliyIsh(
         "1-qadam: MS Excel ishchi varag'ining B1:D1 kataklariga smena nomlarini («1-smena», «2-smena», «3-smena»), B2:D6 diapazoniga esa 1-masaladagi kuzatuv qiymatlarini kiriting.",
         "2-qadam: Yuqori menyudan «Data (Данные)» → «Data Analysis (Анализ данных)» → «Anova: Single Factor (Однофакторный дисперсионный анализ)» bandini tanlang.",
         "3-qadam: «Input Range (Входной интервал)» maydoniga $B$1:$D$6 ni belgilang, «Grouped By: Columns (По столбцам)» va «Labels in first row (Метки в первой строке)» katakchalarini yoqing, «Alpha (Альфа)» = 0.05 qilib «OK» tugmasini bosing.",
-        "4-qadam: Natijalarni qo'lda formulalar orqali tekshirish uchun quyidagi 13-jadvaldagi inglizcha (EN) yoki ruscha (RU) funksiyalardan foydalaning:",
+        "4-qadam: Natijalarni qo'lda formulalar orqali tekshirish uchun quyidagi 9-jadvaldagi inglizcha (EN) yoki ruscha (RU) funksiyalardan foydalaning:",
       ],
-      tableTitle: "13-jadval. MS Excel funksiyalari jadvali (Inglizcha va Ruscha versiyalar uchun)",
+      tableTitle:
+        "9-jadval. Excel funksiyalari jadvali (Katak | Ko'rsatkich | Formula (EN) | Formula (RU))",
       formulas: excelFormulas,
     },
     summarySection: {
       title: "UMUMIY XULOSA VA AMALIY TAVSIYALAR",
       comparisonTable: {
         title:
-          "14-jadval. Barcha masalalar bo'yicha dispersion tahlil natijalarining qiyosiy jadvali",
+          "Yakuniy qiyosiy jadval. Barcha masalalar bo'yicha dispersion tahlil natijalarining qiyosiy tahlili",
         headers: [
           "Masala",
           "Tahlil turi va obyekti",
@@ -1218,7 +1358,7 @@ export function generateDeterministicAmaliyIsh(
         rows: allProblems.map((p) => [
           `${p.number}-masala (${p.points})`,
           p.number === 1
-            ? "1-omilli ANOVA (Teng guruhlar: 3 smena)"
+            ? `1-omilli ANOVA (${p1Anova.k} guruh, N=${p1Anova.N})`
             : p.number === 2
               ? "1-omilli ANOVA (Teng bo'lmagan guruhlar: 3 sex)"
               : p.number === 3
@@ -1227,15 +1367,13 @@ export function generateDeterministicAmaliyIsh(
           fmt(p.stepD.fObserved),
           fmt(p.stepD.fCritical),
           p.stepD.pValue,
-          "H₀ rad etildi (Ta'sir ahamiyatli)",
+          p.stepD.fObserved > p.stepD.fCritical
+            ? "H₀ rad etildi (Ta'sir ahamiyatli)"
+            : "H₀ qabul qilindi (Farq tasodifiy)",
           `${fmt(p.stepE.etaSquaredPercent, 2)}%`,
         ]),
       },
-      conclusions: [
-        `1. «${subject}» fanidan ${variantLabel} doirasida «${topic}» mavzusi va «${situation}» amaliy vaziyati bo'yicha jami ${problemCount} ta kompleks masala dispersion tahlil (ANOVA) metodologiyasi asosida to'liq yechildi.`,
-        `2. Bir omilli dispersion tahlil (1- va 2-masalalar) natijalari shuni ko'rsatdiki, ishlab chiqarish smenasi (F_kuz = ${fmt(p1Anova.fObserved)} > F_kr = ${fmt(p1Anova.fCritical)}; η² = ${fmt(p1Anova.etaSquared, 2)}%) hamda sexlar kesimidagi mehnat sharoitlari (F_kuz = ${fmt(p2Anova.fObserved)} > F_kr = ${fmt(p2Anova.fCritical)}; η² = ${fmt(p2Anova.etaSquared, 2)}%) yakuniy ko'rsatkichlarga yuqori statistik ishonchlilik bilan ta'sir ko'rsatadi.`,
-        `3. Takrorlanishsiz ikki omilli dispersion tahlilda (3-masala) smena omili bilan bir qatorda xodimlarning malaka toifasi o'rganilganda, umumiy variatsiyaning ${fmt(p3Anova.etaTotal, 2)}% qismi aynan shu ikki omil birgalikdagi ta'siri bilan izohlanishi isbotlandi.`,
-      ],
+      conclusions: conclusionsList,
       practicalRecommendations: [
         "Tungi (3-smena) va Bo'yash sexidagi texnologik hamda ergonomik sharoitlarni modernizatsiya qilish orqali smenalararo dispersiyani kamida 25–30% ga qisqartirish.",
         "Xodimlar malaka toifasini oshirish va KPI tizimini smena koeffitsiyentlariga bog'lash orqali korxonaning o'rtacha unumdorligini 1-smena darajasiga (x̄₁) yaqinlashtirish.",

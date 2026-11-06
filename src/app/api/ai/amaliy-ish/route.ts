@@ -83,20 +83,28 @@ export async function POST(req: NextRequest) {
 
     const document = generateDeterministicAmaliyIsh(cleanInput);
 
-    // Optional AI enrichment for custom topics/subjects while keeping 100% verified ANOVA math
+    // Optional AI enrichment for custom topics/subjects/languages while keeping 100% verified ANOVA math
     const isDefault18 =
+      (cleanInput.language || "uz") === "uz" &&
       cleanInput.topic?.toLowerCase().includes("bir omilli va ikki omilli dispersion tahlil") &&
       cleanInput.situation?.toLowerCase().includes("ishlab chiqarish smenalari") &&
       !cleanInput.customProblemText;
 
     if (!isDefault18) {
       try {
+        const langName =
+          cleanInput.language === "ru"
+            ? "rus tilida (на русском языке)"
+            : cleanInput.language === "en"
+              ? "ingliz tilida (in English)"
+              : "o'zbek tilida";
         const prompt = `Siz OTM professori va statistik-iqtisodiy tahlil ekspertisiz.
-Quyidagi amaliy ish uchun masalalar sharti va iqtisodiy talqinlarini mazmunan boyitib JSON formatda qaytaring:
+Quyidagi amaliy ish uchun masalalar sharti va iqtisodiy talqinlarini ${langName} mazmunan boyitib JSON formatda qaytaring:
 - Fan: "${cleanInput.subject}"
 - Mavzu: "${cleanInput.topic}"
 - Vaziyat: "${cleanInput.situation}"
 - Variant: "${cleanInput.variant}"
+- Til: "${cleanInput.language || "uz"}"
 ${cleanInput.customProblemText ? `- Talaba kiritgan masala sharti: "${cleanInput.customProblemText}"` : ""}
 
 Quyidagi JSON sxemasida javob qaytaring (faqat JSON):
