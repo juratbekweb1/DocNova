@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
+  poweredByHeader: false,
 
   serverExternalPackages: [
     "@prisma/client",
@@ -50,9 +51,8 @@ const nextConfig: NextConfig = {
             value: "strict-origin-when-cross-origin",
           },
           {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://js.stripe.com https://accounts.google.com;",
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
           {
             key: "Permissions-Policy",

@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The proxy module uses NextResponse.next() with no arguments
 class MockResponse {
@@ -55,6 +55,11 @@ describe("proxy middleware", () => {
     const hsts = response.headers.get("Strict-Transport-Security");
     expect(hsts).toBeTruthy();
     expect(hsts).toContain("max-age=31536000");
+
+    const csp = response.headers.get("Content-Security-Policy") || "";
+    expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+    expect(csp).not.toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline'");
+    expect(csp).toContain("object-src 'none'");
   });
 });
 

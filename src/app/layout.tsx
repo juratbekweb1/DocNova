@@ -72,7 +72,7 @@ export const viewport: Viewport = {
   ],
 };
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Lang } from "@/components/providers/language-provider";
 import { ThemeEnforcer } from "@/components/providers/theme-enforcer";
 import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper";
@@ -90,6 +90,7 @@ export default async function RootLayout({
 
   const cookieStore = await cookies();
   const initialLang = (cookieStore.get("NEXT_LOCALE")?.value as Lang) || "uz";
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -103,7 +104,7 @@ export default async function RootLayout({
         <meta name="google" content="notranslate" />
       </head>
       <body className="flex min-h-full flex-col overflow-x-hidden bg-background text-foreground transition-colors duration-300" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem nonce={nonce}>
           <ThemeEnforcer />
           <AuthSessionProvider>
             <SubscriptionProvider initialData={subscription}>

@@ -131,7 +131,33 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
   }
 
-  const response = NextResponse.next();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV === "development";
+
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://accounts.google.com`,
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
+    "img-src 'self' data: https: blob: https://lh3.googleusercontent.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https: wss: data:",
+    "frame-src 'self' https://js.stripe.com https://accounts.google.com",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://accounts.google.com https://my.click.uz https://checkout.paycom.uz https://backend.payx.uz",
+    "upgrade-insecure-requests",
+  ].join("; ");
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 
   // 3. Security Headers
   response.headers.set("X-Frame-Options", "DENY");
@@ -140,20 +166,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com",
-    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
-    "img-src 'self' data: https: blob: https://lh3.googleusercontent.com",
-    "font-src 'self' data:",
-    "connect-src 'self' https: wss: data:",
-    "frame-src 'self' https://js.stripe.com https://accounts.google.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self' https://accounts.google.com https://my.click.uz https://checkout.paycom.uz https://backend.payx.uz",
-  ].join("; ");
-
   response.headers.set("Content-Security-Policy", csp);
   response.headers.delete("X-Powered-By");
 
