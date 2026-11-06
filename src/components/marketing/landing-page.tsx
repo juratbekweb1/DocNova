@@ -41,7 +41,7 @@ const AnimatedBackground = () => (
 const FaqItem = ({ faq }: { faq: { question: string; answer: string } }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-sm backdrop-blur-xl transition-colors hover:border-cyan-500/40 dark:border-slate-800/80 dark:bg-[#0a1024]/80">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-colors hover:border-cyan-500/40 dark:border-slate-800/80 dark:bg-[#0a1024]">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between px-6 py-4.5 text-left font-semibold text-slate-900 transition-colors hover:bg-slate-50 dark:text-white dark:hover:bg-slate-800/40"
@@ -165,7 +165,7 @@ export function LandingPage() {
 
                 <a
                   href="#features"
-                  className="group flex items-center gap-2.5 rounded-full border border-slate-300 bg-white px-7 py-4 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition-all hover:border-sky-500/40 hover:bg-slate-100 sm:text-base dark:border-slate-700/60 dark:bg-[#0a1226]/85 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                  className="group flex items-center gap-2.5 rounded-full border border-slate-300 bg-white px-7 py-4 text-sm font-medium text-slate-700 shadow-sm transition-all hover:border-sky-500/40 hover:bg-slate-100 sm:text-base dark:border-slate-700/60 dark:bg-[#0a1226] dark:text-slate-200 dark:hover:bg-slate-800/80"
                 >
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/15 text-cyan-500 transition-colors group-hover:bg-cyan-500 group-hover:text-white">
                     <Play className="ml-0.5 h-3 w-3 fill-current" />

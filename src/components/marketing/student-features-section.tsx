@@ -209,7 +209,7 @@ export function StudentFeaturesSection() {
               >
                 <Link
                   href={card.href}
-                  className={`flex h-full w-full flex-col justify-between rounded-[24px] border ${card.theme.border} bg-white/95 p-4 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 sm:p-5 dark:bg-[#070e24]/90 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${card.theme.bgHover} ${card.theme.glow}`}
+                  className={`flex h-full w-full flex-col justify-between rounded-[24px] border ${card.theme.border} bg-white/95 p-4 shadow-sm transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1.5 sm:p-5 dark:bg-[#070e24]/95 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${card.theme.bgHover} ${card.theme.glow}`}
                 >
                   {/* Top: Individual Multicolored 3D Render Image */}
                   <div className="flex h-24 items-center justify-center">

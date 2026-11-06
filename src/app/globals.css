@@ -123,12 +123,18 @@ body::before {
   background-size: 42px 42px;
   opacity: 0.05;
   transform: translateZ(0);
-  will-change: transform;
   backface-visibility: hidden;
 }
 
 .dark body::before {
   opacity: 0.14;
+}
+
+/* Limit maximum backdrop blur intensity globally to prevent GPU shader memory stalls */
+.backdrop-blur-3xl,
+.backdrop-blur-2xl {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Ensure no container or layout wrapper adds vertical side lines */

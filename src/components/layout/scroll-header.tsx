@@ -12,10 +12,21 @@ export function ScrollHeader({ children, className, ...props }: ScrollHeaderProp
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
+    let lastScrolled = false;
+
     const handleScroll = () => {
-      window.requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 20);
-      });
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrolled = window.scrollY > 20;
+          if (scrolled !== lastScrolled) {
+            lastScrolled = scrolled;
+            setIsScrolled(scrolled);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });

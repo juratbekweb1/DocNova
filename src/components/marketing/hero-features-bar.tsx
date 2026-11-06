@@ -39,18 +39,18 @@ export function HeroFeaturesBar() {
   ];
 
   return (
-    <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <section className="relative mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-[28px] border dark:border-sky-500/25 border-slate-200/90 dark:bg-[#070e24]/90 bg-white/95 p-6 sm:p-8 backdrop-blur-2xl shadow-[0_15px_40px_rgba(0,0,0,0.06),0_0_25px_rgba(14,165,233,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_35px_rgba(14,165,233,0.18)] transition-colors duration-300"
+        className="relative overflow-hidden rounded-[28px] border border-slate-200/90 bg-white/95 p-6 shadow-lg transition-colors duration-300 sm:p-8 dark:border-sky-500/25 dark:bg-[#070e24]/95 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)]"
       >
         {/* Interior ambient neon reflection */}
-        <div className="pointer-events-none absolute inset-0 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:via-sky-500/5 dark:to-blue-500/10 bg-gradient-to-r from-sky-400/5 via-blue-400/5 to-cyan-400/5" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-sky-400/5 via-blue-400/5 to-cyan-400/5 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:via-sky-500/5 dark:to-blue-500/10" />
 
-        <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 lg:gap-0 lg:divide-x dark:lg:divide-slate-800/80 lg:divide-slate-200">
+        <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 lg:gap-0 lg:divide-x lg:divide-slate-200 dark:lg:divide-slate-800/80">
           {features.map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -65,10 +65,10 @@ export function HeroFeaturesBar() {
                   <Icon className={`h-8 w-8 transition-all ${item.color}`} />
                 </div>
 
-                <h3 className="text-sm font-bold dark:text-white text-slate-900 tracking-tight sm:text-base group-hover:text-cyan-400 transition-colors">
+                <h3 className="text-sm font-bold tracking-tight text-slate-900 transition-colors group-hover:text-cyan-400 sm:text-base dark:text-white">
                   {item.title}
                 </h3>
-                <p className="mt-1 text-xs dark:text-slate-400 text-slate-600 group-hover:text-slate-300 transition-colors">
+                <p className="mt-1 text-xs text-slate-600 transition-colors group-hover:text-slate-300 dark:text-slate-400">
                   {item.description}
                 </p>
               </div>

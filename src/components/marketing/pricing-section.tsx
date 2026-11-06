@@ -100,8 +100,8 @@ export function PricingSection() {
   return (
     <section id="pricing" className="mx-auto w-full max-w-7xl px-6 py-24 sm:px-8 lg:px-12">
       <div className="border-border bg-background/80 relative overflow-hidden rounded-[2.5rem] border p-8 lg:p-14">
-        {/* Background decoration */}
-        <div className="from-accent/20 via-primary/5 pointer-events-none absolute top-0 right-0 z-0 h-[600px] w-[600px] translate-x-1/3 -translate-y-1/3 rounded-full bg-gradient-to-bl to-transparent blur-3xl" />
+        {/* Background decoration - GPU-friendly radial gradient */}
+        <div className="pointer-events-none absolute top-0 right-0 z-0 h-[480px] w-[480px] translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18)_0%,rgba(14,165,233,0.05)_45%,transparent_70%)]" />
 
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
