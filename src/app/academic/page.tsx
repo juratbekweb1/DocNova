@@ -98,6 +98,22 @@ export default function AcademicHubPage() {
       iconBg: "text-orange-400",
     },
     {
+      id: "amaliy-ish",
+      title: "Amaliy ish va Masalalar yechimi",
+      subtitle: "Variantli masalalar, ANOVA jadvallar, grafik va Excel",
+      description:
+        "Iqtisodiyot, statistika, ekonometrika va aniq fanlardan variantli amaliy ishlar: a), b), c), d), e) bosqichli yechim, hisob-kitob jadvallari, ustunli diagramma va Excel (EN/RU) formulalari.",
+      href: "/academic/amaliy-ish",
+      icon: Calculator,
+      badge: "Hisob-kitob & Jadvallar",
+      badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+      stats: "1-4 masala • Jadval, Grafik & Excel • Word/PDF",
+      cta: "Amaliy ish tayyorlash",
+      accent: "from-indigo-600/20 to-blue-500/5 hover:border-indigo-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-indigo-400",
+    },
+    {
       id: "exam-prep",
       title: "Test va Imtihonlarga tayyorgarlik",
       subtitle: "Bilet savollari yechimlari va interaktiv testlar",
@@ -126,7 +142,7 @@ export default function AcademicHubPage() {
       stats: "Ingliz • Rus • Turk tillari",
       cta: "Tillarni tanlash",
       accent: "from-cyan-600/20 to-blue-500/5 hover:border-cyan-500/40",
-      gridSpan: "col-span-1 md:col-span-2 lg:col-span-2",
+      gridSpan: "col-span-1",
       iconBg: "text-cyan-400",
     },
   ];

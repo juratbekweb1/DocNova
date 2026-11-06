@@ -370,6 +370,34 @@ export function ServicesGridSection() {
         subColor: "text-emerald-400/90",
       },
     },
+    {
+      id: "amaliy-ish",
+      title: "Amaliy ish va Masalalar yechimi",
+      subtitle: "Variantli masalalar, ANOVA jadvallar, grafik va Excel",
+      description:
+        "Iqtisodiyot, statistika, ekonometrika va aniq fanlardan variantli amaliy ishlar: a), b), c), d), e) bosqichli yechim, hisob-kitob jadvallari, ustunli diagramma va Excel (EN/RU) formulalari.",
+      href: "/academic/amaliy-ish",
+      icon: Calculator,
+      badge: "Hisob-kitob & Jadvallar",
+      badgeStyle: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
+      stats: "1-4 masala • Jadval, Grafik & Excel • Word/PDF",
+      cta: "Amaliy ish tayyorlash",
+      theme: {
+        borderHover: "dark:group-hover:border-indigo-400/70 group-hover:border-indigo-400",
+        glowPrimary: "from-indigo-500/40 to-blue-600/30",
+        glowSecondary: "from-sky-500/25 to-indigo-700/20",
+        topBeam: "via-indigo-400",
+        overlayGrad:
+          "dark:from-indigo-950/30 dark:via-transparent dark:to-blue-950/20 from-indigo-50/60 to-transparent",
+        cardGlow: "hover:shadow-[0_20px_50px_rgba(99,102,241,0.3),0_0_25px_rgba(99,102,241,0.15)]",
+        iconBox:
+          "border-indigo-500/40 bg-gradient-to-br from-indigo-500/20 to-blue-500/10 text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.35)]",
+        titleHover: "group-hover:text-indigo-300",
+        btnStyle:
+          "bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 text-white shadow-lg shadow-indigo-500/30 border border-indigo-400/30",
+        subColor: "text-indigo-400/90",
+      },
+    },
   ];
 
   const widePresentationModule = {
@@ -623,7 +651,7 @@ export function ServicesGridSection() {
             }`}
           >
             <GraduationCap className="h-4 w-4" />
-            <span>Talabalar uchun (4 ta bo‘lim)</span>
+            <span>Talabalar uchun (5 ta bo‘lim)</span>
           </button>
 
           <button
@@ -641,7 +669,7 @@ export function ServicesGridSection() {
         </div>
       </div>
 
-      {/* CONTENT AREA: 9 TA BO'LIM YOKI 4 TA TALABALAR BO'LIMI */}
+      {/* CONTENT AREA: 9 TA BO'LIM YOKI 5 TA TALABALAR BO'LIMI */}
       <div className="mt-12">
         <AnimatePresence mode="wait">
           {activeTab === "services" ? (
@@ -770,8 +798,8 @@ export function ServicesGridSection() {
                 </div>
               </div>
 
-              {/* 3 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat) */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {/* 4 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat, Amaliy ish) */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
                 {topStudentModules.map((module, idx) => {
                   const Icon = module.icon;
                   return (

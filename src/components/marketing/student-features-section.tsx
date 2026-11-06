@@ -65,6 +65,20 @@ export function StudentFeaturesSection() {
         btnGrad: "from-amber-500 to-orange-600 shadow-[0_0_20px_rgba(245,158,11,0.5)]",
       },
     },
+    {
+      title: "Amaliy ish",
+      description: "Variantli masalalar, jadval, grafik va Excel",
+      href: "/academic/amaliy-ish",
+      imageSrc: "/images/student-independent-3d-purple.png",
+      alt: "Amaliy ish va masalalar yechimi",
+      theme: {
+        border: "border-indigo-500/35 hover:border-indigo-400/80",
+        bgHover: "dark:hover:bg-[#0b1335] hover:bg-indigo-50/80",
+        glow: "hover:shadow-[0_20px_50px_rgba(99,102,241,0.35),0_0_25px_rgba(99,102,241,0.2)]",
+        titleHover: "group-hover:text-indigo-300",
+        btnGrad: "from-indigo-500 to-blue-600 shadow-[0_0_20px_rgba(99,102,241,0.5)]",
+      },
+    },
   ];
 
   return (
@@ -93,7 +107,8 @@ export function StudentFeaturesSection() {
           </h2>
 
           <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300">
-            Endi kurs ishi, mustaqil ish, referat va boshqa akademik ishlarni osongina tayyorlang.
+            Endi kurs ishi, amaliy ish, mustaqil ish, referat va boshqa akademik ishlarni osongina
+            tayyorlang.
           </p>
 
           <Link
@@ -105,7 +120,7 @@ export function StudentFeaturesSection() {
           </Link>
         </motion.div>
 
-        {/* RIGHT COLUMN: 4 Multicolored Real 3D Cards & Paper Airplane */}
+        {/* RIGHT COLUMN: 5 Multicolored Real 3D Cards & Paper Airplane */}
         <div className="relative w-full">
           {/* 3D Paper Airplane floating at top-right */}
           <div className="pointer-events-none absolute -top-10 right-2 z-20 sm:-top-14 sm:right-0">
@@ -182,7 +197,7 @@ export function StudentFeaturesSection() {
           </div>
 
           {/* Cards Grid: Perfectly responsive across all screen sizes with individual 3D themes */}
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
             {cards.map((card, index) => (
               <motion.div
                 key={card.title}
