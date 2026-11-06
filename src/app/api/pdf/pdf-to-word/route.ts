@@ -35,9 +35,10 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(arrayBuffer);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsePdf =
-      typeof pdfParse === "function" ? pdfParse : (pdfParse as any)?.default || pdfParse;
+    type PdfParseFn = (dataBuffer: Buffer) => Promise<{ text: string }>;
+    const pdfModule = pdfParse as unknown as PdfParseFn | { default?: PdfParseFn };
+    const parsePdf: PdfParseFn =
+      typeof pdfModule === "function" ? pdfModule : pdfModule.default || (pdfParse as PdfParseFn);
     const data = await parsePdf(buffer);
 
     if (session?.user?.id) {

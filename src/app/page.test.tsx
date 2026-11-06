@@ -91,4 +91,25 @@ describe("marketing home page", () => {
     expect(screen.getByText("Mobile Nav Content")).toBeInTheDocument();
     expect(header?.contains(screen.getByText("Mobile Nav Content"))).toBe(false);
   });
+
+  it("ensures Hero and Services sections do not clip background glows inside max-w-* containers (no vertical side lines)", () => {
+    const landingContent = fs.readFileSync(
+      path.resolve(process.cwd(), "src/components/marketing/landing-page.tsx"),
+      "utf8"
+    );
+    const servicesContent = fs.readFileSync(
+      path.resolve(process.cwd(), "src/components/marketing/services-grid-section.tsx"),
+      "utf8"
+    );
+    const studentContent = fs.readFileSync(
+      path.resolve(process.cwd(), "src/components/marketing/student-features-section.tsx"),
+      "utf8"
+    );
+
+    expect(landingContent).not.toContain("absolute inset-0 -z-10 overflow-hidden");
+    expect(servicesContent).not.toContain("absolute -inset-10 -z-10 overflow-hidden");
+    expect(servicesContent).not.toMatch(/<section[^>]*max-w-7xl[^>]*overflow-hidden/);
+    expect(studentContent).not.toContain("absolute -inset-10 -z-10 overflow-hidden");
+    expect(studentContent).not.toMatch(/<section[^>]*max-w-7xl[^>]*overflow-hidden/);
+  });
 });

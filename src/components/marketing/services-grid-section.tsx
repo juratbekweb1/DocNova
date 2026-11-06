@@ -589,13 +589,7 @@ export function ServicesGridSection() {
   ];
 
   return (
-    <section className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-      {/* Background Ambient Glows */}
-      <div className="pointer-events-none absolute -inset-10 -z-10 overflow-hidden">
-        <div className="absolute top-1/3 left-1/4 h-[500px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-purple-300/10 via-sky-300/10 to-transparent blur-3xl dark:bg-gradient-to-r dark:from-purple-700/15 dark:via-cyan-500/15 dark:to-transparent" />
-        <div className="absolute right-1/4 bottom-1/3 h-[500px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-emerald-300/10 via-blue-300/10 to-transparent blur-3xl dark:bg-gradient-to-r dark:from-emerald-700/15 dark:via-blue-500/15 dark:to-transparent" />
-      </div>
-
+    <section className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
       {/* SECTION HEADER & TOGGLE SWITCHER */}
       <div className="flex flex-col items-center text-center">
         {/* Top Badge */}

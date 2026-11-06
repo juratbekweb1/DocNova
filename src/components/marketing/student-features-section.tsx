@@ -33,7 +33,8 @@ export function StudentFeaturesSection() {
         bgHover: "dark:hover:bg-[#1f0e38] hover:bg-purple-50/80",
         glow: "hover:shadow-[0_20px_50px_rgba(192,38,211,0.35),0_0_25px_rgba(168,85,247,0.2)]",
         titleHover: "group-hover:text-fuchsia-300",
-        btnGrad: "from-purple-500 via-fuchsia-500 to-pink-600 shadow-[0_0_20px_rgba(192,38,211,0.5)]",
+        btnGrad:
+          "from-purple-500 via-fuchsia-500 to-pink-600 shadow-[0_0_20px_rgba(192,38,211,0.5)]",
       },
     },
     {
@@ -67,12 +68,7 @@ export function StudentFeaturesSection() {
   ];
 
   return (
-    <section className="relative mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8 overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="pointer-events-none absolute -inset-10 -z-10 overflow-hidden">
-        <div className="absolute top-1/2 left-1/3 h-[500px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full dark:bg-gradient-to-r dark:from-purple-700/15 dark:via-cyan-500/15 dark:to-transparent bg-gradient-to-r from-purple-300/10 via-sky-300/10 to-transparent blur-3xl" />
-      </div>
-
+    <section className="relative mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
       <div className="grid gap-10 lg:grid-cols-[1fr_2.6fr] lg:items-center xl:grid-cols-[1fr_2.8fr]">
         {/* LEFT COLUMN: Section Title & Call to Action */}
         <motion.div
@@ -83,20 +79,20 @@ export function StudentFeaturesSection() {
           className="flex flex-col items-start"
         >
           {/* Section Pill Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border dark:border-sky-500/35 border-sky-400/40 dark:bg-sky-950/50 bg-sky-50 px-4 py-1.5 text-xs font-semibold dark:text-sky-300 text-sky-700 shadow-sm backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm backdrop-blur-md dark:border-sky-500/35 dark:bg-sky-950/50 dark:text-sky-300">
             <GraduationCap className="h-4 w-4 text-cyan-400" />
             <span>Talabalar uchun</span>
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
           </div>
 
-          <h2 className="mt-5 text-3xl font-extrabold tracking-tight dark:text-white text-slate-900 sm:text-4xl lg:text-5xl leading-[1.15]">
+          <h2 className="mt-5 text-3xl leading-[1.15] font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl dark:text-white">
             O‘quv jarayonini{" "}
             <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 bg-clip-text text-transparent">
               yengillashtiring!
             </span>
           </h2>
 
-          <p className="mt-4 text-base dark:text-slate-300 text-slate-600 sm:text-lg leading-relaxed max-w-md">
+          <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300">
             Endi kurs ishi, mustaqil ish, referat va boshqa akademik ishlarni osongina tayyorlang.
           </p>
 
@@ -132,7 +128,7 @@ export function StudentFeaturesSection() {
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="drop-shadow-[0_10px_25px_rgba(56,189,248,0.7)] sm:w-16 sm:h-16"
+                className="drop-shadow-[0_10px_25px_rgba(56,189,248,0.7)] sm:h-16 sm:w-16"
               >
                 <path
                   d="M10 32 L54 12 L38 52 L28 38 L10 32 Z"
@@ -140,16 +136,27 @@ export function StudentFeaturesSection() {
                   stroke="#7dd3fc"
                   strokeWidth="1.2"
                 />
-                <path
-                  d="M54 12 L28 38 L32 46 L38 52 Z"
-                  fill="url(#planeMultiGrad2)"
-                />
+                <path d="M54 12 L28 38 L32 46 L38 52 Z" fill="url(#planeMultiGrad2)" />
                 <defs>
-                  <linearGradient id="planeMultiGrad1" x1="10" y1="12" x2="54" y2="52" gradientUnits="userSpaceOnUse">
+                  <linearGradient
+                    id="planeMultiGrad1"
+                    x1="10"
+                    y1="12"
+                    x2="54"
+                    y2="52"
+                    gradientUnits="userSpaceOnUse"
+                  >
                     <stop stopColor="#38bdf8" />
                     <stop offset="1" stopColor="#1d4ed8" />
                   </linearGradient>
-                  <linearGradient id="planeMultiGrad2" x1="28" y1="12" x2="54" y2="52" gradientUnits="userSpaceOnUse">
+                  <linearGradient
+                    id="planeMultiGrad2"
+                    x1="28"
+                    y1="12"
+                    x2="54"
+                    y2="52"
+                    gradientUnits="userSpaceOnUse"
+                  >
                     <stop stopColor="#60a5fa" />
                     <stop offset="1" stopColor="#1e40af" />
                   </linearGradient>
@@ -161,7 +168,7 @@ export function StudentFeaturesSection() {
                 height="40"
                 viewBox="0 0 80 45"
                 fill="none"
-                className="pointer-events-none absolute -bottom-5 -left-12 opacity-60 hidden sm:block"
+                className="pointer-events-none absolute -bottom-5 -left-12 hidden opacity-60 sm:block"
               >
                 <path
                   d="M5 38 Q 40 32 75 8"
@@ -175,7 +182,7 @@ export function StudentFeaturesSection() {
           </div>
 
           {/* Cards Grid: Perfectly responsive across all screen sizes with individual 3D themes */}
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {cards.map((card, index) => (
               <motion.div
                 key={card.title}
@@ -187,11 +194,11 @@ export function StudentFeaturesSection() {
               >
                 <Link
                   href={card.href}
-                  className={`flex h-full w-full flex-col justify-between rounded-[24px] border ${card.theme.border} dark:bg-[#070e24]/90 bg-white/95 p-4 sm:p-5 backdrop-blur-xl shadow-sm dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] transition-all duration-300 hover:-translate-y-2 ${card.theme.bgHover} ${card.theme.glow}`}
+                  className={`flex h-full w-full flex-col justify-between rounded-[24px] border ${card.theme.border} bg-white/95 p-4 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 sm:p-5 dark:bg-[#070e24]/90 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${card.theme.bgHover} ${card.theme.glow}`}
                 >
                   {/* Top: Individual Multicolored 3D Render Image */}
                   <div className="flex h-24 items-center justify-center">
-                    <div className="relative h-20 w-24 transition-transform duration-300 group-hover:scale-115 group-hover:-translate-y-1">
+                    <div className="relative h-20 w-24 transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-115">
                       <Image
                         src={card.imageSrc}
                         alt={card.alt}
@@ -205,11 +212,11 @@ export function StudentFeaturesSection() {
                   {/* Middle: Title & Description */}
                   <div className="mt-4 flex-1">
                     <h3
-                      className={`text-lg font-bold dark:text-white text-slate-900 transition-colors ${card.theme.titleHover}`}
+                      className={`text-lg font-bold text-slate-900 transition-colors dark:text-white ${card.theme.titleHover}`}
                     >
                       {card.title}
                     </h3>
-                    <p className="mt-1.5 text-xs font-normal leading-relaxed dark:text-slate-300 text-slate-600 sm:text-sm">
+                    <p className="mt-1.5 text-xs leading-relaxed font-normal text-slate-600 sm:text-sm dark:text-slate-300">
                       {card.description}
                     </p>
                   </div>
@@ -217,7 +224,7 @@ export function StudentFeaturesSection() {
                   {/* Bottom: Action Circle Button in Matching Theme Gradient */}
                   <div className="mt-5 flex justify-end">
                     <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r ${card.theme.btnGrad} text-white shadow-md transition-all group-hover:scale-115 group-hover:translate-x-0.5`}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r ${card.theme.btnGrad} text-white shadow-md transition-all group-hover:translate-x-0.5 group-hover:scale-115`}
                     >
                       <ArrowRight className="h-4 w-4" />
                     </div>

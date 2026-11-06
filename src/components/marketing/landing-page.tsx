@@ -26,36 +26,12 @@ const structuredData = {
 };
 
 const AnimatedBackground = () => (
-  <div className="pointer-events-none fixed inset-0 z-0 transform-gpu overflow-hidden bg-[#f8fafc] transition-colors duration-300 dark:bg-[#020817]">
-    {/* Deep Cosmic Radial Aura matching reference Image 2 */}
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.12),rgba(248,250,252,0))] dark:bg-[radial-gradient(ellipse_100%_80%_at_50%_-15%,rgba(14,165,233,0.24),rgba(2,8,23,0))]" />
+  <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#f8fafc] transition-colors duration-300 dark:bg-[#020817]">
+    {/* Full-viewport cosmic radial aura — zero box boundaries, seamless 100% width */}
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(14,165,233,0.12)_0%,rgba(56,189,248,0.04)_45%,transparent_80%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(14,165,233,0.22)_0%,rgba(37,99,235,0.08)_45%,transparent_80%)]" />
 
-    {/* Mobile-optimized lightweight static ambient glow (No infinite JS animation / zero lag on mobile) */}
-    <div className="pointer-events-none absolute -top-20 right-0 block h-[280px] w-[280px] transform-gpu rounded-full bg-cyan-400/15 blur-2xl md:hidden" />
-    <div className="pointer-events-none absolute top-1/3 -left-20 block h-[260px] w-[260px] transform-gpu rounded-full bg-blue-600/10 blur-2xl md:hidden" />
-
-    {/* Desktop/Tablet electric cyan aurora portal (Smooth hardware-accelerated motion) */}
-    <motion.div
-      animate={{
-        scale: [1, 1.12, 1],
-        opacity: [0.35, 0.55, 0.35],
-      }}
-      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute -top-40 right-[-10%] hidden h-[750px] w-[850px] transform-gpu rounded-full bg-gradient-to-bl from-cyan-400/30 via-blue-600/25 to-transparent blur-[110px] will-change-transform md:block"
-    />
-
-    {/* Desktop/Tablet deep cosmic blue orb */}
-    <motion.div
-      animate={{
-        scale: [1, 1.1, 1],
-        opacity: [0.3, 0.5, 0.3],
-      }}
-      transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-10 -left-40 hidden h-[600px] w-[650px] transform-gpu rounded-full bg-gradient-to-tr from-blue-700/25 via-sky-500/15 to-transparent blur-[100px] will-change-transform md:block"
-    />
-
-    {/* Center subtle glow */}
-    <div className="absolute top-1/2 left-1/2 hidden h-[700px] w-[950px] -translate-x-1/2 -translate-y-1/2 transform-gpu rounded-full bg-sky-400/10 blur-[120px] md:block dark:bg-cyan-600/10" />
+    {/* Full-viewport ambient side & center radial washes without bounded boxes or blur clipping */}
+    <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.08)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.08)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.05)_0%,transparent_60%)] md:block dark:bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.12)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.12)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(8,145,178,0.07)_0%,transparent_60%)]" />
 
     {/* Subtle starfield sparkle pattern (Desktop only to prevent mobile scroll lag) */}
     <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:42px_42px] opacity-[0.05] md:block dark:opacity-[0.14]" />
@@ -146,13 +122,6 @@ export function LandingPage() {
               1. HERO SECTION (100% Focused, Centered, Clean Cosmic Atmosphere)
              ========================================================================= */}
           <section className="relative mx-auto max-w-5xl px-4 pt-10 pb-12 text-center sm:px-6 sm:pt-16 sm:pb-16 lg:px-8 lg:pt-20 lg:pb-20">
-            {/* Ambient 3D Depth Layer */}
-            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-              <div className="absolute top-1/4 left-1/2 hidden h-[550px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-cyan-500/20 via-blue-600/15 to-transparent blur-[140px] md:block" />
-              <div className="absolute -top-10 left-1/4 hidden h-[380px] w-[450px] rounded-full bg-blue-700/15 blur-[120px] md:block" />
-              <div className="absolute top-1/4 left-1/2 block h-[220px] w-[220px] -translate-x-1/2 transform-gpu rounded-full bg-cyan-500/10 blur-xl md:hidden" />
-            </div>
-
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
