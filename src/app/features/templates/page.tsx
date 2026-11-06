@@ -381,7 +381,7 @@ export default function TemplatesPage() {
       {/* Hero */}
       <div className="border-border relative overflow-hidden border-b">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-0 left-1/2 h-64 w-96 -translate-x-1/2 rounded-full bg-pink-500/10 blur-3xl" />
+          <div className="absolute top-0 left-1/2 h-64 w-96 -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(236,72,153,0.15),transparent_70%)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:px-8">
           <div className="mb-4 flex items-center gap-3">

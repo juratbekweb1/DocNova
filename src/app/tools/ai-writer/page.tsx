@@ -154,7 +154,7 @@ export default function AiWriterPage() {
 
         {result && (
           <div className="animate-in fade-in slide-in-from-bottom-8 bg-surface-elevated border-primary/20 relative w-full overflow-hidden rounded-3xl border p-8 shadow-2xl duration-700">
-            <div className="bg-primary/10 absolute top-0 right-0 h-32 w-32 rounded-full blur-3xl" />
+            <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0%,transparent_70%)]" />
 
             <div className="border-border mb-6 flex items-center justify-between border-b pb-4">
               <h3 className="text-foreground flex items-center gap-2 text-xl font-bold">

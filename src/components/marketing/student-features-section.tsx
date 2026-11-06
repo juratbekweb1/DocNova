@@ -93,7 +93,7 @@ export function StudentFeaturesSection() {
           className="flex flex-col items-start"
         >
           {/* Section Pill Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm backdrop-blur-md dark:border-sky-500/35 dark:bg-sky-950/50 dark:text-sky-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm dark:border-sky-500/35 dark:bg-sky-950/60 dark:text-sky-300">
             <GraduationCap className="h-4 w-4 text-cyan-400" />
             <span>Talabalar uchun</span>
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />

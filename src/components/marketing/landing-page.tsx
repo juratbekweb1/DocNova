@@ -32,9 +32,6 @@ const AnimatedBackground = () => (
 
     {/* Full-viewport ambient side & center radial washes without bounded boxes or blur clipping */}
     <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.08)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.08)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.05)_0%,transparent_60%)] md:block dark:bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.12)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.12)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(8,145,178,0.07)_0%,transparent_60%)]" />
-
-    {/* Subtle starfield sparkle pattern (Desktop only to prevent mobile scroll lag) */}
-    <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:42px_42px] opacity-[0.05] md:block dark:opacity-[0.14]" />
   </div>
 );
 
@@ -129,7 +126,7 @@ export function LandingPage() {
               className="flex flex-col items-center"
             >
               {/* Top Pill Badge: AI bilan yangi imkoniyatlar */}
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-[0_0_20px_rgba(14,165,233,0.25)] backdrop-blur-md dark:border-sky-500/35 dark:bg-sky-950/45 dark:text-sky-300">
+              <div className="inline-flex items-center gap-2.5 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:border-sky-500/35 dark:bg-sky-950/70 dark:text-sky-300">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-500" />
                 <span>AI bilan yangi imkoniyatlar</span>
                 <span className="relative flex h-2 w-2">

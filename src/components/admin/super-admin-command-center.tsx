@@ -255,7 +255,7 @@ export function SuperAdminCommandCenter({
       {/* =========================================================================
           1. CHAP TOMONLAMA MENYU (SIDEBAR) - DocNova Super Admin Neon Theme
          ========================================================================= */}
-      <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800/80 bg-[#050c1e]/95 backdrop-blur-2xl lg:flex xl:w-72">
+      <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800/80 bg-[#050c1e] lg:flex xl:w-72">
         {/* Sidebar Brand Header */}
         <div className="border-b border-slate-800/80 p-5">
           <Link href="/" className="group flex items-center gap-3">
@@ -435,8 +435,8 @@ export function SuperAdminCommandCenter({
              ========================================================================= */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {/* KPI 1: Jami Foydalanuvchilar */}
-            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-cyan-500/40">
-              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-cyan-500/15 blur-2xl transition-transform group-hover:scale-125" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors hover:border-cyan-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25),transparent_70%)] transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Jami Foydalanuvchilar
@@ -459,8 +459,8 @@ export function SuperAdminCommandCenter({
             </div>
 
             {/* KPI 2: Yaratilgan Hujjatlar */}
-            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-purple-500/40">
-              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-purple-500/15 blur-2xl transition-transform group-hover:scale-125" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors hover:border-purple-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.25),transparent_70%)] transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Yaratilgan Hujjatlar
@@ -483,8 +483,8 @@ export function SuperAdminCommandCenter({
             </div>
 
             {/* KPI 3: Faol Tariflar va Obunachilar */}
-            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-amber-500/40">
-              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-amber-500/15 blur-2xl transition-transform group-hover:scale-125" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors hover:border-amber-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.25),transparent_70%)] transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Faol Tariflar & Obunalar
@@ -509,8 +509,8 @@ export function SuperAdminCommandCenter({
             </div>
 
             {/* KPI 4: Umumiy Tushum */}
-            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-colors hover:border-emerald-500/40">
-              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-emerald-500/15 blur-2xl transition-transform group-hover:scale-125" />
+            <div className="group relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-b from-[#0a142f]/80 via-[#070e24]/90 to-[#030816]/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-colors hover:border-emerald-500/40">
+              <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.25),transparent_70%)] transition-transform group-hover:scale-125" />
               <div className="mb-3 flex items-start justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                   Umumiy Tushum

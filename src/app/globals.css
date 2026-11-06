@@ -132,9 +132,13 @@ body::before {
 
 /* Limit maximum backdrop blur intensity globally to prevent GPU shader memory stalls */
 .backdrop-blur-3xl,
-.backdrop-blur-2xl {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.backdrop-blur-2xl,
+.backdrop-blur-xl,
+.backdrop-blur-lg,
+.backdrop-blur-md,
+.glass {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Ensure no container or layout wrapper adds vertical side lines */
@@ -171,8 +175,8 @@ section {
 /* Premium Glass Effect */
 .glass {
   background: rgba(11, 18, 32, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 1px solid var(--border);
 }
 

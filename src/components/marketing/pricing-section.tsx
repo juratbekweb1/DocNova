@@ -115,7 +115,7 @@ export function PricingSection() {
         </div>
 
         {/* Toggle Switch */}
-        <div className="bg-surface/50 border-border/50 relative z-10 mt-8 flex w-fit items-center rounded-full border p-1.5 shadow-inner backdrop-blur-sm">
+        <div className="bg-surface-elevated/70 border-border/60 relative z-10 mt-8 flex w-fit items-center rounded-full border p-1.5 shadow-inner">
           <button
             onClick={() => setIsYearly(false)}
             className={cn(

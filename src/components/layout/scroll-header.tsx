@@ -44,7 +44,7 @@ export function ScrollHeader({ children, className, ...props }: ScrollHeaderProp
       className={cn(
         "fixed top-0 right-0 left-0 z-50 w-full border-b transition-colors duration-300",
         isScrolled
-          ? "border-border/50 bg-background/95 md:bg-background/80 shadow-sm md:backdrop-blur-md"
+          ? "border-border/50 bg-background/98 shadow-sm"
           : "border-transparent bg-transparent",
         className
       )}

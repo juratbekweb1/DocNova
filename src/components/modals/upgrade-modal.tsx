@@ -32,7 +32,7 @@ export function UpgradeModal({ isOpen, onClose, customTitle, customMessage }: Up
             className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2"
           >
             <div className="bg-surface border-primary/20 shadow-primary/10 relative overflow-hidden rounded-3xl border p-6 shadow-2xl md:p-8">
-              <div className="bg-primary/10 absolute top-0 right-0 h-32 w-32 translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl" />
+              <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.2)_0%,transparent_70%)]" />
 
               <button
                 onClick={onClose}

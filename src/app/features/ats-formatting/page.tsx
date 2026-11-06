@@ -494,7 +494,7 @@ export default function ATSFormattingPage() {
       {/* Hero */}
       <div className="border-border relative overflow-hidden border-b">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-0 left-1/3 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="absolute top-0 left-1/3 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.18)_0%,transparent_70%)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:px-8">
           <div className="mb-4 flex items-center gap-3">

@@ -139,7 +139,7 @@ export default function VersionsPage() {
       {/* Hero */}
       <div className="border-border relative overflow-hidden border-b">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-0 right-1/3 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="absolute top-0 right-1/3 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:px-8">
           <div className="mb-4 flex items-center gap-3">

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "motion/react";
 import {
   LayoutTemplate,
   Brain,
@@ -43,9 +42,9 @@ export function ServicesGridSection() {
     if (typeof window !== "undefined") {
       const checkHash = () => {
         if (window.location.hash === "#students") {
-          setActiveTab("students");
+          setActiveTab((prev) => (prev !== "students" ? "students" : prev));
         } else if (window.location.hash === "#services") {
-          setActiveTab("services");
+          setActiveTab((prev) => (prev !== "services" ? "services" : prev));
         }
       };
       checkHash();
@@ -621,7 +620,7 @@ export function ServicesGridSection() {
       {/* SECTION HEADER & TOGGLE SWITCHER */}
       <div className="flex flex-col items-center text-center">
         {/* Top Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm backdrop-blur-md dark:border-sky-500/35 dark:bg-sky-950/50 dark:text-sky-300">
+        <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-50 px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm dark:border-sky-500/35 dark:bg-sky-950/60 dark:text-sky-300">
           <Zap className="h-3.5 w-3.5 text-cyan-400" />
           <span>Platforma Imkoniyatlari</span>
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
@@ -671,619 +670,571 @@ export function ServicesGridSection() {
 
       {/* CONTENT AREA: 9 TA BO'LIM YOKI 5 TA TALABALAR BO'LIMI */}
       <div className="mt-12">
-        <AnimatePresence mode="wait">
-          {activeTab === "services" ? (
-            /* =========================================================================
-               TAB 1: 9 TA ASOSIY BO'LIM (3D Rang-barang Neon Animatsiyali Dizayn)
-               ========================================================================= */
-            <motion.div
-              key="services-grid"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {nineServices.map((service, idx) => {
-                const Icon = service.icon;
-                return (
-                  <motion.div
-                    key={service.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: idx * 0.03 }}
-                    className="group relative flex"
+        {activeTab === "services" ? (
+          /* =========================================================================
+             TAB 1: 9 TA ASOSIY BO'LIM (3D Rang-barang Neon Animatsiyali Dizayn)
+             ========================================================================= */
+          <div key="services-grid" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {nineServices.map((service) => {
+              const Icon = service.icon;
+              return (
+                <div key={service.title} className="group relative flex">
+                  <Link
+                    href={service.href}
+                    className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${service.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${service.theme.cardGlow}`}
                   >
-                    <Link
-                      href={service.href}
-                      className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${service.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${service.theme.cardGlow}`}
+                    {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                    <div
+                      className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    />
+                    <div
+                      className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                    />
+                    <div
+                      className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${service.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                    />
+                    <div
+                      className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                    />
+
+                    {/* Card Content */}
+                    <div className="relative z-10 flex h-full flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          {/* 3D Animated Glowing Icon Container */}
+                          <div
+                            className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${service.theme.iconBox} transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
+                          >
+                            <Icon className="h-7 w-7 transition-transform duration-300 group-hover:scale-105" />
+                          </div>
+
+                          {/* Individual Badge */}
+                          <span
+                            className={`rounded-full border px-3 py-1 text-[11px] font-bold shadow-sm ${service.theme.badgeStyle}`}
+                          >
+                            {service.badge}
+                          </span>
+                        </div>
+
+                        {/* Stat row with individual gradient */}
+                        <div className="mt-5 flex items-baseline gap-2">
+                          <span
+                            className={`bg-gradient-to-r text-3xl font-extrabold tracking-tight ${service.theme.statGrad} bg-clip-text text-transparent`}
+                          >
+                            {service.stat}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {service.statLabel}
+                          </span>
+                        </div>
+
+                        {/* Title with individual hover color */}
+                        <h3
+                          className={`mt-3 text-lg font-bold text-slate-900 transition-colors dark:text-white ${service.theme.titleHover}`}
+                        >
+                          {service.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                          {service.description}
+                        </p>
+                      </div>
+
+                      {/* Card Bottom CTA Link */}
+                      <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800/80">
+                        <span className="text-xs font-bold text-sky-500 group-hover:underline dark:text-cyan-400">
+                          Batafsil / Foydalanish
+                        </span>
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r ${service.theme.btnGrad} text-white shadow-md transition-all group-hover:translate-x-1 group-hover:scale-115`}
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* =========================================================================
+               TAB 2: TALABALAR BO'LIMI (1-RASMGA 100% MOS MUKAMMAL DIZAYN)
+               ========================================================================= */
+          <div key="students-grid" className="space-y-6 text-left">
+            {/* TOP HEADER: 1-rasmdagi "Talabalar uchun asosiy bo'limlar" */}
+            <div className="flex items-center gap-2.5">
+              <Layers className="h-5 w-5 text-sky-400" />
+              <div>
+                <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                  Talabalar uchun asosiy bo‘limlar
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                  O‘zingizga kerakli bo‘limni tanlang va bir necha soniyada natijaga erishing
+                </p>
+              </div>
+            </div>
+
+            {/* 4 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat, Amaliy ish) */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {topStudentModules.map((module) => {
+                const Icon = module.icon;
+                return (
+                  <div key={module.id} className="group relative flex">
+                    <div
+                      className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${module.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${module.theme.cardGlow}`}
                     >
                       {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
                       <div
-                        className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                        className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                       />
                       <div
-                        className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                        className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${service.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${module.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                       />
 
                       {/* Card Content */}
                       <div className="relative z-10 flex h-full flex-col justify-between">
                         <div>
-                          <div className="flex items-center justify-between">
-                            {/* 3D Animated Glowing Icon Container */}
+                          {/* Card Header: Icon Box + Badge */}
+                          <div className="mb-4 flex items-center justify-between gap-2">
                             <div
-                              className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${service.theme.iconBox} transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
+                              className={`flex h-12 w-12 items-center justify-center rounded-xl border ${module.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
                             >
-                              <Icon className="h-7 w-7 transition-transform duration-300 group-hover:scale-105" />
+                              <Icon className="h-6 w-6" />
                             </div>
-
-                            {/* Individual Badge */}
                             <span
-                              className={`rounded-full border px-3 py-1 text-[11px] font-bold shadow-sm ${service.theme.badgeStyle}`}
+                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${module.badgeStyle}`}
                             >
-                              {service.badge}
+                              {module.badge}
                             </span>
                           </div>
 
-                          {/* Stat row with individual gradient */}
-                          <div className="mt-5 flex items-baseline gap-2">
-                            <span
-                              className={`bg-gradient-to-r text-3xl font-extrabold tracking-tight ${service.theme.statGrad} bg-clip-text text-transparent`}
-                            >
-                              {service.stat}
-                            </span>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              {service.statLabel}
-                            </span>
-                          </div>
-
-                          {/* Title with individual hover color */}
+                          {/* Title */}
                           <h3
-                            className={`mt-3 text-lg font-bold text-slate-900 transition-colors dark:text-white ${service.theme.titleHover}`}
+                            className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${module.theme.titleHover}`}
                           >
-                            {service.title}
+                            {module.title}
                           </h3>
 
+                          {/* Subtitle */}
+                          <p
+                            className={`mt-0.5 mb-2.5 text-xs font-medium ${module.theme.subColor}`}
+                          >
+                            {module.subtitle}
+                          </p>
+
                           {/* Description */}
-                          <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                            {service.description}
+                          <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                            {module.description}
                           </p>
                         </div>
 
-                        {/* Card Bottom CTA Link */}
-                        <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800/80">
-                          <span className="text-xs font-bold text-sky-500 group-hover:underline dark:text-cyan-400">
-                            Batafsil / Foydalanish
+                        {/* Card Bottom: Stats + Action Button */}
+                        <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            {module.stats}
                           </span>
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r ${service.theme.btnGrad} text-white shadow-md transition-all group-hover:translate-x-1 group-hover:scale-115`}
+                          <Link
+                            href={module.href}
+                            className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
                           >
-                            <ArrowRight className="h-4 w-4" />
-                          </div>
+                            <span>{module.cta}</span>
+                            <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                          </Link>
                         </div>
                       </div>
-                    </Link>
-                  </motion.div>
+                    </div>
+                  </div>
                 );
               })}
-            </motion.div>
-          ) : (
-            /* =========================================================================
-               TAB 2: TALABALAR BO'LIMI (1-RASMGA 100% MOS MUKAMMAL DIZAYN)
-               ========================================================================= */
-            <motion.div
-              key="students-grid"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="space-y-6 text-left"
-            >
-              {/* TOP HEADER: 1-rasmdagi "Talabalar uchun asosiy bo'limlar" */}
-              <div className="flex items-center gap-2.5">
-                <Layers className="h-5 w-5 text-sky-400" />
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
-                    Talabalar uchun asosiy bo‘limlar
-                  </h3>
-                  <p className="mt-0.5 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-                    O‘zingizga kerakli bo‘limni tanlang va bir necha soniyada natijaga erishing
-                  </p>
+            </div>
+
+            {/* PASTKI KENG KARTA (Prezentatsiya va Slaydlar) */}
+            <div className="group relative flex">
+              <div
+                className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${widePresentationModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-8 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${widePresentationModule.theme.cardGlow}`}
+              >
+                {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                <div
+                  className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                />
+                <div
+                  className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                />
+                <div
+                  className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                />
+                <div
+                  className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                />
+
+                {/* Card Content */}
+                <div className="relative z-10 flex h-full flex-col justify-between">
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
+                    {/* Left 7 cols: info */}
+                    <div className="space-y-3 lg:col-span-7">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-xl border ${widePresentationModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
+                        >
+                          <Presentation className="h-6 w-6 text-orange-400" />
+                        </div>
+                        {widePresentationModule.badges.map((b) => (
+                          <span
+                            key={b.text}
+                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${b.style}`}
+                          >
+                            {b.text}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-orange-400 sm:text-2xl dark:text-white">
+                          {widePresentationModule.title}
+                        </h3>
+                        <p className="mt-0.5 text-xs font-semibold text-orange-400/90 sm:text-sm">
+                          {widePresentationModule.subtitle}
+                        </p>
+                      </div>
+
+                      <p className="max-w-2xl text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                        {widePresentationModule.description}
+                      </p>
+                    </div>
+
+                    {/* Right 5 cols: visual feature highlights */}
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:col-span-5">
+                      {widePresentationModule.features.map((feat) => {
+                        const FeatIcon = feat.icon;
+                        return (
+                          <div
+                            key={feat.title}
+                            className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800/80 dark:bg-[#0a1226]/80"
+                          >
+                            <div
+                              className={`flex items-center gap-1.5 text-xs font-bold ${feat.color}`}
+                            >
+                              {typeof FeatIcon === "string" ? (
+                                <span>{FeatIcon}</span>
+                              ) : (
+                                <FeatIcon className="h-3.5 w-3.5" />
+                              )}
+                              <span>{feat.title}</span>
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                              {feat.desc}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Wide card bottom bar */}
+                  <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center dark:border-slate-800/80">
+                    <span className="flex items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
+                      <span>{widePresentationModule.stats}</span>
+                    </span>
+                    <Link
+                      href={widePresentationModule.href}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] hover:from-orange-600 hover:to-amber-600 sm:w-auto"
+                    >
+                      <span>{widePresentationModule.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* 4 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat, Amaliy ish) */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-                {topStudentModules.map((module, idx) => {
-                  const Icon = module.icon;
-                  return (
-                    <motion.div
-                      key={module.id}
-                      initial={{ opacity: 0, y: 25 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: idx * 0.08 }}
-                      className="group relative flex"
-                    >
-                      <div
-                        className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${module.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${module.theme.cardGlow}`}
-                      >
-                        {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
-                        <div
-                          className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
-                        />
-                        <div
-                          className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
-                        />
-                        <div
-                          className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${module.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-                        />
-                        <div
-                          className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-                        />
-
-                        {/* Card Content */}
-                        <div className="relative z-10 flex h-full flex-col justify-between">
-                          <div>
-                            {/* Card Header: Icon Box + Badge */}
-                            <div className="mb-4 flex items-center justify-between gap-2">
-                              <div
-                                className={`flex h-12 w-12 items-center justify-center rounded-xl border ${module.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
-                              >
-                                <Icon className="h-6 w-6" />
-                              </div>
-                              <span
-                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${module.badgeStyle}`}
-                              >
-                                {module.badge}
-                              </span>
-                            </div>
-
-                            {/* Title */}
-                            <h3
-                              className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${module.theme.titleHover}`}
-                            >
-                              {module.title}
-                            </h3>
-
-                            {/* Subtitle */}
-                            <p
-                              className={`mt-0.5 mb-2.5 text-xs font-medium ${module.theme.subColor}`}
-                            >
-                              {module.subtitle}
-                            </p>
-
-                            {/* Description */}
-                            <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                              {module.description}
-                            </p>
-                          </div>
-
-                          {/* Card Bottom: Stats + Action Button */}
-                          <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
-                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                              {module.stats}
-                            </span>
-                            <Link
-                              href={module.href}
-                              className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
-                            >
-                              <span>{module.cta}</span>
-                              <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* PASTKI KENG KARTA (Prezentatsiya va Slaydlar) */}
-              <motion.div
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.28 }}
-                className="group relative flex"
-              >
+            {/* =========================================================================
+                  2-QATOR: TEST VA IMTIHONLAR (1 COL) + MOCK TEST CHET TILLARI (2 COLS)
+                 ========================================================================= */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* 1. TEST VA IMTIHONLARGA TAYYORGARLIK */}
+              <div className="group relative col-span-1 flex">
                 <div
-                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${widePresentationModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-8 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${widePresentationModule.theme.cardGlow}`}
+                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${examModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${examModule.theme.cardGlow}`}
                 >
-                  {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                  {/* Ambient 3D Neon Orbs & Top Light Beam */}
                   <div
-                    className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                   />
                   <div
-                    className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                    className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${examModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
 
                   {/* Card Content */}
                   <div className="relative z-10 flex h-full flex-col justify-between">
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
-                      {/* Left 7 cols: info */}
-                      <div className="space-y-3 lg:col-span-7">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div
-                            className={`flex h-12 w-12 items-center justify-center rounded-xl border ${widePresentationModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
-                          >
-                            <Presentation className="h-6 w-6 text-orange-400" />
-                          </div>
-                          {widePresentationModule.badges.map((b) => (
-                            <span
-                              key={b.text}
-                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${b.style}`}
-                            >
-                              {b.text}
-                            </span>
-                          ))}
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-2">
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-xl border ${examModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
+                        >
+                          <CheckSquare className="h-6 w-6" />
                         </div>
-
-                        <div>
-                          <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-orange-400 sm:text-2xl dark:text-white">
-                            {widePresentationModule.title}
-                          </h3>
-                          <p className="mt-0.5 text-xs font-semibold text-orange-400/90 sm:text-sm">
-                            {widePresentationModule.subtitle}
-                          </p>
-                        </div>
-
-                        <p className="max-w-2xl text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                          {widePresentationModule.description}
-                        </p>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${examModule.badgeStyle}`}
+                        >
+                          {examModule.badge}
+                        </span>
                       </div>
 
-                      {/* Right 5 cols: visual feature highlights */}
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:col-span-5">
-                        {widePresentationModule.features.map((feat) => {
-                          const FeatIcon = feat.icon;
-                          return (
-                            <div
-                              key={feat.title}
-                              className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800/80 dark:bg-[#0a1226]/80"
-                            >
-                              <div
-                                className={`flex items-center gap-1.5 text-xs font-bold ${feat.color}`}
-                              >
-                                {typeof FeatIcon === "string" ? (
-                                  <span>{FeatIcon}</span>
-                                ) : (
-                                  <FeatIcon className="h-3.5 w-3.5" />
-                                )}
-                                <span>{feat.title}</span>
-                              </div>
-                              <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                                {feat.desc}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <h3
+                        className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${examModule.theme.titleHover}`}
+                      >
+                        {examModule.title}
+                      </h3>
+
+                      <p
+                        className={`mt-0.5 mb-2.5 text-xs font-medium ${examModule.theme.subColor}`}
+                      >
+                        {examModule.subtitle}
+                      </p>
+
+                      <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                        {examModule.description}
+                      </p>
                     </div>
 
-                    {/* Wide card bottom bar */}
-                    <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center dark:border-slate-800/80">
-                      <span className="flex items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
-                        <span>{widePresentationModule.stats}</span>
+                    <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        {examModule.stats}
                       </span>
                       <Link
-                        href={widePresentationModule.href}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] hover:from-orange-600 hover:to-amber-600 sm:w-auto"
+                        href={examModule.href}
+                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${examModule.theme.btnStyle}`}
                       >
-                        <span>{widePresentationModule.cta}</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                        <span>{examModule.cta}</span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
                       </Link>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-
-              {/* =========================================================================
-                  2-QATOR: TEST VA IMTIHONLAR (1 COL) + MOCK TEST CHET TILLARI (2 COLS)
-                 ========================================================================= */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* 1. TEST VA IMTIHONLARGA TAYYORGARLIK */}
-                <motion.div
-                  initial={{ opacity: 0, y: 25 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.32 }}
-                  className="group relative col-span-1 flex"
-                >
-                  <div
-                    className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${examModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${examModule.theme.cardGlow}`}
-                  >
-                    {/* Ambient 3D Neon Orbs & Top Light Beam */}
-                    <div
-                      className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${examModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
-                    />
-
-                    {/* Card Content */}
-                    <div className="relative z-10 flex h-full flex-col justify-between">
-                      <div>
-                        <div className="mb-4 flex items-center justify-between gap-2">
-                          <div
-                            className={`flex h-12 w-12 items-center justify-center rounded-xl border ${examModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
-                          >
-                            <CheckSquare className="h-6 w-6" />
-                          </div>
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${examModule.badgeStyle}`}
-                          >
-                            {examModule.badge}
-                          </span>
-                        </div>
-
-                        <h3
-                          className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${examModule.theme.titleHover}`}
-                        >
-                          {examModule.title}
-                        </h3>
-
-                        <p
-                          className={`mt-0.5 mb-2.5 text-xs font-medium ${examModule.theme.subColor}`}
-                        >
-                          {examModule.subtitle}
-                        </p>
-
-                        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                          {examModule.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-6 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          {examModule.stats}
-                        </span>
-                        <Link
-                          href={examModule.href}
-                          className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${examModule.theme.btnStyle}`}
-                        >
-                          <span>{examModule.cta}</span>
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* 2. MOCK TEST (CHET TILLARI) - 2 COLS */}
-                <motion.div
-                  initial={{ opacity: 0, y: 25 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.36 }}
-                  className="group relative col-span-1 flex lg:col-span-2"
-                >
-                  <div
-                    className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${mockTestModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${mockTestModule.theme.cardGlow}`}
-                  >
-                    {/* Ambient 3D Neon Orbs & Top Light Beam */}
-                    <div
-                      className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
-                    />
-                    <div
-                      className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
-                    />
-
-                    {/* Card Content */}
-                    <div className="relative z-10 flex h-full flex-col justify-between">
-                      <div>
-                        <div className="mb-4 flex items-center justify-between gap-2">
-                          <div
-                            className={`flex h-12 w-12 items-center justify-center rounded-xl border ${mockTestModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
-                          >
-                            <Globe2 className="h-6 w-6" />
-                          </div>
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${mockTestModule.badgeStyle}`}
-                          >
-                            {mockTestModule.badge}
-                          </span>
-                        </div>
-
-                        <h3
-                          className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${mockTestModule.theme.titleHover}`}
-                        >
-                          {mockTestModule.title}
-                        </h3>
-
-                        <p
-                          className={`mt-0.5 mb-2 text-xs font-medium ${mockTestModule.theme.subColor}`}
-                        >
-                          {mockTestModule.subtitle}
-                        </p>
-
-                        <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                          {mockTestModule.description}
-                        </p>
-
-                        {/* Languages 3-Grid Visual Preview (GB, RU, TR) */}
-                        <div className="my-5 grid grid-cols-3 gap-3">
-                          {mockTestModule.languages.map((lang) => (
-                            <div
-                              key={lang.code}
-                              className={`rounded-xl border ${lang.border} bg-slate-50/90 p-3 text-center transition-all duration-200 hover:scale-105 dark:bg-[#07122b]/80`}
-                            >
-                              <div className="text-sm font-extrabold tracking-wider text-slate-900 sm:text-base dark:text-white">
-                                {lang.code}
-                              </div>
-                              <div className="mt-0.5 text-xs font-bold text-sky-500 dark:text-cyan-400">
-                                {lang.name}
-                              </div>
-                              <div className="text-[10px] text-slate-500 sm:text-[11px] dark:text-slate-400">
-                                {lang.desc}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          {mockTestModule.stats}
-                        </span>
-                        <Link
-                          href={mockTestModule.href}
-                          className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${mockTestModule.theme.btnStyle}`}
-                        >
-                          <span>{mockTestModule.cta}</span>
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
 
-              {/* =========================================================================
+              {/* 2. MOCK TEST (CHET TILLARI) - 2 COLS */}
+              <div className="group relative col-span-1 flex lg:col-span-2">
+                <div
+                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${mockTestModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${mockTestModule.theme.cardGlow}`}
+                >
+                  {/* Ambient 3D Neon Orbs & Top Light Beam */}
+                  <div
+                    className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                  />
+                  <div
+                    className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                  />
+                  <div
+                    className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  />
+                  <div
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  />
+
+                  {/* Card Content */}
+                  <div className="relative z-10 flex h-full flex-col justify-between">
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-2">
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-xl border ${mockTestModule.theme.iconBox} shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3`}
+                        >
+                          <Globe2 className="h-6 w-6" />
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${mockTestModule.badgeStyle}`}
+                        >
+                          {mockTestModule.badge}
+                        </span>
+                      </div>
+
+                      <h3
+                        className={`text-lg font-bold text-slate-900 transition-colors sm:text-xl dark:text-white ${mockTestModule.theme.titleHover}`}
+                      >
+                        {mockTestModule.title}
+                      </h3>
+
+                      <p
+                        className={`mt-0.5 mb-2 text-xs font-medium ${mockTestModule.theme.subColor}`}
+                      >
+                        {mockTestModule.subtitle}
+                      </p>
+
+                      <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                        {mockTestModule.description}
+                      </p>
+
+                      {/* Languages 3-Grid Visual Preview (GB, RU, TR) */}
+                      <div className="my-5 grid grid-cols-3 gap-3">
+                        {mockTestModule.languages.map((lang) => (
+                          <div
+                            key={lang.code}
+                            className={`rounded-xl border ${lang.border} bg-slate-50/90 p-3 text-center transition-all duration-200 hover:scale-105 dark:bg-[#07122b]/80`}
+                          >
+                            <div className="text-sm font-extrabold tracking-wider text-slate-900 sm:text-base dark:text-white">
+                              {lang.code}
+                            </div>
+                            <div className="mt-0.5 text-xs font-bold text-sky-500 dark:text-cyan-400">
+                              {lang.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 sm:text-[11px] dark:text-slate-400">
+                              {lang.desc}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center dark:border-slate-800/80">
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        {mockTestModule.stats}
+                      </span>
+                      <Link
+                        href={mockTestModule.href}
+                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${mockTestModule.theme.btnStyle}`}
+                      >
+                        <span>{mockTestModule.cta}</span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* =========================================================================
                   SUBTLE VISUAL DIVIDER: YORDAMCHI MIKRO-XIZMATLAR
                  ========================================================================= */}
-              <div className="relative my-8 sm:my-10">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-slate-200/90 dark:border-slate-800/80" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-white px-4 py-1.5 text-xs font-bold tracking-wider text-sky-500 uppercase shadow-md dark:border-sky-500/35 dark:bg-[#070e24] dark:text-cyan-400">
-                    <Wrench className="h-3.5 w-3.5" />
-                    <span>Yordamchi Mikro-xizmatlar</span>
-                  </span>
-                </div>
+            <div className="relative my-8 sm:my-10">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-slate-200/90 dark:border-slate-800/80" />
               </div>
+              <div className="relative flex justify-center">
+                <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-white px-4 py-1.5 text-xs font-bold tracking-wider text-sky-500 uppercase shadow-md dark:border-sky-500/35 dark:bg-[#070e24] dark:text-cyan-400">
+                  <Wrench className="h-3.5 w-3.5" />
+                  <span>Yordamchi Mikro-xizmatlar</span>
+                </span>
+              </div>
+            </div>
 
-              {/* =========================================================================
+            {/* =========================================================================
                   YORDAMCHI MIKRO-XIZMATLAR (TEZKOR ASBOBLAR) BLOKI
                  ========================================================================= */}
-              <div className="space-y-6">
-                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-                  <div>
-                    <h3 className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
-                      <span>🛠 Talabalar uchun tezkor asboblar</span>
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-                      Kundalik o‘qish va hujjatlar bilan ishlash uchun qulay mikro-servislar
-                    </p>
-                  </div>
-                  <Link
-                    href="/tools"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-500 transition-colors hover:underline dark:text-cyan-400"
-                  >
-                    <span>Barcha asboblar ({">"}20)</span>
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {studentUtilityTools.map((tool) => {
-                    const ToolIcon = tool.icon;
-                    return (
-                      <Link
-                        key={tool.id}
-                        href={tool.href}
-                        className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 ${tool.theme.borderHover} bg-white p-5 shadow-sm transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:shadow-md dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98`}
-                      >
-                        <div>
-                          <div className="mb-3 flex items-center justify-between">
-                            <div
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110 ${tool.theme.iconBox}`}
-                            >
-                              <ToolIcon className="h-5 w-5" />
-                            </div>
-                            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-300">
-                              {tool.badge}
-                            </span>
-                          </div>
-                          <h4 className="text-sm font-bold text-slate-900 transition-colors group-hover:text-cyan-400 sm:text-base dark:text-white">
-                            {tool.title}
-                          </h4>
-                          <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                            {tool.description}
-                          </p>
-                        </div>
-                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold dark:border-slate-800/60">
-                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                            Bepul foydalanish
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-sky-500 group-hover:underline dark:text-cyan-400">
-                            <span>Ochish</span>
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* =========================================================================
-                  DAVLAT TA'LIM STANDARTI (MOVSO RUZ) AKADEMIK BANNER
-                 ========================================================================= */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xl sm:p-8 md:flex-row dark:border-slate-800/90 dark:bg-gradient-to-r dark:from-[#0a1636]/95 dark:via-[#070e24]/98 dark:to-[#04091a]"
-              >
-                {/* Ambient Glow */}
-                <div className="pointer-events-none absolute -top-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25)_0%,transparent_70%)]" />
-                <div className="pointer-events-none absolute -right-20 -bottom-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.2)_0%,transparent_70%)]" />
-
-                <div className="relative z-10 max-w-2xl space-y-2 text-left">
-                  <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-cyan-400 uppercase">
-                    <BookOpen className="h-4 w-4" />
-                    <span>Davlat ta&apos;lim standarti (MOVSO RUz)</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
-                    Barcha ilmiy ishlar OTM va GOST talablariga mos tuziladi
+            <div className="space-y-6">
+              <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+                <div>
+                  <h3 className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                    <span>🛠 Talabalar uchun tezkor asboblar</span>
                   </h3>
-                  <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                    Har bir yaratilgan kurs ishi, diplom (BMI) va referat standart akademik
-                    hoshiyalarga (chapdan 25mm, yuqori/o&apos;ng/pastdan 20mm), mundarijaga va 25–30
-                    ta rasmiy manbalar bazasiga ega bo&apos;ladi.
+                  <p className="mt-1 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                    Kundalik o‘qish va hujjatlar bilan ishlash uchun qulay mikro-servislar
                   </p>
                 </div>
-                <div className="relative z-10 flex w-full shrink-0 items-center gap-3 sm:w-auto">
-                  <Link
-                    href="/academic/coursework"
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 sm:w-auto"
-                  >
-                    Kurs ishi yaratish
-                  </Link>
-                  <Link
-                    href="/academic/diplom-bmi"
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-600/25 transition-all hover:scale-105 sm:w-auto"
-                  >
-                    Diplom (BMI) yaratish
-                  </Link>
+                <Link
+                  href="/tools"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-500 transition-colors hover:underline dark:text-cyan-400"
+                >
+                  <span>Barcha asboblar ({">"}20)</span>
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {studentUtilityTools.map((tool) => {
+                  const ToolIcon = tool.icon;
+                  return (
+                    <Link
+                      key={tool.id}
+                      href={tool.href}
+                      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 ${tool.theme.borderHover} bg-white p-5 shadow-sm transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:shadow-md dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98`}
+                    >
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <div
+                            className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110 ${tool.theme.iconBox}`}
+                          >
+                            <ToolIcon className="h-5 w-5" />
+                          </div>
+                          <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-300">
+                            {tool.badge}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900 transition-colors group-hover:text-cyan-400 sm:text-base dark:text-white">
+                          {tool.title}
+                        </h4>
+                        <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                          {tool.description}
+                        </p>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold dark:border-slate-800/60">
+                        <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                          Bepul foydalanish
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-sky-500 group-hover:underline dark:text-cyan-400">
+                          <span>Ochish</span>
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* =========================================================================
+                  DAVLAT TA'LIM STANDARTI (MOVSO RUZ) AKADEMIK BANNER
+                 ========================================================================= */}
+            <div className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xl sm:p-8 md:flex-row dark:border-slate-800/90 dark:bg-gradient-to-r dark:from-[#0a1636]/95 dark:via-[#070e24]/98 dark:to-[#04091a]">
+              {/* Ambient Glow */}
+              <div className="pointer-events-none absolute -top-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25)_0%,transparent_70%)]" />
+              <div className="pointer-events-none absolute -right-20 -bottom-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.2)_0%,transparent_70%)]" />
+
+              <div className="relative z-10 max-w-2xl space-y-2 text-left">
+                <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-cyan-400 uppercase">
+                  <BookOpen className="h-4 w-4" />
+                  <span>Davlat ta&apos;lim standarti (MOVSO RUz)</span>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <h3 className="text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
+                  Barcha ilmiy ishlar OTM va GOST talablariga mos tuziladi
+                </h3>
+                <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
+                  Har bir yaratilgan kurs ishi, diplom (BMI) va referat standart akademik
+                  hoshiyalarga (chapdan 25mm, yuqori/o&apos;ng/pastdan 20mm), mundarijaga va 25–30
+                  ta rasmiy manbalar bazasiga ega bo&apos;ladi.
+                </p>
+              </div>
+              <div className="relative z-10 flex w-full shrink-0 items-center gap-3 sm:w-auto">
+                <Link
+                  href="/academic/coursework"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 sm:w-auto"
+                >
+                  Kurs ishi yaratish
+                </Link>
+                <Link
+                  href="/academic/diplom-bmi"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-600/25 transition-all hover:scale-105 sm:w-auto"
+                >
+                  Diplom (BMI) yaratish
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

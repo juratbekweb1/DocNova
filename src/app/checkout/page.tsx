@@ -111,7 +111,7 @@ function CheckoutContent() {
 
             <form
               onSubmit={handlePayment}
-              className="bg-surface-elevated/50 border-border space-y-6 rounded-3xl border p-6 shadow-lg backdrop-blur-xl sm:p-8"
+              className="bg-surface-elevated/90 border-border space-y-6 rounded-3xl border p-6 shadow-lg sm:p-8"
             >
               <div className="grid grid-cols-3 gap-2">
                 {(["click", "payme", "payx"] as const).map((p) => (
@@ -229,7 +229,11 @@ function CheckoutContent() {
               className={`relative overflow-hidden rounded-3xl border p-8 shadow-lg ${isPremium ? "bg-surface-elevated/40 border-violet-500/30" : "bg-surface-elevated/40 border-primary/30"}`}
             >
               <div
-                className={`pointer-events-none absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${isPremium ? "bg-violet-500/10" : "bg-primary/10"}`}
+                className={`pointer-events-none absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full ${
+                  isPremium
+                    ? "bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.18)_0%,transparent_70%)]"
+                    : "bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0%,transparent_70%)]"
+                }`}
               />
 
               <h2 className="text-foreground relative z-10 mb-6 text-xl font-bold">

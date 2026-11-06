@@ -269,7 +269,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
       </div>
 
       {/* Top Breadcrumb & Live Status Bar */}
-      <div className="border-border/70 bg-surface/50 sticky top-0 z-20 border-b px-4 py-3.5 backdrop-blur-md sm:px-6 lg:px-8 print:hidden">
+      <div className="border-border/70 bg-surface/95 sticky top-0 z-20 border-b px-4 py-3.5 shadow-sm sm:px-6 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -323,8 +323,8 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Level Selection Section */}
-        <div className="border-border/80 bg-surface/70 relative mb-8 overflow-hidden rounded-3xl border p-5 shadow-lg backdrop-blur-sm sm:p-7 print:hidden">
-          <div className="bg-primary/10 pointer-events-none absolute -top-24 -right-24 hidden h-64 w-64 transform-gpu rounded-full blur-3xl md:block" />
+        <div className="border-border/80 bg-surface-elevated/90 relative mb-8 overflow-hidden rounded-3xl border p-5 shadow-lg sm:p-7 print:hidden">
+          <div className="pointer-events-none absolute -top-24 -right-24 hidden h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.15)_0%,transparent_70%)] md:block" />
 
           <div className="relative z-10">
             <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">

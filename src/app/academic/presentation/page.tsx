@@ -1521,7 +1521,7 @@ function PresentationContent() {
 
                         {s.highlightMetric && (
                           <span
-                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
+                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold shadow-sm sm:text-sm ${activeStyleConfig.accentColor}`}
                           >
                             {s.highlightMetric}
                           </span>
@@ -1584,9 +1584,9 @@ function PresentationContent() {
                       ref={slideRef}
                       className={`border-border/80 relative flex aspect-auto min-h-[290px] w-full flex-col justify-between overflow-hidden rounded-2xl border p-4 shadow-2xl sm:aspect-[16/9] sm:min-h-0 sm:p-8 md:p-10 ${activeStyleConfig.canvasBg}`}
                     >
-                      {/* Decorative backdrop shapes */}
-                      <div className="pointer-events-none absolute top-0 right-0 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-                      <div className="bg-primary/10 pointer-events-none absolute bottom-0 left-0 h-60 w-60 rounded-full blur-2xl" />
+                      {/* Decorative backdrop shapes - GPU radial gradients */}
+                      <div className="pointer-events-none absolute top-0 right-0 h-80 w-80 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06)_0%,transparent_70%)]" />
+                      <div className="pointer-events-none absolute bottom-0 left-0 h-60 w-60 rounded-full bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.12)_0%,transparent_70%)]" />
 
                       {/* Top Bar of Slide */}
                       <div className="relative z-10 flex items-center justify-between">
@@ -1605,7 +1605,7 @@ function PresentationContent() {
 
                         {currentSlide.highlightMetric && (
                           <span
-                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold backdrop-blur-md sm:text-sm ${activeStyleConfig.accentColor}`}
+                            className={`rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-xs font-extrabold shadow-sm sm:text-sm ${activeStyleConfig.accentColor}`}
                           >
                             {currentSlide.highlightMetric}
                           </span>

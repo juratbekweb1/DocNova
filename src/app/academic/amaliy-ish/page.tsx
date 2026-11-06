@@ -57,7 +57,7 @@ const UNIVERSITY_PRESETS = [
   "Buxoro muhandislik-texnologiya instituti",
 ];
 
-function AmaliyDataTable({ table }: { table: AmaliyIshTable }) {
+const AmaliyDataTable = React.memo(function AmaliyDataTable({ table }: { table: AmaliyIshTable }) {
   return (
     <div className="my-3 overflow-x-auto">
       <div className="mb-1.5 text-xs font-bold text-slate-900 sm:text-sm print:text-black">
@@ -109,9 +109,13 @@ function AmaliyDataTable({ table }: { table: AmaliyIshTable }) {
       )}
     </div>
   );
-}
+});
 
-function AmaliySvgBarChart({ chart }: { chart: AmaliyIshChart }) {
+const AmaliySvgBarChart = React.memo(function AmaliySvgBarChart({
+  chart,
+}: {
+  chart: AmaliyIshChart;
+}) {
   const maxVal = Math.max(...chart.bars.map((b) => b.value), chart.overallMean, 1);
   const yMax = Math.ceil(maxVal * 1.18);
   const chartWidth = 620;
@@ -248,7 +252,275 @@ function AmaliySvgBarChart({ chart }: { chart: AmaliyIshChart }) {
       <div className="mt-1 text-center text-[11px] text-slate-600 italic">{chart.caption}</div>
     </div>
   );
-}
+});
+
+const AmaliyIshDocumentSheet = React.memo(
+  React.forwardRef<HTMLDivElement, { doc: AmaliyIshDocument }>(function AmaliyIshDocumentSheet(
+    { doc },
+    ref
+  ) {
+    return (
+      <div
+        ref={ref}
+        className="border-border rounded-2xl border bg-white p-5 font-serif text-slate-900 shadow-2xl sm:p-10 print:m-0 print:border-0 print:p-0 print:text-black print:shadow-none"
+      >
+        {/* ===================================================================
+                      1. TITUL VARAG'I (COVER PAGE)
+                     =================================================================== */}
+        <div className="mb-10 overflow-hidden rounded-xl border-2 border-double border-slate-800 p-4 text-center break-words sm:p-10 print:min-h-[245mm] print:break-after-page">
+          <p className="text-[11px] font-bold tracking-wider break-words text-slate-700 uppercase sm:text-xs">
+            {doc.meta.ministry}
+          </p>
+          <h2 className="mt-2 text-base font-extrabold tracking-wide break-words text-blue-950 uppercase sm:text-xl">
+            {doc.meta.university}
+          </h2>
+          <p className="mt-1 text-xs break-words text-slate-600 italic sm:text-sm">
+            {doc.meta.department}
+          </p>
+
+          {/* OTM Emblem / Crest */}
+          <div className="my-6 flex justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-blue-900 bg-blue-50 text-blue-900 shadow-inner">
+              <GraduationCap className="h-10 w-10" />
+            </div>
+          </div>
+
+          <p className="text-xs font-bold tracking-wider break-words text-slate-800 uppercase sm:text-sm">
+            «{doc.meta.subject}» FANIDAN
+          </p>
+          <h1 className="mt-2 text-2xl font-black tracking-widest break-words text-slate-950 uppercase sm:text-4xl">
+            {doc.meta.workType}
+          </h1>
+          <div className="mt-3 inline-block rounded-md bg-blue-900 px-5 py-1.5 text-sm font-extrabold tracking-wider text-white uppercase">
+            {doc.meta.variant}
+          </div>
+
+          <div className="mx-auto my-7 max-w-xl rounded-lg border border-slate-300 bg-slate-50 p-3.5 text-left text-xs break-words sm:p-4 sm:text-sm">
+            <p className="mb-1.5 break-words">
+              <span className="font-bold text-slate-950">Mavzu:</span> {doc.meta.topic}
+            </p>
+            <p className="break-words">
+              <span className="font-bold text-slate-950">Vaziyat:</span> {doc.meta.situation}
+            </p>
+          </div>
+
+          <div className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-xs sm:text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
+              <span className="font-bold text-slate-800">Tayyorladi:</span>
+              <span className="font-semibold break-words text-slate-950">
+                {doc.meta.studentName}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
+              <span className="font-bold text-slate-800">Guruh:</span>
+              <span className="font-semibold break-words text-slate-950">
+                {doc.meta.studentGroup}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
+              <span className="font-bold text-slate-800">Vazifa berdi:</span>
+              <span className="font-semibold break-words text-slate-950">
+                {doc.meta.teacherName}
+              </span>
+            </div>
+          </div>
+
+          <p className="mt-10 text-xs font-bold tracking-wider text-slate-800 uppercase sm:text-sm">
+            {doc.meta.city} – {doc.meta.year}
+          </p>
+        </div>
+
+        {/* ===================================================================
+                      2. ASOSIY YECHIM QISMI (AMALIY ISH YECHIMI)
+                     =================================================================== */}
+        <div className="space-y-8">
+          <div className="border-b-2 border-slate-900 pb-3 text-center">
+            <h2 className="text-xl font-extrabold text-slate-950 uppercase sm:text-2xl">
+              Amaliy ish yechimi ({doc.meta.variant})
+            </h2>
+            <p className="mt-1 text-xs text-slate-700 sm:text-sm">
+              <strong>Mavzu:</strong> {doc.meta.topic} &nbsp;|&nbsp; <strong>Vaziyat:</strong>{" "}
+              {doc.meta.situation}
+            </p>
+          </div>
+
+          {/* Uslubiy eslatma */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-xs sm:text-sm print:border-slate-400 print:bg-slate-50">
+            <div className="mb-1.5 flex items-center gap-1.5 font-bold text-blue-950">
+              <BookOpen className="h-4 w-4" />
+              <span>{doc.methodologicalNote.title}:</span>
+            </div>
+            <ul className="list-disc space-y-1 pl-5 text-slate-800">
+              {doc.methodologicalNote.rules.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* MASALALAR (1-MASALA .. 4-MASALA) */}
+          {doc.problems.map((problem) => (
+            <section key={problem.number} className="space-y-4 border-t border-slate-300 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-white print:border print:border-black print:bg-slate-100 print:text-black">
+                <h3 className="text-base font-extrabold tracking-wide sm:text-lg">
+                  {problem.title} ({problem.points})
+                </h3>
+                <span className="rounded bg-white/15 px-2.5 py-0.5 text-xs font-semibold print:border print:border-black">
+                  Dispersion tahlil (ANOVA)
+                </span>
+              </div>
+
+              <p className="text-xs leading-relaxed text-slate-800 sm:text-sm">
+                <strong>Masala sharti:</strong> {problem.condition}
+              </p>
+
+              {/* Dastlabki ma'lumotlar jadvali */}
+              <AmaliyDataTable table={problem.initialTable} />
+
+              <div className="pt-1">
+                <h4 className="inline-block border-b-2 border-blue-800 pb-0.5 text-sm font-extrabold text-blue-950 uppercase sm:text-base">
+                  Yechim:
+                </h4>
+              </div>
+
+              {/* a) qadam */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
+                  {problem.stepA.heading}
+                </h5>
+                <ul className="list-disc space-y-1 pl-5 text-xs text-slate-800 sm:text-[13px]">
+                  {problem.stepA.hypotheses.map((h, idx) => (
+                    <li key={idx}>{h}</li>
+                  ))}
+                </ul>
+                <AmaliyDataTable table={problem.stepA.helperTable} />
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[11px] text-slate-800 sm:text-xs">
+                  <div className="mb-1 font-sans font-bold text-slate-900">
+                    Qo&apos;lda hisoblash ifodasi:
+                  </div>
+                  {problem.stepA.manualSampleCalc.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* b) qadam */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
+                  {problem.stepB.heading}
+                </h5>
+                <AmaliyDataTable table={problem.stepB.formulaTable} />
+                <div className="rounded-lg border-l-4 border-blue-700 bg-blue-50/70 px-3.5 py-2 text-xs font-bold text-blue-950">
+                  {problem.stepB.verificationEquality}
+                </div>
+              </div>
+
+              {/* c) qadam */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
+                  {problem.stepC.heading}
+                </h5>
+                <AmaliyDataTable table={problem.stepC.anovaTable} />
+              </div>
+
+              {/* d) qadam */}
+              <div className="space-y-1.5 rounded-lg border border-emerald-300 bg-emerald-50/60 p-3.5 text-xs sm:text-sm print:border-slate-400">
+                <h5 className="font-bold text-emerald-950">{problem.stepD.heading}</h5>
+                <p className="font-bold text-emerald-900">{problem.stepD.decisionTitle}</p>
+                <p className="leading-relaxed text-slate-800">
+                  {problem.stepD.decisionExplanation}
+                </p>
+              </div>
+
+              {/* e) qadam + Ustunli diagramma */}
+              <div className="space-y-2.5">
+                <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
+                  {problem.stepE.heading}
+                </h5>
+                <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs font-bold text-slate-900">
+                  {problem.stepE.etaFormula}
+                </p>
+                <p className="text-xs leading-relaxed text-slate-800 sm:text-sm">
+                  <strong>Iqtisodiy va amaliy talqin:</strong>{" "}
+                  {problem.stepE.economicInterpretation}
+                </p>
+                <div className="space-y-1 text-xs text-slate-800 sm:text-[13px]">
+                  <div className="font-bold text-slate-950">Boshqaruv uchun tavsiyalar:</div>
+                  <ul className="list-disc space-y-1 pl-5">
+                    {problem.stepE.recommendations.map((rec, i) => (
+                      <li key={i}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Vizual ustunli diagramma (1-rasm) */}
+                <AmaliySvgBarChart chart={problem.stepE.chart} />
+              </div>
+            </section>
+          ))}
+
+          {/* ===================================================================
+                        3. EXCEL'DA BAJARISH (1-MASALA MISOLIDA)
+                       =================================================================== */}
+          <section className="space-y-3 border-t-2 border-slate-900 pt-6">
+            <div className="flex items-center gap-2 text-base font-extrabold text-emerald-900 uppercase sm:text-lg">
+              <FileSpreadsheet className="h-5 w-5" />
+              <span>{doc.excelSection.title}</span>
+            </div>
+            <p className="text-xs text-slate-700 italic sm:text-sm">{doc.excelSection.subtitle}</p>
+            <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-800 sm:text-[13px]">
+              {doc.excelSection.steps.map((s, idx) => (
+                <p key={idx}>{s}</p>
+              ))}
+            </div>
+            <AmaliyDataTable
+              table={{
+                title: doc.excelSection.tableTitle,
+                headers: ["Katak", "Ko'rsatkich", "Formula (EN)", "Formula (RU)", "Natija"],
+                rows: doc.excelSection.formulas.map((f) => [
+                  f.cell,
+                  f.indicator,
+                  f.formulaEn,
+                  f.formulaRu,
+                  f.result,
+                ]),
+              }}
+            />
+          </section>
+
+          {/* ===================================================================
+                        4. UMUMIY XULOSA VA AMALIY TAVSIYALAR
+                       =================================================================== */}
+          <section className="space-y-3 border-t-2 border-slate-900 pt-6">
+            <div className="flex items-center gap-2 text-base font-extrabold text-slate-950 uppercase sm:text-lg">
+              <BarChart3 className="h-5 w-5 text-blue-900" />
+              <span>{doc.summarySection.title}</span>
+            </div>
+
+            <AmaliyDataTable table={doc.summarySection.comparisonTable} />
+
+            <div className="space-y-2 text-xs leading-relaxed text-slate-800 sm:text-sm">
+              {doc.summarySection.conclusions.map((c, idx) => (
+                <p key={idx}>{c}</p>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-xs sm:text-sm">
+              <div className="mb-1.5 flex items-center gap-1.5 font-bold text-slate-950">
+                <Table2 className="h-4 w-4 text-blue-800" />
+                <span>Yakuni amaliy va boshqaruv tavsiyalari:</span>
+              </div>
+              <ul className="list-disc space-y-1 pl-5 text-slate-800">
+                {doc.summarySection.practicalRecommendations.map((r, idx) => (
+                  <li key={idx}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  })
+);
 
 export default function AmaliyIshPage() {
   const { toast } = useToast();
@@ -831,269 +1103,7 @@ export default function AmaliyIshPage() {
             </div>
 
             {/* A4 DOCUMENT SHEET */}
-            <div
-              ref={documentRef}
-              className="border-border rounded-2xl border bg-white p-5 font-serif text-slate-900 shadow-2xl sm:p-10 print:m-0 print:border-0 print:p-0 print:text-black print:shadow-none"
-            >
-              {/* ===================================================================
-                  1. TITUL VARAG'I (COVER PAGE)
-                 =================================================================== */}
-              <div className="mb-10 overflow-hidden rounded-xl border-2 border-double border-slate-800 p-4 text-center break-words sm:p-10 print:min-h-[245mm] print:break-after-page">
-                <p className="text-[11px] font-bold tracking-wider break-words text-slate-700 uppercase sm:text-xs">
-                  {doc.meta.ministry}
-                </p>
-                <h2 className="mt-2 text-base font-extrabold tracking-wide break-words text-blue-950 uppercase sm:text-xl">
-                  {doc.meta.university}
-                </h2>
-                <p className="mt-1 text-xs break-words text-slate-600 italic sm:text-sm">
-                  {doc.meta.department}
-                </p>
-
-                {/* OTM Emblem / Crest */}
-                <div className="my-6 flex justify-center">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-blue-900 bg-blue-50 text-blue-900 shadow-inner">
-                    <GraduationCap className="h-10 w-10" />
-                  </div>
-                </div>
-
-                <p className="text-xs font-bold tracking-wider break-words text-slate-800 uppercase sm:text-sm">
-                  «{doc.meta.subject}» FANIDAN
-                </p>
-                <h1 className="mt-2 text-2xl font-black tracking-widest break-words text-slate-950 uppercase sm:text-4xl">
-                  {doc.meta.workType}
-                </h1>
-                <div className="mt-3 inline-block rounded-md bg-blue-900 px-5 py-1.5 text-sm font-extrabold tracking-wider text-white uppercase">
-                  {doc.meta.variant}
-                </div>
-
-                <div className="mx-auto my-7 max-w-xl rounded-lg border border-slate-300 bg-slate-50 p-3.5 text-left text-xs break-words sm:p-4 sm:text-sm">
-                  <p className="mb-1.5 break-words">
-                    <span className="font-bold text-slate-950">Mavzu:</span> {doc.meta.topic}
-                  </p>
-                  <p className="break-words">
-                    <span className="font-bold text-slate-950">Vaziyat:</span> {doc.meta.situation}
-                  </p>
-                </div>
-
-                <div className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-xs sm:text-sm">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-                    <span className="font-bold text-slate-800">Tayyorladi:</span>
-                    <span className="font-semibold break-words text-slate-950">
-                      {doc.meta.studentName}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-                    <span className="font-bold text-slate-800">Guruh:</span>
-                    <span className="font-semibold break-words text-slate-950">
-                      {doc.meta.studentGroup}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-                    <span className="font-bold text-slate-800">Vazifa berdi:</span>
-                    <span className="font-semibold break-words text-slate-950">
-                      {doc.meta.teacherName}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="mt-10 text-xs font-bold tracking-wider text-slate-800 uppercase sm:text-sm">
-                  {doc.meta.city} – {doc.meta.year}
-                </p>
-              </div>
-
-              {/* ===================================================================
-                  2. ASOSIY YECHIM QISMI (AMALIY ISH YECHIMI)
-                 =================================================================== */}
-              <div className="space-y-8">
-                <div className="border-b-2 border-slate-900 pb-3 text-center">
-                  <h2 className="text-xl font-extrabold text-slate-950 uppercase sm:text-2xl">
-                    Amaliy ish yechimi ({doc.meta.variant})
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-700 sm:text-sm">
-                    <strong>Mavzu:</strong> {doc.meta.topic} &nbsp;|&nbsp; <strong>Vaziyat:</strong>{" "}
-                    {doc.meta.situation}
-                  </p>
-                </div>
-
-                {/* Uslubiy eslatma */}
-                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-xs sm:text-sm print:border-slate-400 print:bg-slate-50">
-                  <div className="mb-1.5 flex items-center gap-1.5 font-bold text-blue-950">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{doc.methodologicalNote.title}:</span>
-                  </div>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-800">
-                    {doc.methodologicalNote.rules.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* MASALALAR (1-MASALA .. 4-MASALA) */}
-                {doc.problems.map((problem) => (
-                  <section
-                    key={problem.number}
-                    className="space-y-4 border-t border-slate-300 pt-6"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-white print:border print:border-black print:bg-slate-100 print:text-black">
-                      <h3 className="text-base font-extrabold tracking-wide sm:text-lg">
-                        {problem.title} ({problem.points})
-                      </h3>
-                      <span className="rounded bg-white/15 px-2.5 py-0.5 text-xs font-semibold print:border print:border-black">
-                        Dispersion tahlil (ANOVA)
-                      </span>
-                    </div>
-
-                    <p className="text-xs leading-relaxed text-slate-800 sm:text-sm">
-                      <strong>Masala sharti:</strong> {problem.condition}
-                    </p>
-
-                    {/* Dastlabki ma'lumotlar jadvali */}
-                    <AmaliyDataTable table={problem.initialTable} />
-
-                    <div className="pt-1">
-                      <h4 className="inline-block border-b-2 border-blue-800 pb-0.5 text-sm font-extrabold text-blue-950 uppercase sm:text-base">
-                        Yechim:
-                      </h4>
-                    </div>
-
-                    {/* a) qadam */}
-                    <div className="space-y-2">
-                      <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
-                        {problem.stepA.heading}
-                      </h5>
-                      <ul className="list-disc space-y-1 pl-5 text-xs text-slate-800 sm:text-[13px]">
-                        {problem.stepA.hypotheses.map((h, idx) => (
-                          <li key={idx}>{h}</li>
-                        ))}
-                      </ul>
-                      <AmaliyDataTable table={problem.stepA.helperTable} />
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[11px] text-slate-800 sm:text-xs">
-                        <div className="mb-1 font-sans font-bold text-slate-900">
-                          Qo&apos;lda hisoblash ifodasi:
-                        </div>
-                        {problem.stepA.manualSampleCalc.map((line, i) => (
-                          <div key={i}>{line}</div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* b) qadam */}
-                    <div className="space-y-2">
-                      <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
-                        {problem.stepB.heading}
-                      </h5>
-                      <AmaliyDataTable table={problem.stepB.formulaTable} />
-                      <div className="rounded-lg border-l-4 border-blue-700 bg-blue-50/70 px-3.5 py-2 text-xs font-bold text-blue-950">
-                        {problem.stepB.verificationEquality}
-                      </div>
-                    </div>
-
-                    {/* c) qadam */}
-                    <div className="space-y-2">
-                      <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
-                        {problem.stepC.heading}
-                      </h5>
-                      <AmaliyDataTable table={problem.stepC.anovaTable} />
-                    </div>
-
-                    {/* d) qadam */}
-                    <div className="space-y-1.5 rounded-lg border border-emerald-300 bg-emerald-50/60 p-3.5 text-xs sm:text-sm print:border-slate-400">
-                      <h5 className="font-bold text-emerald-950">{problem.stepD.heading}</h5>
-                      <p className="font-bold text-emerald-900">{problem.stepD.decisionTitle}</p>
-                      <p className="leading-relaxed text-slate-800">
-                        {problem.stepD.decisionExplanation}
-                      </p>
-                    </div>
-
-                    {/* e) qadam + Ustunli diagramma */}
-                    <div className="space-y-2.5">
-                      <h5 className="text-xs font-bold text-slate-950 sm:text-sm">
-                        {problem.stepE.heading}
-                      </h5>
-                      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs font-bold text-slate-900">
-                        {problem.stepE.etaFormula}
-                      </p>
-                      <p className="text-xs leading-relaxed text-slate-800 sm:text-sm">
-                        <strong>Iqtisodiy va amaliy talqin:</strong>{" "}
-                        {problem.stepE.economicInterpretation}
-                      </p>
-                      <div className="space-y-1 text-xs text-slate-800 sm:text-[13px]">
-                        <div className="font-bold text-slate-950">Boshqaruv uchun tavsiyalar:</div>
-                        <ul className="list-disc space-y-1 pl-5">
-                          {problem.stepE.recommendations.map((rec, i) => (
-                            <li key={i}>{rec}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Vizual ustunli diagramma (1-rasm) */}
-                      <AmaliySvgBarChart chart={problem.stepE.chart} />
-                    </div>
-                  </section>
-                ))}
-
-                {/* ===================================================================
-                    3. EXCEL'DA BAJARISH (1-MASALA MISOLIDA)
-                   =================================================================== */}
-                <section className="space-y-3 border-t-2 border-slate-900 pt-6">
-                  <div className="flex items-center gap-2 text-base font-extrabold text-emerald-900 uppercase sm:text-lg">
-                    <FileSpreadsheet className="h-5 w-5" />
-                    <span>{doc.excelSection.title}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 italic sm:text-sm">
-                    {doc.excelSection.subtitle}
-                  </p>
-                  <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-800 sm:text-[13px]">
-                    {doc.excelSection.steps.map((s, idx) => (
-                      <p key={idx}>{s}</p>
-                    ))}
-                  </div>
-                  <AmaliyDataTable
-                    table={{
-                      title: doc.excelSection.tableTitle,
-                      headers: ["Katak", "Ko'rsatkich", "Formula (EN)", "Formula (RU)", "Natija"],
-                      rows: doc.excelSection.formulas.map((f) => [
-                        f.cell,
-                        f.indicator,
-                        f.formulaEn,
-                        f.formulaRu,
-                        f.result,
-                      ]),
-                    }}
-                  />
-                </section>
-
-                {/* ===================================================================
-                    4. UMUMIY XULOSA VA AMALIY TAVSIYALAR
-                   =================================================================== */}
-                <section className="space-y-3 border-t-2 border-slate-900 pt-6">
-                  <div className="flex items-center gap-2 text-base font-extrabold text-slate-950 uppercase sm:text-lg">
-                    <BarChart3 className="h-5 w-5 text-blue-900" />
-                    <span>{doc.summarySection.title}</span>
-                  </div>
-
-                  <AmaliyDataTable table={doc.summarySection.comparisonTable} />
-
-                  <div className="space-y-2 text-xs leading-relaxed text-slate-800 sm:text-sm">
-                    {doc.summarySection.conclusions.map((c, idx) => (
-                      <p key={idx}>{c}</p>
-                    ))}
-                  </div>
-
-                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-xs sm:text-sm">
-                    <div className="mb-1.5 flex items-center gap-1.5 font-bold text-slate-950">
-                      <Table2 className="h-4 w-4 text-blue-800" />
-                      <span>Yakuni amaliy va boshqaruv tavsiyalari:</span>
-                    </div>
-                    <ul className="list-disc space-y-1 pl-5 text-slate-800">
-                      {doc.summarySection.practicalRecommendations.map((r, idx) => (
-                        <li key={idx}>{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-              </div>
-            </div>
+            <AmaliyIshDocumentSheet ref={documentRef} doc={doc} />
           </div>
         </div>
       </div>

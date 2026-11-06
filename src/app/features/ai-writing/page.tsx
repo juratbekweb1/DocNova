@@ -417,8 +417,8 @@ export default function AIWritingPage() {
       {/* Hero */}
       <div className="border-border relative overflow-hidden border-b">
         <div className="pointer-events-none absolute inset-0">
-          <div className="bg-primary/10 absolute top-0 left-1/4 h-72 w-72 rounded-full blur-3xl" />
-          <div className="absolute right-1/4 bottom-0 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
+          <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0%,transparent_70%)]" />
+          <div className="absolute right-1/4 bottom-0 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.18)_0%,transparent_70%)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:px-8">
           <div className="mb-4 flex items-center gap-3">

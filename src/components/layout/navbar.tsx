@@ -67,7 +67,7 @@ export function Navbar() {
   const isDark = mounted ? resolvedTheme === "dark" || theme === "dark" : true;
 
   return (
-    <ScrollHeader className="border-b border-slate-200/90 bg-white/95 transition-colors duration-300 md:bg-white/85 md:backdrop-blur-xl dark:border-slate-800/70 dark:bg-[#020817]/95 md:dark:bg-[#020817]/85">
+    <ScrollHeader className="border-b border-slate-200/90 bg-white/98 transition-colors duration-300 dark:border-slate-800/70 dark:bg-[#020817]/98">
       <Container
         size="full"
         className="flex h-16 max-w-[1536px] items-center justify-between gap-2 px-3 sm:px-6 md:h-20 lg:px-8 xl:gap-4"
@@ -122,7 +122,7 @@ export function Navbar() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1.5 shadow-2xl backdrop-blur-xl dark:border-slate-700/60 dark:bg-[#0a1024]/95"
+                  className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1.5 shadow-2xl dark:border-slate-700/60 dark:bg-[#0a1024]"
                 >
                   {languages.map((l) => (
                     <button
@@ -179,7 +179,7 @@ export function Navbar() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-xl dark:border-slate-700/60 dark:bg-[#0a1024]/95"
+                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700/60 dark:bg-[#0a1024]"
                     >
                       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
                         <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
