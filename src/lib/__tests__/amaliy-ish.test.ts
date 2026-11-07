@@ -83,6 +83,15 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(doc.problems[2].points).toBe("3 BALL");
     expect(doc.problems[3].points).toBe("1,5 BALL");
 
+    // Verify Problem 2 is based on summary statistics / unequal groups
+    expect(doc.problems[1].condition).toContain("yig'ma statistik");
+    expect(doc.problems[1].stepA.helperTable.title).toContain("Yig'ma statistikalar");
+
+    // Verify Problem 4 is ANOVA table reconstruction and Fisher LSD
+    expect(doc.problems[3].condition).toContain("qisman to'ldirilgan ANOVA jadvali");
+    expect(doc.problems[3].initialTable.rows[0]).toContain("?");
+    expect(doc.problems[3].stepB.verificationEquality).toContain("Tekshirish ayniyati");
+
     // Verify Excel EN & RU formulas
     const formulaEnList = doc.excelSection.formulas.map((f) => f.formulaEn);
     const formulaRuList = doc.excelSection.formulas.map((f) => f.formulaRu);
@@ -94,14 +103,24 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(formulaRuList.some((f) => f.includes("=F.ОБР.ПХ"))).toBe(true);
     expect(formulaEnList.some((f) => f.includes("=F.DIST.RT"))).toBe(true);
     expect(formulaRuList.some((f) => f.includes("=F.РАСП.ПХ"))).toBe(true);
+    expect(formulaEnList.some((f) => f.includes("=T.INV.2T"))).toBe(true);
+    expect(formulaRuList.some((f) => f.includes("=СТЬЮДЕНТ.ОБР.2Х"))).toBe(true);
 
-    // Verify Word HTML output
+    // Verify Word HTML output - MUST be clean official A4 without double borders or card borders
     const wordHtml = buildAmaliyIshWordHtml(doc);
     expect(wordHtml).toContain("WordSection1");
     expect(wordHtml).toContain("18-VARIANT");
     expect(wordHtml).toContain("1-MASALA");
     expect(wordHtml).toContain("EXCEL’DA BAJARISH");
     expect(wordHtml).toContain("UMUMIY XULOSA");
+    // Verify title page has NO double border and NO card boxes
+    expect(wordHtml).not.toContain("border:2pt double");
+    expect(wordHtml).not.toContain(
+      "border:1pt solid #94a3b8;background:#f8fafc;padding:12pt 16pt;"
+    );
+
+    // Verify markdown has clean page break
+    expect(doc.markdown).toContain("<!-- PAGE_BREAK -->");
   });
 
   it("respects problemCount (2, 3, or 4 problems), computes exact totalPoints, and avoids referencing 3-masala when problemCount=2", () => {
@@ -139,7 +158,7 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     // SS_between: 4*(100 + 0 + 100) = 800 -> SS_total = 824
     expect(customDoc.problems[0].stepB.verificationEquality).toContain("800 + 24 = 824");
     expect(customDoc.problems[0].stepB.verificationEquality).toContain("df_umumiy = 2 + 9 = 11");
-    expect(customDoc.excelSection.tableTitle).toContain("9-jadval");
+    expect(customDoc.excelSection.tableTitle).toContain("14-jadval");
   });
 
   it("supports ru and en language metadata localization", () => {

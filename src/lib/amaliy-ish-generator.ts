@@ -656,7 +656,7 @@ export function generateDeterministicAmaliyIsh(
   };
 
   // ============================================================================
-  // 2-MASALA (2 BALL): Teng bo'lmagan guruhlar uchun bir omilli ANOVA (Xodimlar so'rovi)
+  // 2-MASALA (2 BALL): Yig'ma statistikalar bo'yicha bir omilli ANOVA (Teng bo'lmagan guruhlar)
   // ============================================================================
   const p2Groups = [
     {
@@ -681,7 +681,7 @@ export function generateDeterministicAmaliyIsh(
     number: 2,
     title: "2-MASALA",
     points: "2 BALL",
-    condition: `Korxonaning 3 ta bo'limi (Tikuv sexi — 5 nafar, Bo'yash sexi — 4 nafar, Qadoqlash sexi — 5 nafar xodim; jami N = 14) bo'yicha o'tkazilgan xodimlar so'rovida mehnat sharoiti va rag'batlantirish tizimidan qoniqish indeksi (100 ballik shkalada) baholandi. Kuzatuvlar soni teng bo'lmagan holat uchun α = 0,05 darajada bir omilli dispersion tahlilni bajaring.`,
+    condition: `Korxonaning 3 ta bo'limi (Tikuv sexi — 5 nafar, Bo'yash sexi — 4 nafar, Qadoqlash sexi — 5 nafar xodim; jami N = 14) bo'yicha o'tkazilgan xodimlar so'rovida mehnat sharoiti va rag'batlantirish tizimidan qoniqish indeksi (100 ballik shkalada) baholandi. Birlamchi kuzatuvlar soni teng bo'lmagan guruhlar hamda yig'ma statistik ko'rsatkichlar (nⱼ, Tⱼ, x̄ⱼ, sⱼ²) asosida bir omilli dispersion tahlilni (One-Way ANOVA from summary statistics) α = 0,05 darajasida bajaring.`,
     initialTable: {
       title: "2-masala dastlabki ma'lumotlari: Bo'limlar bo'yicha xodimlar so'rovi ballari",
       headers: ["Bo'lim (Sex)", "1-xodim", "2-xodim", "3-xodim", "4-xodim", "5-xodim"],
@@ -692,20 +692,21 @@ export function generateDeterministicAmaliyIsh(
       ],
     },
     stepA: {
-      heading: "a) Gipotezalar va teng bo'lmagan guruhlar uchun boshlang'ich ko'rsatkichlar",
+      heading: "a) Gipotezalar va teng bo'lmagan guruhlar yig'ma ko'rsatkichlari",
       hypotheses: [
-        "H₀: μ₁ = μ₂ = μ₃ — barcha bo'limlarda xodimlarning mehnatdan qoniqish o'rtacha ballari bir xil.",
-        "H₁: kamida bitta bo'limda o'rtacha qoniqish indeksi boshqa bo'limlardan statistik farq qiladi.",
+        "H₀: μ₁ = μ₂ = μ₃ — barcha bo'limlarda xodimlarning mehnatdan qoniqish o'rtacha ballari bir xil (bo'lim omilining ta'siri statistik ahamiyatga ega emas).",
+        "H₁: kamida bitta bo'limda o'rtacha qoniqish indeksi boshqa bo'limlardan statistik farq qiladi (bo'lim omili qoniqish darajasiga sezilarli ta'sir qiladi).",
       ],
       helperTable: {
-        title: "4-jadval. Teng bo'lmagan guruhlar bo'yicha yordamchi hisob-kitoblar (2-masala)",
+        title:
+          "4-jadval. Yig'ma statistikalar va teng bo'lmagan guruhlar yordamchi hisoblari (2-masala)",
         headers: [
           "Bo'lim nomi",
-          "nⱼ",
+          "Kuzatuvlar (nⱼ)",
           "Yig'indi (Tⱼ)",
           "O'rtacha (x̄ⱼ)",
           "∑(xᵢⱼ − x̄ⱼ)²",
-          "Dispersiya (sⱼ²)",
+          "Tanlanma dispersiya (sⱼ²)",
         ],
         rows: [
           ...p2Anova.groupStats.map((g) => [
@@ -731,6 +732,7 @@ export function generateDeterministicAmaliyIsh(
         `T₂ = ${p2Groups[1].values.join(" + ")} = ${fmt(p2Anova.groupStats[1].sum)};  n₂ = 4 ⇒ x̄₂ = ${fmt(p2Anova.groupStats[1].mean)}`,
         `T₃ = ${p2Groups[2].values.join(" + ")} = ${fmt(p2Anova.groupStats[2].sum)};  n₃ = 5 ⇒ x̄₃ = ${fmt(p2Anova.groupStats[2].mean)}`,
         `Vaznli umumiy o'rtacha: X̄ = (T₁ + T₂ + T₃) / (n₁ + n₂ + n₃) = ${fmt(p2Anova.grandTotal)} / ${p2Anova.N} = ${fmt(p2Anova.grandMean)}`,
+        `Dispersiyalar bo'yicha qoldiq SS: SS_qoldiq = ∑(nⱼ − 1)·sⱼ² = (5−1)·${fmt(p2Anova.groupStats[0].variance)} + (4−1)·${fmt(p2Anova.groupStats[1].variance)} + (5−1)·${fmt(p2Anova.groupStats[2].variance)} = ${fmt(p2Anova.ssWithin)}`,
       ],
     },
     stepB: {
@@ -1022,7 +1024,7 @@ export function generateDeterministicAmaliyIsh(
   };
 
   // ============================================================================
-  // 4-MASALA (1,5 BALL): Juftliklararo taqqoslash (Fisher LSD / Tukey) va yakuniy diagnostika
+  // 4-MASALA (1,5 BALL): ANOVA jadvalini to'ldirish va Fisher LSD juftlik tahlili
   // ============================================================================
   const g1 = p1Anova.groupStats[0];
   const g2 = p1Anova.groupStats[1] || p1Anova.groupStats[0];
@@ -1038,136 +1040,177 @@ export function generateDeterministicAmaliyIsh(
     number: 4,
     title: "4-MASALA",
     points: "1,5 BALL",
-    condition: `1-masalada olingan dispersion tahlil natijalari (x̄₁ = ${fmt(g1.mean)}, x̄₂ = ${fmt(g2.mean)}, x̄₃ = ${fmt(g3.mean)}, MS_qoldiq = ${fmt(p1Anova.msWithin)}, df₂ = ${p1Anova.dfWithin}, n = ${g1.n}) asosida qaysi smenalar juftligi o'rtasida statistik ahamiyatli farq borligini Fisherning eng kichik ahamiyatli farq mezoni (LSD — Least Significant Difference) orqali α = 0,05 darajada aniqlang va amaliy boshqaruv qarorini shakllantiring.`,
+    condition: `Dispersion tahlil o'tkazilgan ishlab chiqarish korxonasi bo'yicha quyidagi qisman to'ldirilgan ANOVA jadvali taqdim etildi. Undagi noma'lum ko'rsatkichlarni («?» bilan belgilangan kataklar) dispersiyalar additivligi va erkinlik darajalari balansidan foydalanib to'liq tiklang hamda smenalar o'rtacha qiymatlari (x̄₁ = ${fmt(g1.mean)}, x̄₂ = ${fmt(g2.mean)}, x̄₃ = ${fmt(g3.mean)}) o'rtasidagi statistik farqni Fisherning eng kichik ahamiyatli farq mezoni (LSD — Least Significant Difference) yordamida α = 0,05 darajasida baholang.`,
     initialTable: {
-      title: "4-masala dastlabki ko'rsatkichlari (1-masala ANOVA natijalaridan)",
+      title: "10-jadval. 4-masala dastlabki ma'lumotlari: Qisman to'ldirilgan ANOVA jadvali",
       headers: [
-        "Ko'rsatkich",
-        "1-smena (x̄₁)",
-        "2-smena (x̄₂)",
-        "3-smena (x̄₃)",
-        "MS_qoldiq",
-        `t_kr (α=0,05; df=${p1Anova.dfWithin})`,
+        "Tebranish manbai",
+        "SS (Kvadratlar yig'indisi)",
+        "df (Erkinlik darajasi)",
+        "MS (O'rtacha kvadrat)",
+        "F_kuz",
+        "F_kr (α=0,05)",
       ],
       rows: [
-        ["Qiymat", fmt(g1.mean), fmt(g2.mean), fmt(g3.mean), fmt(p1Anova.msWithin), fmt(tCrit)],
+        [
+          "Guruhlararo (Smena omili)",
+          fmt(p1Anova.ssBetween),
+          "?",
+          "?",
+          "?",
+          fmt(p1Anova.fCritical),
+        ],
+        ["Guruh ichida (Qoldiq)", "?", p1Anova.dfWithin, fmt(p1Anova.msWithin), "—", "—"],
+        ["Jami (Umumiy)", fmt(p1Anova.ssTotal), p1Anova.dfTotal, "—", "—", "—"],
       ],
     },
     stepA: {
-      heading: "a) Juftlik gipotezalari va guruhlararo mutlaq farqlar",
+      heading: "a) ANOVA jadvali kataklarini tiklash qoidalari va juftlik gipotezalari",
       hypotheses: [
-        "H₀(1-2): μ₁ = μ₂ (1- va 2-smena o'rtasida farq yo'q) vs H₁(1-2): μ₁ ≠ μ₂",
-        "H₀(1-3): μ₁ = μ₃ (1- va 3-smena o'rtasida farq yo'q) vs H₁(1-3): μ₁ ≠ μ₃",
-        "H₀(2-3): μ₂ = μ₃ (2- va 3-smena o'rtasida farq yo'q) vs H₁(2-3): μ₂ ≠ μ₃",
+        `1. Erkinlik darajasi qoidasi: df_omil = df_umumiy − df_qoldiq = ${p1Anova.dfTotal} − ${p1Anova.dfWithin} = ${p1Anova.dfBetween} (k = ${p1Anova.k} ta guruh).`,
+        `2. Dispersiyalar additivligi: SS_qoldiq = SS_umumiy − SS_omil = ${fmt(p1Anova.ssTotal)} − ${fmt(p1Anova.ssBetween)} = ${fmt(p1Anova.ssWithin)}.`,
+        `3. O'rtacha kvadratlar: MS_omil = SS_omil / df_omil = ${fmt(p1Anova.ssBetween)} / ${p1Anova.dfBetween} = ${fmt(p1Anova.msBetween)}.`,
+        `4. Fisher statistikasi: F_kuz = MS_omil / MS_qoldiq = ${fmt(p1Anova.msBetween)} / ${fmt(p1Anova.msWithin)} = ${fmt(p1Anova.fObserved)}.`,
+        "5. Juftlik gipotezalari: H₀(1-2): μ₁ = μ₂;  H₀(1-3): μ₁ = μ₃;  H₀(2-3): μ₂ = μ₃.",
       ],
       helperTable: {
-        title: "10-jadval. Smenalar juftliklari o'rtacha qiymatlari farqi (4-masala)",
+        title:
+          "11-jadval. Smenalar juftliklari o'rtacha qiymatlari farqi va LSD chegarasi (4-masala)",
         headers: [
           "Taqqoslanayotgan juftlik",
           "Guruh o'rtachalari (x̄ᵢ va x̄ⱼ)",
           "Mutlaq farq |x̄ᵢ − x̄ⱼ|",
           "Standart xatolik SE",
+          "Kritik chegara LSD₀.₀₅",
         ],
         rows: [
-          ["1-smena va 2-smena", `${fmt(g1.mean)} va ${fmt(g2.mean)}`, fmt(diff12), fmt(sePair)],
-          ["1-smena va 3-smena", `${fmt(g1.mean)} va ${fmt(g3.mean)}`, fmt(diff13), fmt(sePair)],
-          ["2-smena va 3-smena", `${fmt(g2.mean)} va ${fmt(g3.mean)}`, fmt(diff23), fmt(sePair)],
+          [
+            "1-smena va 2-smena",
+            `${fmt(g1.mean)} va ${fmt(g2.mean)}`,
+            fmt(diff12),
+            fmt(sePair),
+            fmt(lsdVal),
+          ],
+          [
+            "1-smena va 3-smena",
+            `${fmt(g1.mean)} va ${fmt(g3.mean)}`,
+            fmt(diff13),
+            fmt(sePair),
+            fmt(lsdVal),
+          ],
+          [
+            "2-smena va 3-smena",
+            `${fmt(g2.mean)} va ${fmt(g3.mean)}`,
+            fmt(diff23),
+            fmt(sePair),
+            fmt(lsdVal),
+          ],
         ],
       },
       manualSampleCalc: [
-        `Standart xatolik: SE = √(MS_qoldiq · (1/n₁ + 1/n₂)) = √(${fmt(p1Anova.msWithin)} · (1/${g1.n} + 1/${g2.n})) = ${fmt(sePair)}`,
-        `Kritik LSD chegarasi: LSD₀.₀₅ = t_kr(0,05; ${p1Anova.dfWithin}) · SE = ${fmt(tCrit)} · ${fmt(sePair)} = ${fmt(lsdVal)}`,
+        `df_omil = df_umumiy − df_qoldiq = ${p1Anova.dfTotal} − ${p1Anova.dfWithin} = ${p1Anova.dfBetween}`,
+        `SS_qoldiq = SS_umumiy − SS_omil = ${fmt(p1Anova.ssTotal)} − ${fmt(p1Anova.ssBetween)} = ${fmt(p1Anova.ssWithin)}`,
+        `MS_omil = SS_omil / df_omil = ${fmt(p1Anova.ssBetween)} / ${p1Anova.dfBetween} = ${fmt(p1Anova.msBetween)}`,
+        `F_kuz = MS_omil / MS_qoldiq = ${fmt(p1Anova.msBetween)} / ${fmt(p1Anova.msWithin)} = ${fmt(p1Anova.fObserved)}`,
+        `LSD₀.₀₅ = t_kr(0,05; ${p1Anova.dfWithin}) · √(2·MS_q / n) = ${fmt(tCrit)} · ${fmt(sePair)} = ${fmt(lsdVal)}`,
       ],
     },
     stepB: {
-      heading: "b) Fisher LSD mezoni va t-statistika hisob-kitobi",
+      heading: "b) Noma'lum ko'rsatkichlarni hisoblash formulalari va tekshirish ayniyati",
       formulaTable: {
-        title: "11-jadval. Juftliklar bo'yicha LSD va t-kuzatuv hisoblari (4-masala)",
-        headers: ["Juftlik", "Formula", "Hisob-kitob", "Natija"],
+        title: "12-jadval. Tiklangan parametrlar formulasi va hisob-kitob natijalari (4-masala)",
+        headers: [
+          "Noma'lum katak",
+          "Hisoblash formulasi",
+          "Hisob-kitob ifodasi",
+          "Tiklangan qiymat",
+        ],
         rows: [
           [
-            "LSD chegarasi",
-            "t_(α/2; df₂) · √(2·MS_q / n)",
+            "df_omil (Guruhlararo df)",
+            "df_umumiy − df_qoldiq",
+            `${p1Anova.dfTotal} − ${p1Anova.dfWithin}`,
+            String(p1Anova.dfBetween),
+          ],
+          [
+            "SS_qoldiq (Xatolik SS)",
+            "SS_umumiy − SS_omil",
+            `${fmt(p1Anova.ssTotal)} − ${fmt(p1Anova.ssBetween)}`,
+            fmt(p1Anova.ssWithin),
+          ],
+          [
+            "MS_omil (Omil o'rtacha kv.)",
+            "SS_omil / df_omil",
+            `${fmt(p1Anova.ssBetween)} / ${p1Anova.dfBetween}`,
+            fmt(p1Anova.msBetween),
+          ],
+          [
+            "F_kuz (Fisher statistikasi)",
+            "MS_omil / MS_qoldiq",
+            `${fmt(p1Anova.msBetween)} / ${fmt(p1Anova.msWithin)}`,
+            fmt(p1Anova.fObserved),
+          ],
+          [
+            "LSD kritik qiymati",
+            "t_kr · √(2·MS_q / n)",
             `${fmt(tCrit)} · ${fmt(sePair)}`,
             fmt(lsdVal),
           ],
-          [
-            "t_kuz (1 va 2)",
-            "|x̄₁ − x̄₂| / SE",
-            `${fmt(diff12)} / ${fmt(sePair)}`,
-            fmt(diff12 / sePair),
-          ],
-          [
-            "t_kuz (1 va 3)",
-            "|x̄₁ − x̄₃| / SE",
-            `${fmt(diff13)} / ${fmt(sePair)}`,
-            fmt(diff13 / sePair),
-          ],
-          [
-            "t_kuz (2 va 3)",
-            "|x̄₂ − x̄₃| / SE",
-            `${fmt(diff23)} / ${fmt(sePair)}`,
-            fmt(diff23 / sePair),
-          ],
         ],
       },
-      verificationEquality: `Tekshirish: |x̄₁ − x̄₃| = ${fmt(diff13)}; LSD₀.₀₅ = ${fmt(lsdVal)}.`,
+      verificationEquality: `Tekshirish ayniyati: SS_umumiy = SS_omil + SS_qoldiq ⇒ ${fmt(p1Anova.ssBetween)} + ${fmt(p1Anova.ssWithin)} = ${fmt(p1Anova.ssTotal)} (Ayniyat 100% bajarildi); df_umumiy = ${p1Anova.dfBetween} + ${p1Anova.dfWithin} = ${p1Anova.dfTotal}.`,
     },
     stepC: {
-      heading: "c) Post-hoc juftlik taqqoslash yakuniy jadvali",
+      heading: "c) To'liq tiklangan ANOVA yakuniy jadvali va Post-hoc LSD natijalari",
       anovaTable: {
-        title:
-          "12-jadval. Smenalararo juftlik taqqoslash (Post-Hoc LSD) yakuniy jadvali (4-masala)",
+        title: "13-jadval. To'liq tiklangan ANOVA yakuniy jadvali (4-masala)",
         headers: [
-          "Smenalar juftligi",
-          "|x̄ᵢ − x̄ⱼ|",
-          "LSD (α=0,05)",
-          "t_kuz",
-          "t_kr",
-          "Statistik xulosa",
+          "Tebranish manbai",
+          "SS (Kvadratlar yig'indisi)",
+          "df (Erkinlik darajasi)",
+          "MS (O'rtacha kvadrat)",
+          "F_kuz",
+          "F_kr (α=0,05)",
+          "p-qiymat",
         ],
         rows: [
           [
-            "1-smena vs 2-smena",
-            fmt(diff12),
-            fmt(lsdVal),
-            fmt(diff12 / sePair),
-            fmt(tCrit),
-            diff12 > lsdVal ? "Farq ahamiyatli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
+            "Guruhlararo (Smena omili)",
+            fmt(p1Anova.ssBetween),
+            p1Anova.dfBetween,
+            fmt(p1Anova.msBetween),
+            fmt(p1Anova.fObserved),
+            fmt(p1Anova.fCritical),
+            p1Anova.pValue,
           ],
           [
-            "1-smena vs 3-smena",
-            fmt(diff13),
-            fmt(lsdVal),
-            fmt(diff13 / sePair),
-            fmt(tCrit),
-            diff13 > lsdVal ? "Farq juda kuchli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
+            "Guruh ichida (Qoldiq)",
+            fmt(p1Anova.ssWithin),
+            p1Anova.dfWithin,
+            fmt(p1Anova.msWithin),
+            "—",
+            "—",
+            "—",
           ],
-          [
-            "2-smena vs 3-smena",
-            fmt(diff23),
-            fmt(lsdVal),
-            fmt(diff23 / sePair),
-            fmt(tCrit),
-            diff23 > lsdVal ? "Farq ahamiyatli (H₀ rad etiladi)" : "Farq tasodifiy (H₀ qabul)",
-          ],
+          ["Jami (Umumiy)", fmt(p1Anova.ssTotal), p1Anova.dfTotal, "—", "—", "—", "—"],
         ],
       },
     },
     stepD: {
-      heading: "d) Qaror",
-      fObserved: round4(diff13 / sePair),
-      fCritical: tCrit,
-      pValue: "< 0.001",
+      heading: "d) Tiklangan ANOVA jadvali va juftliklar bo'yicha statistik qaror",
+      fObserved: p1Anova.fObserved,
+      fCritical: p1Anova.fCritical,
+      pValue: p1Anova.pValue,
       alpha: 0.05,
-      decisionTitle: `Juftliklarda |x̄ᵢ − x̄ⱼ| va LSD (${fmt(lsdVal)}) taqqosovi asosida smenalar bir-biridan statistik jihatdan sezilarli farq qilishi tasdiqlandi!`,
-      decisionExplanation: `Eng katta uzilish 1-smena va 3-smena o'rtasida (${fmt(diff13)} > ${fmt(lsdVal)}), shuningdek 2- va 3-smena o'rtasida (${fmt(diff23)} > ${fmt(lsdVal)}) kuzatildi.`,
+      decisionTitle: `ANOVA jadvalidagi barcha kataklar tiklandi: F_kuz (${fmt(p1Anova.fObserved)}) > F_kr (${fmt(p1Anova.fCritical)}) hamda LSD = ${fmt(lsdVal)} chegarasiga ko'ra barcha guruhlararo farqlar statistik ahamiyatli!`,
+      decisionExplanation: `1) Tiklangan ANOVA jadvalida hisoblangan F_kuz = ${fmt(p1Anova.fObserved)} qiymati F_kr(0,05; 2; 12) = ${fmt(p1Anova.fCritical)} kritik qiymatidan katta bo'lgani sababli H₀ rad etiladi (smenalar bo'yicha unumdorlik teng emas). 2) Post-hoc Fisher LSD tahlili ko'rsatkichlari: |x̄₁ − x̄₂| = ${fmt(diff12)} > ${fmt(lsdVal)}, |x̄₁ − x̄₃| = ${fmt(diff13)} > ${fmt(lsdVal)}, va |x̄₂ − x̄₃| = ${fmt(diff23)} > ${fmt(lsdVal)}. Demak, har bir smena juftligidagi tafovutlar tasodifiy xatolik chegarasidan tashqarida bo'lib, statistik jihatdan ishonchli va yuqori ahamiyatga ega.`,
     },
     stepE: {
-      heading: "e) Amaliy talqin va smena me'yorlarini optimallashtirish",
+      heading:
+        "e) Omil kuchi (η²), chuqur iqtisodiy talqin va smena me'yorlarini optimallashtirish",
       etaSquaredPercent: p1Anova.etaSquared,
-      etaFormula: `Maksimal juftlik effekti: Δ_max = |x̄₁ − x̄₃| = ${fmt(diff13)} (${fmt((diff13 / (p1Anova.grandMean || 1)) * 100, 2)}% umumiy o'rtachaga nisbatan)`,
-      economicInterpretation: `Post-hoc tahlil shuni isbotladiki, unumdorlik faqatgina tungi smenada emas, balki kunduzgi (2-smena) va ertalabki (1-smena) smenalar orasida ham statistik farqqa ega. Bu korxonada rejalashtirish me'yorlarini smenalar bo'yicha tabaqalashtirish zarurligini ko'rsatadi.`,
+      etaFormula: `η² = (SS_omil / SS_umumiy) × 100% = (${fmt(p1Anova.ssBetween)} / ${fmt(p1Anova.ssTotal)}) × 100% = ${fmt(p1Anova.etaSquared, 2)}%`,
+      economicInterpretation: `ANOVA jadvalini to'ldirish va Fisher LSD diagnostikasi shuni ko'rsatdiki, smenalar ta'siri kuchi juda yuqori (η² = ${fmt(p1Anova.etaSquared, 2)}%). 1-smena va 3-smena o'rtasidagi uzilish maksimal ${fmt(diff13)} birlikni tashkil qiladi. Bu ishlab chiqarish rejasini smenalar bo'yicha bir xil normallashtirish xato ekanligini, smena koeffitsiyentlarini qo'llash zarurligini tasdiqlaydi.`,
       recommendations: [
         "Har bir smena uchun yagona tekis norma o'rniga smena koeffitsiyentli (K₁=1.08; K₂=1.00; K₃=0.92) moslashuvchan reja-grafik joriy etish.",
         "3-smena xodimlari uchun qo'shimcha 15 daqiqalik tetiklashtiruvchi tanaffus va ergonomik tekshiruv tashkil etish.",
@@ -1183,7 +1226,7 @@ export function generateDeterministicAmaliyIsh(
           { label: "|x̄₂ − x̄₃| (2 va 3)", value: diff23, color: "#7c3aed" },
           { label: "|x̄₁ − x̄₃| (1 va 3)", value: diff13, color: "#dc2626" },
         ],
-        caption: `4-rasm. Smenalar juftliklari o'rtasidagi mutlaq farqlar va Fisher LSD = ${fmt(lsdVal)} kritik chizig'i.`,
+        caption: `4-rasm. ANOVA jadvali va smenalar juftliklari o'rtasidagi mutlaq farqlar hamda Fisher LSD = ${fmt(lsdVal)} kritik chizig'i.`,
       },
     },
   };
@@ -1274,6 +1317,27 @@ export function generateDeterministicAmaliyIsh(
       formulaRu: `=F.РАСП.ПХ(E15; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
       result: p1Anova.pValue,
     },
+    {
+      cell: "E18",
+      indicator: "Omil ta'sir kuchi (η² %)",
+      formulaEn: `=(E14/E12)*100`,
+      formulaRu: `=(E14/E12)*100`,
+      result: `${fmt(p1Anova.etaSquared, 2)}%`,
+    },
+    {
+      cell: "E19",
+      indicator: "Kritik t-Student chegarasi (LSD, α=0.05)",
+      formulaEn: `=T.INV.2T(0.05, ${p1Anova.dfWithin})`,
+      formulaRu: `=СТЬЮДЕНТ.ОБР.2Х(0,05; ${p1Anova.dfWithin})`,
+      result: fmt(tCrit),
+    },
+    {
+      cell: "E20",
+      indicator: "Fisher LSD kritik chegarasi",
+      formulaEn: `=E19*SQRT(E13/${p1Anova.dfWithin}*(1/5+1/5))`,
+      formulaRu: `=E19*КОРЕНЬ(E13/${p1Anova.dfWithin}*(1/5+1/5))`,
+      result: fmt(lsdVal),
+    },
   ];
 
   const conclusionsList = [
@@ -1282,7 +1346,10 @@ export function generateDeterministicAmaliyIsh(
     problemCount >= 3
       ? `3. Takrorlanishsiz ikki omilli dispersion tahlilda (3-masala) smena omili bilan bir qatorda xodimlarning malaka toifasi o'rganilganda, umumiy variatsiyaning ${fmt(p3Anova.etaTotal, 2)}% qismi aynan shu ikki omil birgalikdagi ta'siri bilan izohlanishi isbotlandi.`
       : `3. O'tkazilgan hisob-kitoblar va MS Excel tekshiruvlari asosida guruhlararo tafovutlarni qisqartirish hamda past ko'rsatkichli bo'limlarni eng ilg'or guruh («${p1BestGroup.name}», x̄ = ${fmt(p1BestGroup.mean)}) darajasiga olib chiqish bo'yicha aniq boshqaruv qarorlari ishlab chiqildi.`,
-  ];
+    problemCount >= 4
+      ? `4. Qisman to'ldirilgan ANOVA jadvali noma'lumlari muvaffaqiyatli tiklandi va Fisher LSD mezoni (LSD = ${fmt(lsdVal)}) yordamida har bir smena juftligidagi uzilishlar statistik ahamiyatga egaligi aniqlandi.`
+      : ``,
+  ].filter(Boolean);
 
   const docWithoutMarkdown: Omit<AmaliyIshDocument, "markdown"> = {
     meta: {
@@ -1318,34 +1385,38 @@ export function generateDeterministicAmaliyIsh(
           ? "Методические указания и правила расчёта"
           : language === "en"
             ? "Methodological Note & Calculation Rules"
-            : "Uslubiy eslatma va hisoblash qoidalari",
+            : "Kirish va amaliy ishni yechishning uslubiy qoidalari",
       rules: [
-        "Yaxlitlash qoidasi: Barcha oraliq va yakuniy statistik ko'rsatkichlar (SS, MS, F_kuz, F_kr, SE, LSD) 4 ta o'nli xonagacha (0,0001) aniqlikda, ulush ko'rsatkichlari (η²) esa 2 ta o'nli xonagacha (0,01%) yaxlitlanadi.",
-        "Gipotezalar ketma-ketligi: Har bir masalada avval nol gipoteza (H₀ — o'rtachalar tengligi) va muqobil gipoteza (H₁ — omil ta'siri mavjudligi) aniq matematik belgilarda ifodalanadi.",
-        "Tekshirish tengligi: Har bir dispersion tahlilda SS_umumiy = SS_omil + SS_qoldiq hamda df_umumiy = df_omil + df_qoldiq ayniyatlari bajarilishi shart.",
-        "Qaror qabul qilish mezoni: Agar F_kuz > F_kr (yoki p-qiymat < α = 0,05) bo'lsa, H₀ rad etilib, o'rganilayotgan omilning ta'siri statistik ahamiyatli deb topiladi.",
+        "Nazariy asos: Dispersion tahlil (ANOVA — Analysis of Variance) bir yoki bir nechta sifat omillarining o'rganilayotgan natijaviy ko'rsatkichga ta'siri statistik ahamiyatga egaligini tekshirish usuli hisoblanadi.",
+        "Gipotezalar tizimi: Har bir masalada dastlab nol gipoteza H₀ (guruhlar o'rtachalarining tengligi: μ₁ = μ₂ = ... = μₖ) va muqobil gipoteza H₁ (kamida bitta guruh o'rtachasi boshqalaridan farq qiladi) aniq matematik ifodalanadi.",
+        "Dispersiyalar additivligi: Barcha masalalarda umumiy kvadratik chetlanish omil va qoldiq qismlariga ajraladi: SS_umumiy = SS_omil + SS_qoldiq (ikki omilli holatda: SS_umumiy = SS_A + SS_B + SS_qoldiq). Ushbu ayniyat barcha hisob-kitoblarda tekshirilishi shart.",
+        "Erkinlik darajalari balansi: df_umumiy = N − 1, df_omil = k − 1, df_qoldiq = N − k bo'lib, df_umumiy = df_omil + df_qoldiq ayniyati saqlanadi.",
+        "Fisher mezonini qo'llash: O'rtacha kvadratlar nisbati F_kuz = MS_omil / MS_qoldiq hisoblanadi. Agar F_kuz > F_kr(α; df₁; df₂) (yoki p-qiymat < α = 0,05) bo'lsa, H₀ gipoteza rad etilib, omil ta'siri statistik ishonchli deb topiladi.",
+        "Yaxlitlash va aniqlik talabi: Barcha statistik ko'rsatkichlar (SS, MS, F_kuz, F_kr, SE, LSD) 4 ta o'nli xonagacha (0,0001), determinatsiya koeffitsiyenti (η²) esa 2 ta o'nli xonagacha (0,01%) aniqlikda yoziladi.",
+        "MS Excel nazorati: Barcha tahlillar MS Excel dasturining «Data Analysis» paketi hamda DEVSQ, F.DIST.RT, F.INV.RT funksiyalari orqali avtomatlashtirilgan tarzda tekshirilishi ko'rsatiladi.",
       ],
     },
     problems: allProblems,
     excelSection: {
-      title: "EXCEL’DA BAJARISH (1-MASALA MISOLIDA)",
+      title: "EXCEL’DA BAJARISH VA FORMULALAR RO'YXATI",
       subtitle:
         "MS Excel dasturida «Data Analysis (Анализ данных)» paketi va standart funksiyalar yordamida hisoblash yo'riqnomasi",
       steps: [
-        "1-qadam: MS Excel ishchi varag'ining B1:D1 kataklariga smena nomlarini («1-smena», «2-smena», «3-smena»), B2:D6 diapazoniga esa 1-masaladagi kuzatuv qiymatlarini kiriting.",
-        "2-qadam: Yuqori menyudan «Data (Данные)» → «Data Analysis (Анализ данных)» → «Anova: Single Factor (Однофакторный дисперсионный анализ)» bandini tanlang.",
-        "3-qadam: «Input Range (Входной интервал)» maydoniga $B$1:$D$6 ni belgilang, «Grouped By: Columns (По столбцам)» va «Labels in first row (Метки в первой строке)» katakchalarini yoqing, «Alpha (Альфа)» = 0.05 qilib «OK» tugmasini bosing.",
-        "4-qadam: Natijalarni qo'lda formulalar orqali tekshirish uchun quyidagi 9-jadvaldagi inglizcha (EN) yoki ruscha (RU) funksiyalardan foydalaning:",
+        "1-qadam (Ma'lumotlarni kiritish): MS Excel ishchi varag'ining B1:D1 kataklariga guruh nomlarini («1-smena», «2-smena», «3-smena»), B2:D6 diapazoniga esa dastlabki kuzatuv qiymatlarini joylashtiring.",
+        "2-qadam (Dispersion tahlil paketi): Menyudan «Data (Данные)» → «Data Analysis (Анализ данных)» → «Anova: Single Factor (Однофакторный дисперсионный анализ)» modulini oching.",
+        "3-qadam (Parametrlarni sozlash): «Input Range (Входной интервал)» ga $B$1:$D$6 ni kiriting, «Grouped By: Columns (По столбцам)» va «Labels in first row (Метки в первой строке)» katakchalarini yoqing, «Alpha (Альфа)» = 0.05 qilib «OK» tugmasini bosing.",
+        "4-qadam (Ikki omilli tahlil): Ikki omilli tahlil (3-masala) uchun «Anova: Two-Factor Without Replication (Двухфакторный дисперсионный анализ без повторений)» modulidan foydalaning.",
+        "5-qadam (Formulalar yordamida tekshirish): Standart formulalar (EN va RU) orqali har bir katakdagi ko'rsatkichlarni tekshirish uchun quyidagi 14-jadvaldagi formulalardan foydalaning:",
       ],
       tableTitle:
-        "9-jadval. Excel funksiyalari jadvali (Katak | Ko'rsatkich | Formula (EN) | Formula (RU))",
+        "14-jadval. Excel funksiyalari jadvali (Katak | Ko'rsatkich | Formula (EN) | Formula (RU) | Natija)",
       formulas: excelFormulas,
     },
     summarySection: {
       title: "UMUMIY XULOSA VA AMALIY TAVSIYALAR",
       comparisonTable: {
         title:
-          "Yakuniy qiyosiy jadval. Barcha masalalar bo'yicha dispersion tahlil natijalarining qiyosiy tahlili",
+          "15-jadval. Barcha masalalar bo'yicha dispersion tahlil natijalarining qiyosiy tahlili",
         headers: [
           "Masala",
           "Tahlil turi va obyekti",
@@ -1360,10 +1431,10 @@ export function generateDeterministicAmaliyIsh(
           p.number === 1
             ? `1-omilli ANOVA (${p1Anova.k} guruh, N=${p1Anova.N})`
             : p.number === 2
-              ? "1-omilli ANOVA (Teng bo'lmagan guruhlar: 3 sex)"
+              ? "Yig'ma statistikalar ANOVA (3 sex, N=14)"
               : p.number === 3
                 ? "2-omilli ANOVA (Smena A × Malaka B)"
-                : "Post-Hoc Fisher LSD (Juftlik taqqoslash)",
+                : "ANOVA jadvalini to'ldirish & Fisher LSD",
           fmt(p.stepD.fObserved),
           fmt(p.stepD.fCritical),
           p.stepD.pValue,
@@ -1400,14 +1471,25 @@ export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown
 
   lines.push(`# ${doc.meta.ministry}`);
   lines.push(`## ${doc.meta.university.toUpperCase()}`);
+  if (doc.meta.department) {
+    lines.push(`*${doc.meta.department}*`);
+  }
+  lines.push("");
   lines.push(`### «${doc.meta.subject.toUpperCase()}» FANIDAN`);
-  lines.push(`# ${doc.meta.workType} (${doc.meta.variant})`);
-  lines.push(`- **Mavzu:** ${doc.meta.topic}`);
-  lines.push(`- **Vaziyat:** ${doc.meta.situation}`);
-  lines.push(`- **Tayyorladi:** ${doc.meta.studentName} (${doc.meta.studentGroup})`);
-  lines.push(`- **Vazifa berdi:** ${doc.meta.teacherName}`);
-  lines.push(`- **Shahar va yil:** ${doc.meta.city} – ${doc.meta.year}`);
-  lines.push(`\n---\n`);
+  lines.push(`# ${doc.meta.workType}`);
+  lines.push(`### ${doc.meta.variant}`);
+  lines.push("");
+  lines.push(`**Mavzu:** ${doc.meta.topic}`);
+  lines.push(`**Vaziyat:** ${doc.meta.situation}`);
+  lines.push("");
+  lines.push(`**Tayyorladi:** ${doc.meta.studentName}`);
+  lines.push(`**Guruhi:** ${doc.meta.studentGroup}`);
+  lines.push(`**Vazifa berdi:** ${doc.meta.teacherName}`);
+  lines.push("");
+  lines.push(`${doc.meta.city} – ${doc.meta.year}`);
+  lines.push("");
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
 
   lines.push(`## Amaliy ish yechimi (${doc.meta.variant})`);
   lines.push(`### ${doc.methodologicalNote.title}`);
@@ -1669,50 +1751,50 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
 <body>
   <div class="WordSection1">
     <!-- TITUL VARAG'I -->
-    <div style="border:2pt double #1e3a8a;padding:24pt;text-align:center;min-height:700pt;">
-      <p style="font-size:11.5pt;font-weight:bold;letter-spacing:0.5pt;margin:0 0 6pt 0;text-transform:uppercase;">
+    <div style="text-align:center;min-height:740pt;padding:12pt 0;font-family:'Times New Roman',serif;">
+      <p style="font-size:11pt;font-weight:bold;letter-spacing:0.5pt;margin:0 0 6pt 0;text-transform:uppercase;">
         ${escapeHtml(doc.meta.ministry)}
       </p>
-      <p style="font-size:14pt;font-weight:bold;color:#1e3a8a;margin:0 0 6pt 0;text-transform:uppercase;">
+      <p style="font-size:13.5pt;font-weight:bold;color:#000000;margin:0 0 4pt 0;text-transform:uppercase;">
         ${escapeHtml(doc.meta.university)}
       </p>
-      <p style="font-size:11pt;font-style:italic;margin:0 0 28pt 0;">
+      <p style="font-size:11pt;font-style:italic;color:#334155;margin:0 0 36pt 0;">
         ${escapeHtml(doc.meta.department)}
       </p>
 
-      <div style="margin:36pt 0;">
-        <p style="font-size:13pt;font-weight:bold;margin:0 0 8pt 0;text-transform:uppercase;">
+      <div style="margin:40pt 0 24pt 0;">
+        <p style="font-size:12pt;font-weight:bold;margin:0 0 8pt 0;text-transform:uppercase;">
           «${escapeHtml(doc.meta.subject)}» FANIDAN
         </p>
-        <h1 style="font-size:26pt;font-weight:bold;color:#0f172a;margin:8pt 0;letter-spacing:1.5pt;">
+        <h1 style="font-size:24pt;font-weight:bold;color:#000000;margin:8pt 0;letter-spacing:1.5pt;">
           ${escapeHtml(doc.meta.workType)}
         </h1>
-        <p style="display:inline-block;background:#1e3a8a;color:#ffffff;padding:5pt 16pt;font-size:13pt;font-weight:bold;margin:8pt 0;">
+        <p style="font-size:13pt;font-weight:bold;color:#000000;margin:8pt 0;letter-spacing:0.5pt;">
           ${escapeHtml(doc.meta.variant)}
         </p>
       </div>
 
-      <div style="border:1pt solid #94a3b8;background:#f8fafc;padding:12pt 16pt;margin:24pt auto;text-align:left;width:88%;">
-        <p style="font-size:11.5pt;margin:4pt 0;"><b>Mavzu:</b> ${escapeHtml(doc.meta.topic)}</p>
-        <p style="font-size:11.5pt;margin:4pt 0;"><b>Vaziyat:</b> ${escapeHtml(doc.meta.situation)}</p>
+      <div style="margin:28pt auto 36pt auto;text-align:center;width:90%;font-size:11.5pt;line-height:1.6;">
+        <p style="margin:4pt 0;"><b>Mavzu:</b> ${escapeHtml(doc.meta.topic)}</p>
+        <p style="margin:4pt 0;color:#1e293b;"><b>Vaziyat:</b> ${escapeHtml(doc.meta.situation)}</p>
       </div>
 
-      <table style="width:88%;margin:48pt auto 36pt auto;border-collapse:collapse;font-size:11.5pt;">
+      <table style="width:55%;margin:40pt 0 40pt auto;border-collapse:collapse;font-size:11.5pt;font-family:'Times New Roman',serif;">
         <tr>
-          <td style="text-align:left;padding:4pt 0;width:40%;"><b>Tayyorladi:</b></td>
-          <td style="text-align:right;padding:4pt 0;border-bottom:1pt solid #334155;">${escapeHtml(doc.meta.studentName)}</td>
+          <td style="text-align:left;padding:5pt 0;width:45%;"><b>Tayyorladi:</b></td>
+          <td style="text-align:right;padding:5pt 0;border-bottom:1pt solid #000000;">${escapeHtml(doc.meta.studentName)}</td>
         </tr>
         <tr>
-          <td style="text-align:left;padding:4pt 0;"><b>Guruh:</b></td>
-          <td style="text-align:right;padding:4pt 0;border-bottom:1pt solid #334155;">${escapeHtml(doc.meta.studentGroup)}</td>
+          <td style="text-align:left;padding:5pt 0;"><b>Guruhi:</b></td>
+          <td style="text-align:right;padding:5pt 0;border-bottom:1pt solid #000000;">${escapeHtml(doc.meta.studentGroup)}</td>
         </tr>
         <tr>
-          <td style="text-align:left;padding:4pt 0;"><b>Vazifa berdi:</b></td>
-          <td style="text-align:right;padding:4pt 0;border-bottom:1pt solid #334155;">${escapeHtml(doc.meta.teacherName)}</td>
+          <td style="text-align:left;padding:5pt 0;"><b>Vazifa berdi:</b></td>
+          <td style="text-align:right;padding:5pt 0;border-bottom:1pt solid #000000;">${escapeHtml(doc.meta.teacherName)}</td>
         </tr>
       </table>
 
-      <p style="font-size:12pt;font-weight:bold;margin-top:60pt;">
+      <p style="font-size:12pt;font-weight:bold;margin-top:70pt;text-align:center;">
         ${escapeHtml(doc.meta.city)} – ${escapeHtml(doc.meta.year)}
       </p>
     </div>

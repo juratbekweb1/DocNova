@@ -12,7 +12,6 @@ import {
   Table2,
   BarChart3,
   FileSpreadsheet,
-  GraduationCap,
   CheckCircle2,
   BookOpen,
 } from "lucide-react";
@@ -265,70 +264,77 @@ const AmaliyIshDocumentSheet = React.memo(
         className="border-border rounded-2xl border bg-white p-5 font-serif text-slate-900 shadow-2xl sm:p-10 print:m-0 print:border-0 print:p-0 print:text-black print:shadow-none"
       >
         {/* ===================================================================
-                      1. TITUL VARAG'I (COVER PAGE)
+                      1. TITUL VARAG'I (OTM RASMIY STANDARTI)
                      =================================================================== */}
-        <div className="mb-10 overflow-hidden rounded-xl border-2 border-double border-slate-800 p-4 text-center break-words sm:p-10 print:min-h-[245mm] print:break-after-page">
-          <p className="text-[11px] font-bold tracking-wider break-words text-slate-700 uppercase sm:text-xs">
-            {doc.meta.ministry}
-          </p>
-          <h2 className="mt-2 text-base font-extrabold tracking-wide break-words text-blue-950 uppercase sm:text-xl">
-            {doc.meta.university}
-          </h2>
-          <p className="mt-1 text-xs break-words text-slate-600 italic sm:text-sm">
-            {doc.meta.department}
-          </p>
-
-          {/* OTM Emblem / Crest */}
-          <div className="my-6 flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-blue-900 bg-blue-50 text-blue-900 shadow-inner">
-              <GraduationCap className="h-10 w-10" />
-            </div>
-          </div>
-
-          <p className="text-xs font-bold tracking-wider break-words text-slate-800 uppercase sm:text-sm">
-            «{doc.meta.subject}» FANIDAN
-          </p>
-          <h1 className="mt-2 text-2xl font-black tracking-widest break-words text-slate-950 uppercase sm:text-4xl">
-            {doc.meta.workType}
-          </h1>
-          <div className="mt-3 inline-block rounded-md bg-blue-900 px-5 py-1.5 text-sm font-extrabold tracking-wider text-white uppercase">
-            {doc.meta.variant}
-          </div>
-
-          <div className="mx-auto my-7 max-w-xl rounded-lg border border-slate-300 bg-slate-50 p-3.5 text-left text-xs break-words sm:p-4 sm:text-sm">
-            <p className="mb-1.5 break-words">
-              <span className="font-bold text-slate-950">Mavzu:</span> {doc.meta.topic}
+        <div className="mb-12 flex min-h-[860px] flex-col justify-between p-2 text-center break-words sm:p-6 print:min-h-[255mm] print:break-after-page print:p-0">
+          <div>
+            <p className="text-[11px] font-bold tracking-wider break-words text-slate-800 uppercase sm:text-xs">
+              {doc.meta.ministry}
             </p>
-            <p className="break-words">
-              <span className="font-bold text-slate-950">Vaziyat:</span> {doc.meta.situation}
+            <h2 className="mt-2 text-sm font-extrabold tracking-wide break-words text-slate-950 uppercase sm:text-lg">
+              {doc.meta.university}
+            </h2>
+            <p className="mt-1 text-xs break-words text-slate-600 italic sm:text-sm">
+              {doc.meta.department}
             </p>
           </div>
 
-          <div className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-xs sm:text-sm">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-              <span className="font-bold text-slate-800">Tayyorladi:</span>
-              <span className="font-semibold break-words text-slate-950">
-                {doc.meta.studentName}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-              <span className="font-bold text-slate-800">Guruh:</span>
-              <span className="font-semibold break-words text-slate-950">
-                {doc.meta.studentGroup}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-slate-300 pb-1">
-              <span className="font-bold text-slate-800">Vazifa berdi:</span>
-              <span className="font-semibold break-words text-slate-950">
-                {doc.meta.teacherName}
-              </span>
+          <div className="my-8">
+            <p className="text-xs font-bold tracking-wider break-words text-slate-800 uppercase sm:text-sm">
+              «{doc.meta.subject}» FANIDAN
+            </p>
+            <h1 className="mt-3 text-3xl font-black tracking-widest break-words text-slate-950 uppercase sm:text-5xl">
+              {doc.meta.workType}
+            </h1>
+            <p className="mt-2 text-base font-bold tracking-wider break-words text-slate-900 uppercase sm:text-xl">
+              {doc.meta.variant}
+            </p>
+
+            {/* Mavzu va Vaziyat - ortiqcha card/border/rounded stillarisiz toza rasmiy ko'rinish */}
+            <div className="mx-auto mt-8 max-w-xl space-y-1.5 text-center text-xs break-words sm:text-sm">
+              <p className="leading-relaxed">
+                <span className="font-bold text-slate-950">Mavzu:</span>{" "}
+                <span className="font-medium text-slate-900">{doc.meta.topic}</span>
+              </p>
+              <p className="leading-relaxed text-slate-800">
+                <span className="font-bold text-slate-950">Vaziyat:</span>{" "}
+                <span>{doc.meta.situation}</span>
+              </p>
             </div>
           </div>
 
-          <p className="mt-10 text-xs font-bold tracking-wider text-slate-800 uppercase sm:text-sm">
-            {doc.meta.city} – {doc.meta.year}
-          </p>
+          <div>
+            {/* O'ng tomonda joylashgan Tayyorladi / Guruh / Vazifa berdi bloki */}
+            <div className="mt-10 ml-auto w-full max-w-xs space-y-2 text-left text-xs sm:max-w-sm sm:text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-2 border-b border-slate-400/80 pb-1">
+                <span className="font-bold text-slate-800">Tayyorladi:</span>
+                <span className="text-right font-semibold break-words text-slate-950">
+                  {doc.meta.studentName}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-2 border-b border-slate-400/80 pb-1">
+                <span className="font-bold text-slate-800">Guruh:</span>
+                <span className="text-right font-semibold break-words text-slate-950">
+                  {doc.meta.studentGroup}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-2 border-b border-slate-400/80 pb-1">
+                <span className="font-bold text-slate-800">Vazifa berdi:</span>
+                <span className="text-right font-semibold break-words text-slate-950">
+                  {doc.meta.teacherName}
+                </span>
+              </div>
+            </div>
+
+            {/* Pastda markazda Shahar va Yil */}
+            <p className="mt-14 text-center text-xs font-bold tracking-wider text-slate-900 uppercase sm:text-sm">
+              {doc.meta.city} – {doc.meta.year}
+            </p>
+          </div>
         </div>
+
+        {/* Sahifa ajratgich (Faqat vebda ko'rinadi, chop etishda yashirinadi) */}
+        <div className="my-8 border-b-2 border-dashed border-slate-300 print:hidden" />
 
         {/* ===================================================================
                       2. ASOSIY YECHIM QISMI (AMALIY ISH YECHIMI)

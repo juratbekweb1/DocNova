@@ -111,11 +111,11 @@ Quyidagi JSON sxemasida javob qaytaring (faqat JSON):
 {
   "problem1Condition": "1-masala sharti (bir omilli tahlil, 3 guruh x 5 kuzatuv)",
   "problem1Interpretation": "1-masala yakuniy iqtisodiy-amaliy talqini",
-  "problem2Condition": "2-masala sharti (teng bo'lmagan guruhlar: 5, 4, 5 kuzatuv)",
+  "problem2Condition": "2-masala sharti (yig'ma statistikalar bo'yicha tahlil, teng bo'lmagan 3 ta guruh: 5, 4, 5 kuzatuv)",
   "problem2Interpretation": "2-masala yakuniy talqini",
   "problem3Condition": "3-masala sharti (ikki omilli tahlil: 3x4 jadval)",
   "problem3Interpretation": "3-masala yakuniy talqini",
-  "problem4Condition": "4-masala sharti (juftliklararo taqqoslash LSD tahlili)",
+  "problem4Condition": "4-masala sharti (qisman to'ldirilgan ANOVA jadvalini to'ldirish va Fisher LSD juftlik tahlili)",
   "problem4Interpretation": "4-masala yakuniy talqini",
   "conclusions": ["1-xulosa", "2-xulosa", "3-xulosa"],
   "practicalRecommendations": ["1-tavsiya", "2-tavsiya", "3-tavsiya"]
