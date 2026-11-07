@@ -7,6 +7,7 @@ import {
   generateDeterministicAmaliyIsh,
   buildAmaliyIshWordHtml,
 } from "@/lib/amaliy-ish-generator";
+import { generateAcademicDocx } from "@/lib/academic-docx-exporter";
 import { POST as amaliyIshPost } from "@/app/api/ai/amaliy-ish/route";
 import { STUDENT_SECTIONS } from "@/components/academic/student-sub-nav";
 
@@ -15,6 +16,14 @@ vi.mock("next-auth", () => ({
 }));
 vi.mock("@/lib/auth-options", () => ({
   authOptions: {},
+}));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    verificationToken: {
+      upsert: vi.fn().mockResolvedValue({}),
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+  },
 }));
 vi.mock("@/lib/gemini", () => ({
   generateGeminiJson: vi.fn().mockResolvedValue({
@@ -100,9 +109,9 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(formulaEnList.some((f) => f.includes("=DEVSQ"))).toBe(true);
     expect(formulaRuList.some((f) => f.includes("=КВАДРОТКЛ"))).toBe(true);
     expect(formulaEnList.some((f) => f.includes("=F.INV.RT"))).toBe(true);
-    expect(formulaRuList.some((f) => f.includes("=F.ОБР.ПХ"))).toBe(true);
+    expect(formulaRuList.some((f) => f.includes("=Ф.ОБР.ПХ"))).toBe(true);
     expect(formulaEnList.some((f) => f.includes("=F.DIST.RT"))).toBe(true);
-    expect(formulaRuList.some((f) => f.includes("=F.РАСП.ПХ"))).toBe(true);
+    expect(formulaRuList.some((f) => f.includes("=Ф.РАСП.ПХ"))).toBe(true);
     expect(formulaEnList.some((f) => f.includes("=T.INV.2T"))).toBe(true);
     expect(formulaRuList.some((f) => f.includes("=СТЬЮДЕНТ.ОБР.2Х"))).toBe(true);
 
@@ -206,5 +215,59 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(json.document.meta.variant).toBe("12-VARIANT");
     expect(json.document.meta.totalPoints).toBe(8.5);
     expect(json.document.problems).toHaveLength(3);
+  });
+
+  it("exports official OpenXML .docx with clean OTM title page, custom city (e.g. Qarshi), and page break", async () => {
+    const doc = generateDeterministicAmaliyIsh({
+      city: "Qarshi",
+      year: "2026",
+      variant: "18-variant",
+      problemCount: 4,
+    });
+
+    const docxResult = await generateAcademicDocx({
+      topic: `${doc.meta.topic} (${doc.meta.variant})`,
+      markdownContent: doc.markdown,
+      workType: "Amaliy ish",
+      subject: doc.meta.subject,
+      university: doc.meta.university,
+      studentName: `${doc.meta.studentName} (${doc.meta.studentGroup})`,
+      teacherName: doc.meta.teacherName,
+    });
+
+    expect(docxResult.buffer).toBeDefined();
+    expect(docxResult.buffer.byteLength).toBeGreaterThan(5000);
+    // OpenXML PK magic header: 50 4B 03 04
+    expect(docxResult.buffer[0]).toBe(0x50);
+    expect(docxResult.buffer[1]).toBe(0x4b);
+    expect(docxResult.buffer[2]).toBe(0x03);
+    expect(docxResult.buffer[3]).toBe(0x04);
+    expect(docxResult.fileName).toContain("Amaliy_ish");
+    expect(docxResult.fileName.endsWith(".docx")).toBe(true);
+  });
+
+  it("dynamically adjusts Excel formulas and LSD sample sizes when custom observation count changes", () => {
+    const customDoc = generateDeterministicAmaliyIsh({
+      customProblemText: "A-sex: 10, 20, 30, 40\nB-sex: 15, 25, 35, 45\nC-sex: 12, 22, 32, 42",
+      problemCount: 4,
+    });
+
+    // 4 observations per group: data range is B2:D5, sum row is 7
+    const lsdFormulaEn = customDoc.excelSection.formulas.find((f) =>
+      f.indicator.includes("Fisher LSD")
+    )?.formulaEn;
+    const lsdFormulaRu = customDoc.excelSection.formulas.find((f) =>
+      f.indicator.includes("Fisher LSD")
+    )?.formulaRu;
+    expect(lsdFormulaEn).toContain("*(1/4+1/4)");
+    expect(lsdFormulaRu).toContain("*(1/4+1/4)");
+    expect(lsdFormulaRu).toContain("КОРЕНЬ");
+
+    // Check sum row references row 7
+    const sumRowFormula = customDoc.excelSection.formulas.find((f) =>
+      f.indicator.includes("yig'indisi")
+    );
+    expect(sumRowFormula?.cell).toBe("B7:D7");
+    expect(sumRowFormula?.formulaEn).toBe("=SUM(B2:B5)");
   });
 });

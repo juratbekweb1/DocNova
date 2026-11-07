@@ -266,7 +266,7 @@ const AmaliyIshDocumentSheet = React.memo(
         {/* ===================================================================
                       1. TITUL VARAG'I (OTM RASMIY STANDARTI)
                      =================================================================== */}
-        <div className="mb-12 flex min-h-[860px] flex-col justify-between p-2 text-center break-words sm:p-6 print:min-h-[255mm] print:break-after-page print:p-0">
+        <div className="mb-12 flex min-h-[860px] flex-col justify-between p-2 text-center break-words sm:p-6 print:min-h-[240mm] print:break-after-page print:p-0">
           <div>
             <p className="text-[11px] font-bold tracking-wider break-words text-slate-800 uppercase sm:text-xs">
               {doc.meta.ministry}

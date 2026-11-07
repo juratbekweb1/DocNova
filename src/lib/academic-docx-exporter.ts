@@ -542,13 +542,18 @@ function parseMarkdownBlockToDocxNodes(
       continue;
     }
 
-    // 2. Sahifa uzilishi (--- yoki <!-- PAGE_BREAK -->)
-    if (
-      trimmed === "---" ||
-      trimmed === "***" ||
-      trimmed === "___" ||
-      trimmed === "<!-- PAGE_BREAK -->"
-    ) {
+    // 2. Sahifa uzilishi (<!-- PAGE_BREAK --> yoki ---)
+    if (trimmed === "<!-- PAGE_BREAK -->") {
+      isCover = false;
+      nodes.push(
+        new Paragraph({
+          children: [new PageBreak()],
+        })
+      );
+      continue;
+    }
+
+    if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
       // Agar titul sahifaning ichida bo'lsak va hali "Toshkent — 2026" o'tmagan bo'lsa,
       // chiziqni dekorativ separator sifatida qoldiramiz, aks holda yangi sahifaga o'tkazamiz
       if (isCover) {
@@ -573,8 +578,12 @@ function parseMarkdownBlockToDocxNodes(
       continue;
     }
 
-    // Agar "MUNDARIJA", "СОДЕРЖАНИЕ", "REJA", "KIRISH", "ВВЕДЕНИЕ" boshlansa, cover page tugagan bo'ladi
-    if (/^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|МУНДАРИЖА|КИРИШ)/i.test(trimmed)) {
+    // Agar "MUNDARIJA", "СОДЕРЖАНИЕ", "REJA", "KIRISH", "ВВЕДЕНИЕ", "AMALIY ISH" boshlansa, cover page tugagan bo'ladi
+    if (
+      /^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|МУНДАРИЖА|КИРИШ|AMALIY ISH)/i.test(
+        trimmed
+      )
+    ) {
       if (isCover) {
         isCover = false;
         nodes.push(new Paragraph({ children: [new PageBreak()] }));
@@ -781,10 +790,10 @@ function parseMarkdownBlockToDocxNodes(
     }
 
     // 9. Oddiy akademik abzas (yoki Titul sahifadagi ma'lumot qatori)
-    const isCityYearLine =
-      /^(Toshkent|Ташкент|Тошкент|Samarqand|Buxoro|Andijon|Namangan|Farg'ona|Nukus)\s*[—\-–]\s*\d{4}/i.test(
-        trimmed.replace(/\*/g, "")
-      );
+    const cleanNoStars = trimmed.replace(/\*/g, "").trim();
+    const isCityYearLine = /^[A-Za-z'ʻʼ\u0400-\u04FF\s\(\)\.,]+[—\-–]\s*\d{4}\s*$/i.test(
+      cleanNoStars
+    );
 
     if (isCityYearLine) {
       isCover = false;
@@ -802,6 +811,28 @@ function parseMarkdownBlockToDocxNodes(
             sizeHalfPt: 28,
             bold: true,
           }),
+        })
+      );
+      continue;
+    }
+
+    const isStudentTeacherBlock =
+      /^\*\*(Tayyorladi|Guruhi?|Vazifa berdi|Bajaruvchi|Ilmiy rahbar|Tekshirdi|Qabul qildi)\*\*/i.test(
+        trimmed
+      );
+
+    if (isCover && isStudentTeacherBlock) {
+      nodes.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          indent: { firstLine: 0, right: convertMillimetersToTwip(10) },
+          spacing: {
+            before: 40,
+            after: 40,
+            line: 300,
+            lineRule: LineRuleType.AUTO,
+          },
+          children: parseInlineMarkdownToRuns(trimmed, { sizeHalfPt: 26 }),
         })
       );
       continue;

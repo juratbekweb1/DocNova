@@ -809,8 +809,15 @@ export function generateDeterministicAmaliyIsh(
       fCritical: p2Anova.fCritical,
       pValue: p2Anova.pValue,
       alpha: 0.05,
-      decisionTitle: `F_kuz (${fmt(p2Anova.fObserved)}) > F_kr (${fmt(p2Anova.fCritical)}) ⇒ H₀ rad etiladi!`,
-      decisionExplanation: `df₁ = 2 va df₂ = 11 erkinlik darajalarida F_kr(0,05; 2; 11) = 3,9823 ga teng. Kuzatilgan F_kuz = ${fmt(p2Anova.fObserved)} > 3,9823 bo'lgani uchun bo'limlar kesimida xodimlarning qoniqish darajasida statistik ahamiyatli tafovut mavjud.`,
+      decisionTitle:
+        p2Anova.fObserved > p2Anova.fCritical
+          ? `F_kuz (${fmt(p2Anova.fObserved)}) > F_kr (${fmt(p2Anova.fCritical)}) ⇒ H₀ rad etiladi!`
+          : `F_kuz (${fmt(p2Anova.fObserved)}) ≤ F_kr (${fmt(p2Anova.fCritical)}) ⇒ H₀ rad etilmaydi (farq tasodifiy)!`,
+      decisionExplanation: `df₁ = 2 va df₂ = 11 erkinlik darajalarida F_kr(0,05; 2; 11) = ${fmt(p2Anova.fCritical)} ga teng. Kuzatilgan F_kuz = ${fmt(p2Anova.fObserved)} ${
+        p2Anova.fObserved > p2Anova.fCritical
+          ? `> ${fmt(p2Anova.fCritical)} bo'lgani uchun bo'limlar kesimida xodimlarning qoniqish darajasida statistik ahamiyatli tafovut mavjud.`
+          : `≤ ${fmt(p2Anova.fCritical)} bo'lgani uchun bo'limlar o'rtasidagi tafovut statistik jihatdan tasodifiy deb baholanadi.`
+      }`,
     },
     stepE: {
       heading: "e) Omil kuchi (η²) va HR-boshqaruv xulosasi",
@@ -993,8 +1000,24 @@ export function generateDeterministicAmaliyIsh(
       fCritical: p3Anova.fCritRow,
       pValue: "< 0.0001",
       alpha: 0.05,
-      decisionTitle: `A omil: F_A (${fmt(p3Anova.fRow)}) > F_kr (${fmt(p3Anova.fCritRow)}) ⇒ H₀ᴬ rad etiladi; B omil: F_B (${fmt(p3Anova.fCol)}) > F_kr (${fmt(p3Anova.fCritCol)}) ⇒ H₀ᴮ rad etiladi!`,
-      decisionExplanation: `1) Smena omili (A) bo'yicha F_A = ${fmt(p3Anova.fRow)} > F_kr(0,05; 2; 6) = 5,1433 bo'lgani uchun smena rejimi unumdorlikka statistik ahamiyatli ta'sir qiladi. 2) Malaka toifasi (B) bo'yicha F_B = ${fmt(p3Anova.fCol)} > F_kr(0,05; 3; 6) = 4,7571 bo'lgani sababli xodimlarning malaka toifasi ham unumdorlikka juda kuchli statistik ta'sir ko'rsatadi.`,
+      decisionTitle: `A omil: ${
+        p3Anova.fRow > p3Anova.fCritRow
+          ? `F_A (${fmt(p3Anova.fRow)}) > F_kr (${fmt(p3Anova.fCritRow)}) ⇒ H₀ᴬ rad etiladi`
+          : `F_A (${fmt(p3Anova.fRow)}) ≤ F_kr (${fmt(p3Anova.fCritRow)}) ⇒ H₀ᴬ rad etilmaydi`
+      }; B omil: ${
+        p3Anova.fCol > p3Anova.fCritCol
+          ? `F_B (${fmt(p3Anova.fCol)}) > F_kr (${fmt(p3Anova.fCritCol)}) ⇒ H₀ᴮ rad etiladi`
+          : `F_B (${fmt(p3Anova.fCol)}) ≤ F_kr (${fmt(p3Anova.fCritCol)}) ⇒ H₀ᴮ rad etilmaydi`
+      }!`,
+      decisionExplanation: `1) Smena omili (A) bo'yicha F_A = ${fmt(p3Anova.fRow)} ${
+        p3Anova.fRow > p3Anova.fCritRow
+          ? `> F_kr(0,05; 2; 6) = ${fmt(p3Anova.fCritRow)} bo'lgani uchun smena rejimi unumdorlikka statistik ahamiyatli ta'sir qiladi.`
+          : `≤ F_kr(0,05; 2; 6) = ${fmt(p3Anova.fCritRow)} bo'lib uning ta'siri tasodifiy farqdan iborat.`
+      } 2) Malaka toifasi (B) bo'yicha F_B = ${fmt(p3Anova.fCol)} ${
+        p3Anova.fCol > p3Anova.fCritCol
+          ? `> F_kr(0,05; 3; 6) = ${fmt(p3Anova.fCritCol)} bo'lgani sababli xodimlarning malaka toifasi ham unumdorlikka juda kuchli statistik ta'sir ko'rsatadi.`
+          : `≤ F_kr(0,05; 3; 6) = ${fmt(p3Anova.fCritCol)} bo'lib uning ta'siri statistik jihatdan tasodifiy hisoblanadi.`
+      }`,
     },
     stepE: {
       heading: "e) Omillar ulushi (η_A², η_B²) va iqtisodiy talqin",
@@ -1202,8 +1225,24 @@ export function generateDeterministicAmaliyIsh(
       fCritical: p1Anova.fCritical,
       pValue: p1Anova.pValue,
       alpha: 0.05,
-      decisionTitle: `ANOVA jadvalidagi barcha kataklar tiklandi: F_kuz (${fmt(p1Anova.fObserved)}) > F_kr (${fmt(p1Anova.fCritical)}) hamda LSD = ${fmt(lsdVal)} chegarasiga ko'ra barcha guruhlararo farqlar statistik ahamiyatli!`,
-      decisionExplanation: `1) Tiklangan ANOVA jadvalida hisoblangan F_kuz = ${fmt(p1Anova.fObserved)} qiymati F_kr(0,05; 2; 12) = ${fmt(p1Anova.fCritical)} kritik qiymatidan katta bo'lgani sababli H₀ rad etiladi (smenalar bo'yicha unumdorlik teng emas). 2) Post-hoc Fisher LSD tahlili ko'rsatkichlari: |x̄₁ − x̄₂| = ${fmt(diff12)} > ${fmt(lsdVal)}, |x̄₁ − x̄₃| = ${fmt(diff13)} > ${fmt(lsdVal)}, va |x̄₂ − x̄₃| = ${fmt(diff23)} > ${fmt(lsdVal)}. Demak, har bir smena juftligidagi tafovutlar tasodifiy xatolik chegarasidan tashqarida bo'lib, statistik jihatdan ishonchli va yuqori ahamiyatga ega.`,
+      decisionTitle: `ANOVA jadvalidagi barcha kataklar tiklandi: F_kuz (${fmt(p1Anova.fObserved)}) ${
+        p1Anova.fObserved > p1Anova.fCritical
+          ? `> F_kr (${fmt(p1Anova.fCritical)})`
+          : `≤ F_kr (${fmt(p1Anova.fCritical)})`
+      } hamda LSD = ${fmt(lsdVal)} chegarasiga ko'ra ${
+        diff12 > lsdVal && diff13 > lsdVal && diff23 > lsdVal
+          ? "barcha guruhlararo farqlar statistik ahamiyatli!"
+          : "aniqlangan farqlar qisman statistik ahamiyatga ega."
+      }`,
+      decisionExplanation: `1) Tiklangan ANOVA jadvalida hisoblangan F_kuz = ${fmt(p1Anova.fObserved)} qiymati F_kr(0,05; 2; 12) = ${fmt(p1Anova.fCritical)} kritik qiymatidan ${
+        p1Anova.fObserved > p1Anova.fCritical
+          ? "katta bo'lgani sababli H₀ rad etiladi (smenalar bo'yicha unumdorlik teng emas)."
+          : "kichik bo'lgani sababli H₀ rad etilmaydi."
+      } 2) Post-hoc Fisher LSD tahlili ko'rsatkichlari: |x̄₁ − x̄₂| = ${fmt(diff12)} (${diff12 > lsdVal ? ">" : "≤"} ${fmt(lsdVal)}), |x̄₁ − x̄₃| = ${fmt(diff13)} (${diff13 > lsdVal ? ">" : "≤"} ${fmt(lsdVal)}), va |x̄₂ − x̄₃| = ${fmt(diff23)} (${diff23 > lsdVal ? ">" : "≤"} ${fmt(lsdVal)}). Demak, ${
+        diff12 > lsdVal && diff13 > lsdVal && diff23 > lsdVal
+          ? "har bir smena juftligidagi tafovutlar tasodifiy xatolik chegarasidan tashqarida bo'lib, statistik jihatdan ishonchli va yuqori ahamiyatga ega."
+          : "faqat LSD dan oshgan juftliklar bo'yicha farqlar statistik ahamiyatli hisoblanadi."
+      }`,
     },
     stepE: {
       heading:
@@ -1239,103 +1278,128 @@ export function generateDeterministicAmaliyIsh(
     }, 0)
   );
 
+  const p1GroupCount = p1Groups.length;
+  const lastColLetter = String.fromCharCode(65 + p1GroupCount);
+  const summaryCol = String.fromCharCode(65 + p1GroupCount + 1);
+  const lastDataRow = 1 + p1MaxCols;
+  const sumRow = lastDataRow + 2;
+  const meanRow = sumRow + 1;
+  const varRow = meanRow + 1;
+  const devsqRow = varRow + 1;
+  const ssTotalRow = devsqRow + 1;
+  const ssWithinRow = ssTotalRow + 1;
+  const ssBetweenRow = ssWithinRow + 1;
+  const fObsRow = ssBetweenRow + 1;
+  const fCritRow = fObsRow + 1;
+  const pValRow = fCritRow + 1;
+  const etaRow = pValRow + 1;
+  const tCritRow = etaRow + 1;
+  const lsdRow = tCritRow + 1;
+
+  const firstGroupRange = `B2:B${lastDataRow}`;
+  const allDataRange = `B2:${lastColLetter}${lastDataRow}`;
+  const sumRange = `B${sumRow}:${lastColLetter}${sumRow}`;
+  const meanRange = `B${meanRow}:${lastColLetter}${meanRow}`;
+  const varRange = `B${varRow}:${lastColLetter}${varRow}`;
+  const devsqRange = `B${devsqRow}:${lastColLetter}${devsqRow}`;
+
   const excelFormulas: AmaliyIshExcelRow[] = [
     {
-      cell: "B8:D8",
+      cell: sumRange,
       indicator: "Guruhlar yig'indisi (Tⱼ)",
-      formulaEn: "=SUM(B2:B6)",
-      formulaRu: "=СУММ(B2:B6)",
+      formulaEn: `=SUM(${firstGroupRange})`,
+      formulaRu: `=СУММ(${firstGroupRange})`,
       result: p1Anova.groupStats.map((g) => fmt(g.sum)).join("; "),
     },
     {
-      cell: "B9:D9",
+      cell: meanRange,
       indicator: "Guruhlar o'rtachasi (x̄ⱼ)",
-      formulaEn: "=AVERAGE(B2:B6)",
-      formulaRu: "=СРЗНАЧ(B2:B6)",
+      formulaEn: `=AVERAGE(${firstGroupRange})`,
+      formulaRu: `=СРЗНАЧ(${firstGroupRange})`,
       result: p1Anova.groupStats.map((g) => fmt(g.mean)).join("; "),
     },
     {
-      cell: "B10:D10",
+      cell: varRange,
       indicator: "Tanlanma dispersiya (sⱼ²)",
-      formulaEn: "=VAR.S(B2:B6)",
-      formulaRu: "=ДИСП.В(B2:B6)",
+      formulaEn: `=VAR.S(${firstGroupRange})`,
+      formulaRu: `=ДИСП.В(${firstGroupRange})`,
       result: p1Anova.groupStats.map((g) => fmt(g.variance)).join("; "),
     },
     {
-      cell: "B11:D11",
+      cell: devsqRange,
       indicator: "Guruh ichidagi kv. chetlanish",
-      formulaEn: "=DEVSQ(B2:B6)",
-      formulaRu: "=КВАДРОТКЛ(B2:B6)",
+      formulaEn: `=DEVSQ(${firstGroupRange})`,
+      formulaRu: `=КВАДРОТКЛ(${firstGroupRange})`,
       result: p1Anova.groupStats.map((g) => fmt(g.ssWithin)).join("; "),
     },
     {
-      cell: "E9",
+      cell: `${summaryCol}${meanRow}`,
       indicator: "Umumiy o'rtacha (X̄)",
-      formulaEn: "=AVERAGE(B2:D6)",
-      formulaRu: "=СРЗНАЧ(B2:D6)",
+      formulaEn: `=AVERAGE(${allDataRange})`,
+      formulaRu: `=СРЗНАЧ(${allDataRange})`,
       result: fmt(p1Anova.grandMean),
     },
     {
-      cell: "E12",
+      cell: `${summaryCol}${ssTotalRow}`,
       indicator: "Umumiy kv. chetlanish (SS_umumiy)",
-      formulaEn: "=DEVSQ(B2:D6)",
-      formulaRu: "=КВАДРОТКЛ(B2:D6)",
+      formulaEn: `=DEVSQ(${allDataRange})`,
+      formulaRu: `=КВАДРОТКЛ(${allDataRange})`,
       result: fmt(p1Anova.ssTotal),
     },
     {
-      cell: "E13",
+      cell: `${summaryCol}${ssWithinRow}`,
       indicator: "Guruh ichidagi SS (SS_qoldiq)",
-      formulaEn: "=SUM(B11:D11)",
-      formulaRu: "=СУММ(B11:D11)",
+      formulaEn: `=SUM(${devsqRange})`,
+      formulaRu: `=СУММ(${devsqRange})`,
       result: fmt(p1Anova.ssWithin),
     },
     {
-      cell: "E14",
+      cell: `${summaryCol}${ssBetweenRow}`,
       indicator: "Guruhlararo SS (SS_omil)",
-      formulaEn: "=E12-E13",
-      formulaRu: "=E12-E13",
+      formulaEn: `=${summaryCol}${ssTotalRow}-${summaryCol}${ssWithinRow}`,
+      formulaRu: `=${summaryCol}${ssTotalRow}-${summaryCol}${ssWithinRow}`,
       result: fmt(p1Anova.ssBetween),
     },
     {
-      cell: "E15",
+      cell: `${summaryCol}${fObsRow}`,
       indicator: "Kuzatilgan Fisher mezoni (F_kuz)",
-      formulaEn: `=(E14/${p1Anova.dfBetween})/(E13/${p1Anova.dfWithin})`,
-      formulaRu: `=(E14/${p1Anova.dfBetween})/(E13/${p1Anova.dfWithin})`,
+      formulaEn: `=(${summaryCol}${ssBetweenRow}/${p1Anova.dfBetween})/(${summaryCol}${ssWithinRow}/${p1Anova.dfWithin})`,
+      formulaRu: `=(${summaryCol}${ssBetweenRow}/${p1Anova.dfBetween})/(${summaryCol}${ssWithinRow}/${p1Anova.dfWithin})`,
       result: fmt(p1Anova.fObserved),
     },
     {
-      cell: "E16",
+      cell: `${summaryCol}${fCritRow}`,
       indicator: "Kritik Fisher qiymati (F_kr, α=0.05)",
       formulaEn: `=F.INV.RT(0.05, ${p1Anova.dfBetween}, ${p1Anova.dfWithin})`,
-      formulaRu: `=F.ОБР.ПХ(0,05; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
+      formulaRu: `=Ф.ОБР.ПХ(0,05; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
       result: fmt(p1Anova.fCritical),
     },
     {
-      cell: "E17",
+      cell: `${summaryCol}${pValRow}`,
       indicator: "Ehtimollik darajasi (p-qiymat)",
-      formulaEn: `=F.DIST.RT(E15, ${p1Anova.dfBetween}, ${p1Anova.dfWithin})`,
-      formulaRu: `=F.РАСП.ПХ(E15; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
+      formulaEn: `=F.DIST.RT(${summaryCol}${fObsRow}, ${p1Anova.dfBetween}, ${p1Anova.dfWithin})`,
+      formulaRu: `=Ф.РАСП.ПХ(${summaryCol}${fObsRow}; ${p1Anova.dfBetween}; ${p1Anova.dfWithin})`,
       result: p1Anova.pValue,
     },
     {
-      cell: "E18",
+      cell: `${summaryCol}${etaRow}`,
       indicator: "Omil ta'sir kuchi (η² %)",
-      formulaEn: `=(E14/E12)*100`,
-      formulaRu: `=(E14/E12)*100`,
+      formulaEn: `=(${summaryCol}${ssBetweenRow}/${summaryCol}${ssTotalRow})*100`,
+      formulaRu: `=(${summaryCol}${ssBetweenRow}/${summaryCol}${ssTotalRow})*100`,
       result: `${fmt(p1Anova.etaSquared, 2)}%`,
     },
     {
-      cell: "E19",
+      cell: `${summaryCol}${tCritRow}`,
       indicator: "Kritik t-Student chegarasi (LSD, α=0.05)",
       formulaEn: `=T.INV.2T(0.05, ${p1Anova.dfWithin})`,
       formulaRu: `=СТЬЮДЕНТ.ОБР.2Х(0,05; ${p1Anova.dfWithin})`,
       result: fmt(tCrit),
     },
     {
-      cell: "E20",
+      cell: `${summaryCol}${lsdRow}`,
       indicator: "Fisher LSD kritik chegarasi",
-      formulaEn: `=E19*SQRT(E13/${p1Anova.dfWithin}*(1/5+1/5))`,
-      formulaRu: `=E19*КОРЕНЬ(E13/${p1Anova.dfWithin}*(1/5+1/5))`,
+      formulaEn: `=${summaryCol}${tCritRow}*SQRT(${summaryCol}${ssWithinRow}/${p1Anova.dfWithin}*(1/${g1.n}+1/${g2.n}))`,
+      formulaRu: `=${summaryCol}${tCritRow}*КОРЕНЬ(${summaryCol}${ssWithinRow}/${p1Anova.dfWithin}*(1/${g1.n}+1/${g2.n}))`,
       result: fmt(lsdVal),
     },
   ];
@@ -1751,18 +1815,18 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
 <body>
   <div class="WordSection1">
     <!-- TITUL VARAG'I -->
-    <div style="text-align:center;min-height:740pt;padding:12pt 0;font-family:'Times New Roman',serif;">
+    <div style="text-align:center;padding:16pt 0;font-family:'Times New Roman',serif;">
       <p style="font-size:11pt;font-weight:bold;letter-spacing:0.5pt;margin:0 0 6pt 0;text-transform:uppercase;">
         ${escapeHtml(doc.meta.ministry)}
       </p>
       <p style="font-size:13.5pt;font-weight:bold;color:#000000;margin:0 0 4pt 0;text-transform:uppercase;">
         ${escapeHtml(doc.meta.university)}
       </p>
-      <p style="font-size:11pt;font-style:italic;color:#334155;margin:0 0 36pt 0;">
+      <p style="font-size:11pt;font-style:italic;color:#334155;margin:0 0 24pt 0;">
         ${escapeHtml(doc.meta.department)}
       </p>
 
-      <div style="margin:40pt 0 24pt 0;">
+      <div style="margin:28pt 0 18pt 0;">
         <p style="font-size:12pt;font-weight:bold;margin:0 0 8pt 0;text-transform:uppercase;">
           «${escapeHtml(doc.meta.subject)}» FANIDAN
         </p>
@@ -1774,12 +1838,12 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
         </p>
       </div>
 
-      <div style="margin:28pt auto 36pt auto;text-align:center;width:90%;font-size:11.5pt;line-height:1.6;">
+      <div style="margin:20pt auto 24pt auto;text-align:center;width:90%;font-size:11.5pt;line-height:1.6;">
         <p style="margin:4pt 0;"><b>Mavzu:</b> ${escapeHtml(doc.meta.topic)}</p>
         <p style="margin:4pt 0;color:#1e293b;"><b>Vaziyat:</b> ${escapeHtml(doc.meta.situation)}</p>
       </div>
 
-      <table style="width:55%;margin:40pt 0 40pt auto;border-collapse:collapse;font-size:11.5pt;font-family:'Times New Roman',serif;">
+      <table style="width:55%;margin:28pt 0 28pt auto;border-collapse:collapse;font-size:11.5pt;font-family:'Times New Roman',serif;">
         <tr>
           <td style="text-align:left;padding:5pt 0;width:45%;"><b>Tayyorladi:</b></td>
           <td style="text-align:right;padding:5pt 0;border-bottom:1pt solid #000000;">${escapeHtml(doc.meta.studentName)}</td>
@@ -1794,7 +1858,7 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
         </tr>
       </table>
 
-      <p style="font-size:12pt;font-weight:bold;margin-top:70pt;text-align:center;">
+      <p style="font-size:12pt;font-weight:bold;margin-top:40pt;text-align:center;">
         ${escapeHtml(doc.meta.city)} – ${escapeHtml(doc.meta.year)}
       </p>
     </div>
