@@ -110,7 +110,7 @@ body {
   outline: none !important;
 }
 
-/* Full-width continuous starfield dots pattern across 100% of screen */
+/* Subtle, modest ambient top light across all pages */
 body::before {
   content: "";
   position: fixed;
@@ -119,56 +119,19 @@ body::before {
   height: 100vh;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(#38bdf8 1px, transparent 1px);
-  background-size: 42px 42px;
-  opacity: 0.05;
+  background-image:
+    radial-gradient(ellipse 80% 45% at 50% -5%, rgba(14, 165, 233, 0.08) 0%, transparent 75%),
+    radial-gradient(circle at 18% 25%, rgba(59, 130, 246, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 82% 25%, rgba(99, 102, 241, 0.04) 0%, transparent 50%);
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
 .dark body::before {
-  opacity: 0.14;
-}
-
-/* ------------------------------------------------------------------
-   Academic 3D background (AcademicBackground3D)
-   GPU-friendly: transform-only animations, no blur filters
-   ------------------------------------------------------------------ */
-.acad-grid-floor {
-  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 80%);
-  mask-image: linear-gradient(to top, #000 15%, transparent 80%);
-  backface-visibility: hidden;
-}
-
-.acad-float {
-  transform: translate3d(0, 0, 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transform-style: preserve-3d;
-  animation-name: acad-float;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  will-change: transform;
-  opacity: 0.55;
-}
-
-.dark .acad-float {
-  opacity: 0.6;
-}
-
-@keyframes acad-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  }
-  50% {
-    transform: translate3d(0, -14px, 0) rotateX(var(--rx, 0deg))
-      rotateY(calc(var(--ry, 0deg) + 10deg));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .acad-float {
-    animation: none !important;
-  }
+  background-image:
+    radial-gradient(ellipse 80% 45% at 50% -5%, rgba(56, 189, 248, 0.13) 0%, transparent 75%),
+    radial-gradient(circle at 18% 25%, rgba(37, 99, 235, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 82% 25%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
 }
 
 /* Limit maximum backdrop blur intensity globally to prevent GPU shader memory stalls */
