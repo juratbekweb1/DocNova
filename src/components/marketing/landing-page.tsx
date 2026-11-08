@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/providers/language-provider";
 import { PricingSection } from "./pricing-section";
 import { HeroFeaturesBar } from "./hero-features-bar";
 import { ServicesGridSection } from "./services-grid-section";
+import { AcademicBackground3D } from "./academic-background-3d";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -25,15 +26,7 @@ const structuredData = {
   },
 };
 
-const AnimatedBackground = () => (
-  <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#f8fafc] transition-colors duration-300 dark:bg-[#020817]">
-    {/* Full-viewport cosmic radial aura — zero box boundaries, seamless 100% width */}
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(14,165,233,0.12)_0%,rgba(56,189,248,0.04)_45%,transparent_80%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(14,165,233,0.22)_0%,rgba(37,99,235,0.08)_45%,transparent_80%)]" />
-
-    {/* Full-viewport ambient side & center radial washes without bounded boxes or blur clipping */}
-    <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.08)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.08)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.05)_0%,transparent_60%)] md:block dark:bg-[radial-gradient(circle_at_80%_15%,rgba(34,211,238,0.12)_0%,transparent_55%),radial-gradient(circle_at_20%_25%,rgba(29,78,216,0.12)_0%,transparent_55%),radial-gradient(circle_at_50%_50%,rgba(8,145,178,0.07)_0%,transparent_60%)]" />
-  </div>
-);
+const AnimatedBackground = () => <AcademicBackground3D />;
 
 const FaqItem = ({ faq }: { faq: { question: string; answer: string } }) => {
   const [isOpen, setIsOpen] = useState(false);

@@ -130,6 +130,47 @@ body::before {
   opacity: 0.14;
 }
 
+/* ------------------------------------------------------------------
+   Academic 3D background (AcademicBackground3D)
+   GPU-friendly: transform-only animations, no blur filters
+   ------------------------------------------------------------------ */
+.acad-grid-floor {
+  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+  mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+  backface-visibility: hidden;
+}
+
+.acad-float {
+  transform: translate3d(0, 0, 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  animation-name: acad-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+  opacity: 0.55;
+}
+
+.dark .acad-float {
+  opacity: 0.6;
+}
+
+@keyframes acad-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) rotateX(var(--rx, 0deg))
+      rotateY(calc(var(--ry, 0deg) + 10deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acad-float {
+    animation: none !important;
+  }
+}
+
 /* Limit maximum backdrop blur intensity globally to prevent GPU shader memory stalls */
 .backdrop-blur-3xl,
 .backdrop-blur-2xl,
