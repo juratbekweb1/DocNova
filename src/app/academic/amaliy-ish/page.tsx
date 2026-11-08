@@ -58,13 +58,13 @@ const UNIVERSITY_PRESETS = [
 
 const AmaliyDataTable = React.memo(function AmaliyDataTable({ table }: { table: AmaliyIshTable }) {
   return (
-    <div className="my-3 overflow-x-auto">
+    <div className="my-3 break-inside-avoid overflow-x-auto print:break-inside-avoid print:overflow-visible">
       <div className="mb-1.5 text-xs font-bold text-slate-900 sm:text-sm print:text-black">
         {table.title}
       </div>
-      <table className="w-full border-collapse border border-slate-400 text-xs sm:text-[13px] print:border-black">
+      <table className="w-full border-collapse break-inside-avoid border border-slate-400 text-xs sm:text-[13px] print:break-inside-avoid print:border-black">
         <thead>
-          <tr className="bg-slate-100 print:bg-slate-100">
+          <tr className="break-inside-avoid bg-slate-100 print:break-inside-avoid print:bg-slate-100">
             {table.headers.map((h, i) => (
               <th
                 key={i}
@@ -84,9 +84,9 @@ const AmaliyDataTable = React.memo(function AmaliyDataTable({ table }: { table: 
             return (
               <tr
                 key={rIdx}
-                className={
+                className={`break-inside-avoid print:break-inside-avoid ${
                   isSummaryRow ? "bg-slate-50 font-bold text-slate-950" : "even:bg-slate-50/50"
-                }
+                }`}
               >
                 {row.map((cell, cIdx) => (
                   <td
@@ -737,7 +737,7 @@ export default function AmaliyIshPage() {
       const res = await fetch("/api/ai/amaliy-ish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, useAi: true }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.document) {
@@ -805,6 +805,7 @@ export default function AmaliyIshPage() {
         university: doc.meta.university,
         studentName: `${doc.meta.studentName} (${doc.meta.studentGroup})`,
         teacherName: doc.meta.teacherName,
+        language: doc.meta.language === "ru" ? "ru" : doc.meta.language === "en" ? "en" : "uz",
       });
 
       if (exported.deliveryMethod !== "cancelled") {
@@ -1230,17 +1231,26 @@ export default function AmaliyIshPage() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 18mm 15mm 18mm 22mm;
+            margin: 20mm 15mm 20mm 30mm;
           }
           body {
             background-color: white !important;
             color: black !important;
+            font-family: "Times New Roman", Times, serif !important;
           }
           header,
           nav,
           footer,
           .print\\:hidden {
             display: none !important;
+          }
+          table {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>

@@ -54,7 +54,7 @@ const ExportDocxSchema = z.object({
   faculty: z.string().max(250).optional(),
   studentName: z.string().max(150).optional().default("Talaba"),
   teacherName: z.string().max(150).optional(),
-  language: z.enum(["uz", "uz-cyrl", "ru"]).optional().default("uz"),
+  language: z.enum(["uz", "uz-cyrl", "ru", "en"]).optional().default("uz"),
   year: z.union([z.string(), z.number()]).optional(),
   documentId: z.string().max(100).optional(),
   includeQrVerification: z.boolean().optional().default(false),
@@ -94,8 +94,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(entry.buffer), {
     status: 200,
     headers: {
-      "Content-Type":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="${asciiFileName}"; filename*=UTF-8''${utf8FileName}`,
       "Content-Length": String(entry.buffer.byteLength),
       "Cache-Control": "private, no-transform, no-store, max-age=0",
@@ -168,8 +167,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse(new Uint8Array(exported.buffer), {
       status: 200,
       headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${asciiFileName}"; filename*=UTF-8''${utf8FileName}`,
         "Content-Length": String(exported.buffer.byteLength),
         "Cache-Control": "private, no-transform, no-store, max-age=0",

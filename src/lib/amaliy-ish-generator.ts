@@ -2062,7 +2062,7 @@ function renderHtmlTableForWord(t: AmaliyIshTable): string {
   const ths = t.headers
     .map(
       (h) =>
-        `<th style="border:1pt solid #1e293b;background:#e2e8f0;padding:6pt 8pt;font-size:10.5pt;font-weight:bold;text-align:center;color:#0f172a;">${escapeHtml(h)}</th>`
+        `<th style="border:1pt solid #1e293b;background:#e2e8f0;padding:6pt 8pt;font-size:11pt;font-weight:bold;text-align:center;color:#0f172a;">${escapeHtml(h)}</th>`
     )
     .join("");
   const trs = t.rows
@@ -2071,17 +2071,17 @@ function renderHtmlTableForWord(t: AmaliyIshTable): string {
       const tds = r
         .map(
           (cell, cIdx) =>
-            `<td style="border:1pt solid #334155;padding:5pt 7pt;font-size:10.5pt;text-align:${cIdx === 0 ? "left" : "center"};${isLastTotal ? "font-weight:bold;background:#f8fafc;" : ""}">${escapeHtml(cell)}</td>`
+            `<td style="border:1pt solid #334155;padding:5pt 7pt;font-size:11pt;text-align:${cIdx === 0 ? "left" : "center"};${isLastTotal ? "font-weight:bold;background:#f8fafc;" : ""}">${escapeHtml(cell)}</td>`
         )
         .join("");
-      return `<tr>${tds}</tr>`;
+      return `<tr style="page-break-inside:avoid;mso-pagination:lines-together;">${tds}</tr>`;
     })
     .join("");
 
   return `
-    <p style="margin:10pt 0 4pt 0;font-weight:bold;font-size:11pt;color:#0f172a;">${escapeHtml(t.title)}</p>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:10pt;font-family:'Times New Roman',serif;">
-      <thead><tr>${ths}</tr></thead>
+    <p style="margin:10pt 0 4pt 0;font-weight:bold;font-size:11.5pt;color:#0f172a;text-indent:0;page-break-after:avoid;">${escapeHtml(t.title)}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10pt;font-family:'Times New Roman',serif;page-break-inside:avoid;mso-pagination:lines-together;">
+      <thead><tr style="page-break-inside:avoid;mso-pagination:lines-together;">${ths}</tr></thead>
       <tbody>${trs}</tbody>
     </table>
   `;
@@ -2137,46 +2137,46 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
         <h2 style="font-size:14pt;font-weight:bold;color:#0f172a;border-bottom:1.5pt solid #1e3a8a;padding-bottom:4pt;margin-bottom:8pt;">
           ${escapeHtml(p.title)} (${escapeHtml(p.points)})
         </h2>
-        <p style="font-size:11.5pt;line-height:1.5;text-align:justify;margin-bottom:8pt;">
+        <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
           <b>Masala sharti:</b> ${escapeHtml(p.condition)}
         </p>
         ${renderHtmlTableForWord(p.initialTable)}
 
-        <h3 style="font-size:12pt;font-weight:bold;color:#1e3a8a;margin:10pt 0 4pt 0;">
+        <h3 style="font-size:13.5pt;font-weight:bold;color:#1e3a8a;margin:10pt 0 4pt 0;">
           Yechim:
         </h3>
 
-        <p style="font-size:11.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepA.heading)}</p>
-        <ul style="margin:4pt 0 8pt 18pt;font-size:11pt;line-height:1.45;">
+        <p style="font-size:13.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepA.heading)}</p>
+        <ul style="margin:4pt 0 8pt 18pt;font-size:13pt;line-height:1.45;">
           ${p.stepA.hypotheses.map((h) => `<li>${escapeHtml(h)}</li>`).join("")}
         </ul>
         ${renderHtmlTableForWord(p.stepA.helperTable)}
-        <p style="font-size:10.5pt;font-weight:bold;margin:4pt 0 2pt 0;">Qo'lda hisoblash ifodalari:</p>
-        <ul style="margin:2pt 0 8pt 18pt;font-size:10.5pt;font-family:'Courier New',monospace;">
+        <p style="font-size:11.5pt;font-weight:bold;margin:4pt 0 2pt 0;">Qo'lda hisoblash ifodalari:</p>
+        <ul style="margin:2pt 0 8pt 18pt;font-size:11pt;font-family:'Courier New',monospace;">
           ${p.stepA.manualSampleCalc.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}
         </ul>
 
-        <p style="font-size:11.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepB.heading)}</p>
+        <p style="font-size:13.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepB.heading)}</p>
         ${renderHtmlTableForWord(p.stepB.formulaTable)}
-        <p style="font-size:11pt;background:#f1f5f9;border-left:3pt solid #2563eb;padding:6pt 8pt;margin:6pt 0;">
+        <p style="font-size:12.5pt;background:#f1f5f9;border-left:3pt solid #2563eb;padding:6pt 8pt;margin:6pt 0;">
           <b>${escapeHtml(p.stepB.verificationEquality)}</b>
         </p>
 
-        <p style="font-size:11.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepC.heading)}</p>
+        <p style="font-size:13.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepC.heading)}</p>
         ${renderHtmlTableForWord(p.stepC.anovaTable)}
 
-        <p style="font-size:11.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepD.heading)}</p>
-        <p style="font-size:11pt;line-height:1.5;margin:4pt 0;">
+        <p style="font-size:13.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepD.heading)}</p>
+        <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin:4pt 0;">
           <b>Qaror:</b> ${escapeHtml(p.stepD.decisionTitle)}<br/>
           ${escapeHtml(p.stepD.decisionExplanation)}
         </p>
 
-        <p style="font-size:11.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepE.heading)}</p>
-        <p style="font-size:11pt;line-height:1.5;margin:4pt 0;">
+        <p style="font-size:13.5pt;font-weight:bold;margin:8pt 0 4pt 0;">${escapeHtml(p.stepE.heading)}</p>
+        <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin:4pt 0;">
           <b>Omil kuchi (η²):</b> ${escapeHtml(p.stepE.etaFormula)}<br/>
           <b>Iqtisodiy talqin:</b> ${escapeHtml(p.stepE.economicInterpretation)}
         </p>
-        <ul style="margin:4pt 0 8pt 18pt;font-size:11pt;line-height:1.45;">
+        <ul style="margin:4pt 0 8pt 18pt;font-size:13pt;line-height:1.45;">
           ${p.stepE.recommendations.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
         </ul>
         ${renderHtmlChartForWord(p.stepE.chart)}
@@ -2216,12 +2216,36 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
   <style>
     @page WordSection1 {
       size: 595.3pt 841.9pt;
-      margin: 56.7pt 42.5pt 56.7pt 70.85pt;
+      margin: 56.7pt 42.5pt 56.7pt 85.05pt;
+      mso-header-margin: 35.4pt;
+      mso-footer-margin: 35.4pt;
     }
     div.WordSection1 {
       page: WordSection1;
-      font-family: "Times New Roman", serif;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 14pt;
+      line-height: 1.5;
       color: #000000;
+    }
+    p, li, td, th {
+      font-family: "Times New Roman", Times, serif;
+    }
+    p.academic-para {
+      font-size: 14pt;
+      line-height: 1.5;
+      text-align: justify;
+      text-indent: 1.25cm;
+      margin: 0 0 6pt 0;
+      mso-pagination: widow-orphan;
+    }
+    table {
+      page-break-inside: avoid;
+      mso-pagination: lines-together;
+      border-collapse: collapse;
+    }
+    tr {
+      page-break-inside: avoid;
+      mso-pagination: lines-together;
     }
   </style>
 </head>
@@ -2251,12 +2275,12 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
         </p>
       </div>
 
-      <div style="margin:20pt auto 24pt auto;text-align:center;width:90%;font-size:11.5pt;line-height:1.6;">
+      <div style="margin:20pt auto 24pt auto;text-align:center;width:90%;font-size:12pt;line-height:1.6;">
         <p style="margin:4pt 0;"><b>Mavzu:</b> ${escapeHtml(doc.meta.topic)}</p>
         <p style="margin:4pt 0;color:#1e293b;"><b>Vaziyat:</b> ${escapeHtml(doc.meta.situation)}</p>
       </div>
 
-      <table style="width:55%;margin:28pt 0 28pt auto;border-collapse:collapse;font-size:11.5pt;font-family:'Times New Roman',serif;">
+      <table style="width:55%;margin:28pt 0 28pt auto;border-collapse:collapse;font-size:12pt;font-family:'Times New Roman',serif;">
         <tr>
           <td style="text-align:left;padding:5pt 0;width:45%;"><b>Tayyorladi:</b></td>
           <td style="text-align:right;padding:5pt 0;border-bottom:1pt solid #000000;">${escapeHtml(doc.meta.studentName)}</td>
@@ -2282,38 +2306,38 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
     <h1 style="font-size:16pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:14pt;text-transform:uppercase;">
       ${escapeHtml(doc.introduction.title)}
     </h1>
-    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+    <h3 style="font-size:13.5pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
       ${doc.meta.language === "ru" ? "Актуальность темы:" : doc.meta.language === "en" ? "Relevance of the Topic:" : "Mavzuning dolzarbligi:"}
     </h3>
-    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+    <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
       ${escapeHtml(doc.introduction.relevance)}
     </p>
 
-    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+    <h3 style="font-size:13.5pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
       ${doc.meta.language === "ru" ? "Цель работы:" : doc.meta.language === "en" ? "Purpose of Practical Work:" : "Amaliy ishning maqsadi:"}
     </h3>
-    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+    <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
       ${escapeHtml(doc.introduction.purpose)}
     </p>
 
-    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+    <h3 style="font-size:13.5pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
       ${doc.meta.language === "ru" ? "Основные задачи работы:" : doc.meta.language === "en" ? "Primary Tasks:" : "Amaliy ishning asosiy vazifalari:"}
     </h3>
-    <ul style="margin:4pt 0 8pt 24pt;font-size:12pt;line-height:1.5;">
+    <ul style="margin:4pt 0 8pt 24pt;font-size:14pt;line-height:1.5;">
       ${doc.introduction.tasks.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}
     </ul>
 
-    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+    <h3 style="font-size:13.5pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
       ${doc.meta.language === "ru" ? "Объект и предмет исследования:" : doc.meta.language === "en" ? "Object and Subject of Research:" : "Tadqiqot obyekti va predmeti:"}
     </h3>
-    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+    <p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
       ${escapeHtml(doc.introduction.objectAndSubject)}
     </p>
 
-    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+    <h3 style="font-size:13.5pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
       ${doc.meta.language === "ru" ? "Методы исследования:" : doc.meta.language === "en" ? "Applied Methods & Tools:" : "Qo'llanilgan metodlar va dasturiy vositalar:"}
     </h3>
-    <ul style="margin:4pt 0 8pt 24pt;font-size:12pt;line-height:1.5;">
+    <ul style="margin:4pt 0 8pt 24pt;font-size:14pt;line-height:1.5;">
       ${doc.introduction.methods.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}
     </ul>
 
@@ -2326,7 +2350,7 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
     ${doc.theorySection.paragraphs
       .map(
         (p) =>
-          `<p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">${escapeHtml(p)}</p>`
+          `<p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">${escapeHtml(p)}</p>`
       )
       .join("")}
 
@@ -2415,16 +2439,16 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
     </h1>
     ${renderHtmlTableForWord(doc.summarySection.comparisonTable)}
 
-    <p style="font-size:12pt;font-weight:bold;margin:10pt 0 4pt 0;">Ilmiy-amaliy xulosalar:</p>
+    <p style="font-size:13.5pt;font-weight:bold;margin:10pt 0 4pt 0;">Ilmiy-amaliy xulosalar:</p>
     ${doc.summarySection.conclusions
       .map(
         (c) =>
-          `<p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin:4pt 0;">${escapeHtml(c)}</p>`
+          `<p style="font-size:14pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin:4pt 0;">${escapeHtml(c)}</p>`
       )
       .join("")}
 
-    <p style="font-size:12pt;font-weight:bold;margin:10pt 0 4pt 0;">Boshqaruv uchun amaliy tavsiyalar:</p>
-    <ul style="margin:4pt 0 12pt 24pt;font-size:12pt;line-height:1.5;">
+    <p style="font-size:13.5pt;font-weight:bold;margin:10pt 0 4pt 0;">Boshqaruv uchun amaliy tavsiyalar:</p>
+    <ul style="margin:4pt 0 12pt 24pt;font-size:13.5pt;line-height:1.5;">
       ${doc.summarySection.practicalRecommendations.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
     </ul>
 
@@ -2440,7 +2464,7 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
             : "FOYDALANILGAN ADABIYOTLAR RO'YXATI"
       }
     </h1>
-    <ol style="margin:4pt 0 12pt 24pt;font-size:11.5pt;line-height:1.6;">
+    <ol style="margin:4pt 0 12pt 24pt;font-size:13pt;line-height:1.6;">
       ${doc.references.map((r) => `<li style="margin-bottom:4pt;">${escapeHtml(r.replace(/^\d+\.\s*/, ""))}</li>`).join("")}
     </ol>
   </div>

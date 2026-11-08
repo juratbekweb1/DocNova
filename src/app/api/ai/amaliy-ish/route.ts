@@ -17,6 +17,7 @@ interface AiAmaliyEnrichment {
     purpose?: string;
     tasks?: string[];
     objectAndSubject?: string;
+    methods?: string[];
   };
   theoreticalSummary?: string;
   problem1Condition?: string;
@@ -98,9 +99,10 @@ export async function POST(req: NextRequest) {
 
     const document = generateDeterministicAmaliyIsh(cleanInput);
 
-    // AI enrichment for custom topics/subjects/languages or when explicitly requested
+    // AI enrichment for custom topics/subjects/languages, non-default variants, or when explicitly requested
     const isDefault18 =
       (cleanInput.language || "uz") === "uz" &&
+      Boolean(cleanInput.variant?.toLowerCase().includes("18")) &&
       cleanInput.topic?.toLowerCase().includes("bir omilli va ikki omilli dispersion tahlil") &&
       cleanInput.situation?.toLowerCase().includes("ishlab chiqarish smenalari") &&
       !cleanInput.customProblemText &&
@@ -116,9 +118,11 @@ export async function POST(req: NextRequest) {
               ? "ingliz tilida (in English)"
               : "o'zbek tilida";
 
-        const prompt = `Siz O‘zbekiston Respublikasi Oliy ta’lim, fan va innovatsiyalar vazirligi standartlari (Toshkent davlat iqtisodiyot universiteti - TDIU, Toshkent to‘qimachilik va yengil sanoat instituti - TTESI, O‘zbekiston Milliy universiteti - O‘zMU) bo‘yicha tajribali professor, akademik muharrir va iqtisodiy-statistik tahlil ekspertisiz.
+        const prompt = `Siz O‘zbekiston Respublikasi Oliy ta’lim, fan va innovatsiyalar vazirligi davlat ta’lim standartlari (Toshkent davlat iqtisodiyot universiteti — TDIU, Toshkent to‘qimachilik va yengil sanoat instituti — TTESI, O‘zbekiston Milliy universiteti — O‘zMU) bo‘yicha ekonometrika va iqtisodiy-statistik modellashtirish kafedrasi bosh professori hamda akademik muharririsiz.
 
-Bizning "Amaliy ish" (Practical Work) modulimiz uchun quyidagi parametrlar asosida professional, haqiqiy talaba yozadigan chuqur akademik matnlarni ${langName} tayyorlab, faqat toza JSON formatida qaytaring:
+Vazifangiz: Talabaning "Ekonometrika / Ma'lumotlar tahlili / Statistika" fani bo‘yicha amaliy ishini haqiqiy oliy bahoga (A/90-100 ball) loyiq, OTM kafedrasi talablariga to'liq javob beruvchi professional akademik tahlillar bilan ${langName} boyitish.
+
+AMALIY ISH PARAMETRLARI:
 - OTM: "${cleanInput.university}"
 - Kafedra: "${cleanInput.department}"
 - Fan: "${cleanInput.subject}"
@@ -130,20 +134,26 @@ Bizning "Amaliy ish" (Practical Work) modulimiz uchun quyidagi parametrlar asosi
 ${cleanInput.customProblemText ? `- Talaba kiritgan masala sharti: "${cleanInput.customProblemText}"` : ""}
 
 QAT'IY AKADEMIK TALABLAR:
-1. Akademik uslub: Matn O'zbekiston iqtisodiyoti, real sanoat korxonalari (to'qimachilik klasteri, mashinasozlik, oziq-ovqat, logistika, bank-moliya) amaliyoti va OTM uslubiy talablariga tayansin.
-2. Kirish qismi: Mavzuning dolzarbligi (dolzarblik, PF-6079 "Raqamli O'zbekiston-2030"), ishning maqsadi, 5 ta aniq vazifasi, tadqiqot obyekti va predmeti.
-3. Nazariy asos: Dispersion tahlil (ANOVA), Fisher F-mezoni, dispersiyalarning additivligi va LSD tahlilining matematik-iqtisodiy mohiyatini ilmiy tilda bayon qiling.
-4. Masalalar talqini: Har bir masala uchun O'zbekiston korxonalari misolida real keys sharti, chuqur iqtisodiy talqin va aniq boshqaruv takliflarini bering.
-5. Xulosa va tavsiyalar: Barcha masalalar natijalarini umumlashtiruvchi professional xulosalar hamda korxona rahbariyati uchun 3 ta amaliy tavsiya bering.
-6. Adabiyotlar: O'zbekiston OTMlarining amaldagi 5-6 ta rasmiy darsliklari va normativ hujjatlarini keltiring.
+1. Akademik ilmiy uslub: Matn rasmiy-ilmiy tilda, O'zbekiston Respublikasining me'yoriy-huquqiy bazasi (PF-6079 "Raqamli O'zbekiston – 2030" strategiyasi) va real ishlab chiqarish/iqtisodiyot korxonalari (to'qimachilik va yengil sanoat klasterlari, mashinasozlik, agrologistika, farmatsevtika, tijorat banklari) amaliyotiga tayansin.
+2. Kirish qismi (Introduction):
+   - Mavzuning dolzarbligi (O'zbekiston korxonalarida mahsulot sifatini boshqarish va mehnat unumdorligini oshirishda statistik modellashtirishning ahamiyati, 3-4 jumla);
+   - Amaliy ishning maqsadi (dispersion tahlil va MS Excel vositalarida omillarning natijaviy ko'rsatkichga ta'sirini baholash);
+   - 5 ta aniq vazifasi (boshlang'ich ma'lumotlarni shakllantirish, gipotezalarni tekshirish, ANOVA jadvalini qurish, Fisher mezonini hisoblash, boshqaruv qarorlarini ishlab chiqish);
+   - Tadqiqot obyekti va predmeti;
+   - Qo'llanilgan ilmiy metodlar va dasturiy vositalar (One-Way & Two-Way ANOVA, Fisher F-test, LSD juftlik taqqoslash, MS Excel Data Analysis).
+3. Nazariy-uslubiy asoslar: Dispersion tahlilning mohiyati, dispersiyalarning additivlik qoidasi (SS_total = SS_factor + SS_error), erkinlik darajalari (df), determinatsiya koeffitsiyenti (eta^2) va Fisher LSD chegarasining matematik ma'nosini ilmiy asoslab bering.
+4. Masalalar sharti va iqtisodiy talqini: Har bir masala uchun real o'quv qo'llanmalari darajasidagi mazmunli shart, har bir smena/guruh bo'yicha oraliq xulosa, Fisher mezoni asosidagi qat'iy statistik qaror va korxona rahbariyati uchun 2 tadan amaliy tavsiya bering.
+5. Yakuniy xulosalar va tavsiyalar: Barcha ${problemCount} ta masala bo'yicha ilmiy-amaliy umumlashtiruvchi xulosalar hamda korxona samaradorligini oshirish bo'yicha kamida 3 ta amaliy boshqaruv tavsiyasi bering.
+6. Adabiyotlar ro'yxati: O'zbekiston OTMlarida amalda qo'llanilayotgan darsliklar (Shodiyev, Berkinov, Xodiyev, Xurramov, Alimov), xorijiy adabiyotlar (Levin & Rubin, Montgomery) va normativ hujjatlardan 5-6 ta manba keltiring.
 
-Quyidagi JSON sxemasida javob qaytaring (faqat JSON, ortiqcha belgisiz):
+Faqat quyidagi toza JSON formatida javob bering (hech qanday qo'shimcha matnsiz):
 {
   "introduction": {
-    "relevance": "Mavzuning dolzarbligi (1-2 abzas, O'zbekiston iqtisodiyoti kontekstida)",
-    "purpose": "Amaliy ishning aniq akademik maqsadi",
+    "relevance": "Mavzuning dolzarbligi matni",
+    "purpose": "Amaliy ishning aniq maqsadi",
     "tasks": ["1-vazifa", "2-vazifa", "3-vazifa", "4-vazifa", "5-vazifa"],
-    "objectAndSubject": "Tadqiqot obyekti va predmeti"
+    "objectAndSubject": "Tadqiqot obyekti: ...; Tadqiqot predmeti: ...",
+    "methods": ["Dispersion tahlil (ANOVA)", "Fisher F-test va LSD kriteriysi", "MS Excel Data Analysis paketi"]
   },
   "theoreticalSummary": "Dispersion tahlilning nazariy va uslubiy asoslari bo'yicha ilmiy xulosa (1-2 abzas)",
   "problem1Condition": "1-masala sharti (bir omilli tahlil, 3 guruh x 5 kuzatuv, korxona smenalari misolida)",
@@ -161,11 +171,11 @@ Quyidagi JSON sxemasida javob qaytaring (faqat JSON, ortiqcha belgisiz):
   "conclusions": ["1-ilmiy xulosa", "2-ilmiy xulosa", "3-ilmiy xulosa", "4-ilmiy xulosa"],
   "practicalRecommendations": ["1-boshqaruv tavsiyasi", "2-boshqaruv tavsiyasi", "3-boshqaruv tavsiyasi"],
   "references": [
-    "1. Darslik / Hujjat 1",
-    "2. Darslik / Hujjat 2",
-    "3. Darslik / Hujjat 3",
-    "4. Darslik / Hujjat 4",
-    "5. Darslik / Hujjat 5"
+    "1. Darslik / Manba 1",
+    "2. Darslik / Manba 2",
+    "3. Darslik / Manba 3",
+    "4. Darslik / Manba 4",
+    "5. Darslik / Manba 5"
   ]
 }`;
 
@@ -188,6 +198,9 @@ Quyidagi JSON sxemasida javob qaytaring (faqat JSON, ortiqcha belgisiz):
           }
           if (data.introduction?.objectAndSubject) {
             document.introduction.objectAndSubject = data.introduction.objectAndSubject;
+          }
+          if (Array.isArray(data.introduction?.methods) && data.introduction.methods.length >= 2) {
+            document.introduction.methods = data.introduction.methods;
           }
           if (data.theoreticalSummary) {
             document.theorySection.paragraphs[0] = data.theoreticalSummary;

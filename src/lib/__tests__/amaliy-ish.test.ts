@@ -324,6 +324,10 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(wordHtml).toContain("I BOB: NAZARIY VA USLUBIY ASOSLAR");
     expect(wordHtml).toContain("FOYDALANILGAN ADABIYOTLAR");
     expect(wordHtml).toContain("text-indent:1.25cm");
+    expect(wordHtml).toContain("font-size:14pt");
+    expect(wordHtml).toContain("line-height:1.5");
+    expect(wordHtml).toContain("page-break-inside:avoid");
+    expect(wordHtml).toContain("mso-pagination:lines-together");
   });
 
   it("supports academic introduction and theory section localization for RU and EN", () => {
@@ -346,5 +350,29 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(enDoc.references.some((r) => r.includes("Pearson"))).toBe(true);
     expect(enDoc.markdown).toContain("## INTRODUCTION");
     expect(enDoc.markdown).toContain("LIST OF REFERENCES");
+  });
+
+  it("exports official OpenXML .docx in English (EN) without validation errors", async () => {
+    const enDoc = generateDeterministicAmaliyIsh({
+      variant: "18-variant",
+      language: "en",
+      problemCount: 4,
+    });
+
+    const docxResult = await generateAcademicDocx({
+      topic: `${enDoc.meta.topic} (${enDoc.meta.variant})`,
+      markdownContent: enDoc.markdown,
+      workType: "Practical Work",
+      subject: enDoc.meta.subject,
+      university: enDoc.meta.university,
+      studentName: enDoc.meta.studentName,
+      teacherName: enDoc.meta.teacherName,
+      language: "en",
+    });
+
+    expect(docxResult.buffer).toBeDefined();
+    expect(docxResult.buffer[0]).toBe(0x50);
+    expect(docxResult.buffer[1]).toBe(0x4b);
+    expect(docxResult.fileName.endsWith(".docx")).toBe(true);
   });
 });

@@ -53,7 +53,7 @@ export interface AcademicDocxExportInput {
   /** Ilmiy rahbar / O'qituvchi F.I.Sh. */
   teacherName?: string;
   /** Hujjat tili */
-  language?: "uz" | "uz-cyrl" | "ru";
+  language?: "uz" | "uz-cyrl" | "ru" | "en";
   /** O'quv yili */
   year?: string | number;
   /** Foydalanuvchi ID (agar avtorizatsiyadan o'tgan bo'lsa) */
@@ -78,7 +78,7 @@ export interface AcademicVerificationPayload {
   faculty?: string;
   studentName: string;
   teacherName?: string;
-  language: "uz" | "uz-cyrl" | "ru";
+  language: "uz" | "uz-cyrl" | "ru" | "en";
   pagesEstimate: number;
   wordCount: number;
   issuedAt: string;
@@ -578,9 +578,9 @@ function parseMarkdownBlockToDocxNodes(
       continue;
     }
 
-    // Agar "MUNDARIJA", "СОДЕРЖАНИЕ", "REJA", "KIRISH", "ВВЕДЕНИЕ", "AMALIY ISH" boshlansa, cover page tugagan bo'ladi
+    // Agar "MUNDARIJA", "СОДЕРЖАНИЕ", "REJA", "KIRISH", "ВВЕДЕНИЕ", "INTRODUCTION" boshlansa, cover page tugagan bo'ladi
     if (
-      /^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|МУНДАРИЖА|КИРИШ|AMALIY ISH)/i.test(
+      /^#{1,3}\s*(MUNDARIJA|REJA|СОДЕРЖАНИЕ|KIRISH|ВВЕДЕНИЕ|INTRODUCTION|МУНДАРИЖА|КИРИШ)\b/i.test(
         trimmed
       )
     ) {
@@ -669,7 +669,7 @@ function parseMarkdownBlockToDocxNodes(
       const h2Text = trimmed.slice(3).replace(/\*\*/g, "").trim();
       const isCenteredChapter =
         isCover ||
-        /^(MUNDARIJA|REJA|KIRISH|XULOSA|FOYDALANILGAN|СОДЕРЖАНИЕ|ВВЕДЕНИЕ|ЗАКЛЮЧЕНИЕ|СПИСОК|ГЛАВА|[I|V|X]+\s+BOB)/i.test(
+        /^(MUNDARIJA|REJA|KIRISH|XULOSA|FOYDALANILGAN|СОДЕРЖАНИЕ|ВВЕДЕНИЕ|ЗАКЛЮЧЕНИЕ|СПИСОК|ГЛАВА|CHAPTER|INTRODUCTION|CONCLUSION|REFERENCES|[IVXLCDM]+\s+BOB)/i.test(
           h2Text
         );
 

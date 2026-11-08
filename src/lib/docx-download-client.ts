@@ -17,7 +17,7 @@ export interface DocxClientDownloadParams {
   faculty?: string;
   studentName?: string;
   teacherName?: string;
-  language?: "uz" | "uz-cyrl" | "ru";
+  language?: "uz" | "uz-cyrl" | "ru" | "en";
   year?: string | number;
   qrOnSeparatePage?: boolean;
 }
@@ -41,8 +41,7 @@ interface TelegramWebAppWindow {
   };
 }
 
-const DOCX_MIME =
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
  * Serverdagi `/api/academic/export-docx` API orqali haqiqiy OpenXML (.docx)
@@ -88,10 +87,8 @@ export async function downloadAcademicDocx(
     throw new Error(errMsg);
   }
 
-  const verificationCode =
-    response.headers.get("X-DocNova-Verification-Code") || "DN-VERIFIED";
-  const verificationUrl =
-    response.headers.get("X-DocNova-Verification-Url") || "";
+  const verificationCode = response.headers.get("X-DocNova-Verification-Code") || "DN-VERIFIED";
+  const verificationUrl = response.headers.get("X-DocNova-Verification-Url") || "";
   const downloadToken = response.headers.get("X-DocNova-Download-Token") || "";
 
   // Content-Disposition dan fayl nomini ajratib olish
