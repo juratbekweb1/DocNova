@@ -337,12 +337,98 @@ const AmaliyIshDocumentSheet = React.memo(
         <div className="my-8 border-b-2 border-dashed border-slate-300 print:hidden" />
 
         {/* ===================================================================
-                      2. ASOSIY YECHIM QISMI (AMALIY ISH YECHIMI)
+        {/* ===================================================================
+                      2. KIRISH (OTM STANDARTI BO'YICHA)
                      =================================================================== */}
         <div className="space-y-8">
+          {doc.introduction && (
+            <section className="space-y-4 rounded-xl border border-slate-300 bg-white p-4 sm:p-6 print:border-black print:p-0">
+              <div className="border-b-2 border-slate-900 pb-2 text-center">
+                <h2 className="text-lg font-black tracking-wide text-slate-950 uppercase sm:text-xl">
+                  {doc.introduction.title}
+                </h2>
+              </div>
+
+              <div className="space-y-3.5 text-xs leading-relaxed text-slate-800 sm:text-[13.5px]">
+                <div>
+                  <h4 className="font-bold text-slate-950">Mavzuning dolzarbligi:</h4>
+                  <p className="mt-1 text-justify indent-6 text-slate-900">
+                    {doc.introduction.relevance}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-950">Amaliy ishning maqsadi:</h4>
+                  <p className="mt-1 text-justify indent-6 text-slate-900">
+                    {doc.introduction.purpose}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-950">Amaliy ishning asosiy vazifalari:</h4>
+                  <ul className="mt-1 list-disc space-y-1 pl-6">
+                    {doc.introduction.tasks.map((task, idx) => (
+                      <li key={idx}>{task}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-950">Tadqiqot obyekti va predmeti:</h4>
+                  <p className="mt-1 text-justify indent-6 text-slate-900">
+                    {doc.introduction.objectAndSubject}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-950">
+                    Qo&apos;llanilgan metodlar va dasturiy vositalar:
+                  </h4>
+                  <ul className="mt-1 list-disc space-y-1 pl-6">
+                    {doc.introduction.methods.map((method, idx) => (
+                      <li key={idx}>{method}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ===================================================================
+                        3. I BOB: NAZARIY VA USLUBIY ASOSLAR
+                       =================================================================== */}
+          {doc.theorySection && (
+            <section className="space-y-4 rounded-xl border border-slate-300 bg-white p-4 sm:p-6 print:border-black print:p-0">
+              <div className="border-b-2 border-slate-900 pb-2 text-center">
+                <h2 className="text-base font-black tracking-wide text-slate-950 uppercase sm:text-lg">
+                  {doc.theorySection.title}
+                </h2>
+              </div>
+
+              <div className="space-y-2.5 text-xs leading-relaxed text-slate-800 sm:text-[13.5px]">
+                {doc.theorySection.paragraphs.map((p, idx) => (
+                  <p key={idx} className="text-justify indent-6 text-slate-900">
+                    {p}
+                  </p>
+                ))}
+              </div>
+
+              <AmaliyDataTable
+                table={{
+                  title: "Nazariy asoslar: Dispersion tahlilning asosiy matematik formulalari",
+                  headers: ["Ko'rsatkich nomi", "Matematik formula", "Iqtisodiy-statistik tavsifi"],
+                  rows: doc.theorySection.keyFormulas.map((f) => [f.name, f.formula, f.note]),
+                }}
+              />
+            </section>
+          )}
+
+          {/* ===================================================================
+                        4. II BOB: AMALIY ISHNING HISOBLASH VA TAHLIL QISMI
+                       =================================================================== */}
           <div className="border-b-2 border-slate-900 pb-3 text-center">
-            <h2 className="text-xl font-extrabold text-slate-950 uppercase sm:text-2xl">
-              Amaliy ish yechimi ({doc.meta.variant})
+            <h2 className="text-lg font-black tracking-wide text-slate-950 uppercase sm:text-xl">
+              II BOB. AMALIY ISHNING HISOBLASH VA TAHLIL QISMI ({doc.meta.variant})
             </h2>
             <p className="mt-1 text-xs text-slate-700 sm:text-sm">
               <strong>Mavzu:</strong> {doc.meta.topic} &nbsp;|&nbsp; <strong>Vaziyat:</strong>{" "}
@@ -522,6 +608,31 @@ const AmaliyIshDocumentSheet = React.memo(
               </ul>
             </div>
           </section>
+
+          {/* ===================================================================
+                        5. FOYDALANILGAN ADABIYOTLAR RO'YXATI
+                       =================================================================== */}
+          {doc.references && doc.references.length > 0 && (
+            <section className="space-y-3 border-t-2 border-slate-900 pt-6">
+              <div className="flex items-center gap-2 text-base font-extrabold text-slate-950 uppercase sm:text-lg">
+                <BookOpen className="h-5 w-5 text-blue-900" />
+                <span>
+                  {doc.meta.language === "ru"
+                    ? "Список использованной литературы"
+                    : doc.meta.language === "en"
+                      ? "List of References"
+                      : "Foydalanilgan adabiyotlar ro'yxati"}
+                </span>
+              </div>
+              <ol className="list-decimal space-y-1.5 pl-6 text-xs text-slate-800 sm:text-sm">
+                {doc.references.map((ref, idx) => (
+                  <li key={idx} className="leading-relaxed">
+                    {ref.replace(/^\d+\.\s*/, "")}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </div>
       </div>
     );

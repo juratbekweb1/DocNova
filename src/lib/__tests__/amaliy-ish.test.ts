@@ -270,4 +270,81 @@ describe("Amaliy ish (Dispersion tahlil ANOVA & Excel) Module", () => {
     expect(sumRowFormula?.cell).toBe("B7:D7");
     expect(sumRowFormula?.formulaEn).toBe("=SUM(B2:B5)");
   });
+
+  it("generates professional academic structure matching Uzbekistan HEI standards (Kirish, Nazariy asoslar, Adabiyotlar)", () => {
+    const doc = generateDeterministicAmaliyIsh({
+      variant: "18-variant",
+      university: "Toshkent davlat iqtisodiyot universiteti (TDIU)",
+      subject: "Ekonometrika",
+      topic: "Bir omilli va ikki omilli dispersion tahlil",
+      problemCount: 4,
+    });
+
+    // 1. Kirish (Introduction)
+    expect(doc.introduction).toBeDefined();
+    expect(doc.introduction.title).toBe("KIRISH");
+    expect(doc.introduction.relevance).toContain("Raqamli O'zbekiston – 2030");
+    expect(doc.introduction.purpose).toContain("dispersion tahlil");
+    expect(doc.introduction.tasks.length).toBeGreaterThanOrEqual(5);
+    expect(doc.introduction.objectAndSubject).toContain("Tadqiqot obyekti");
+    expect(doc.introduction.methods.some((m) => m.includes("ANOVA"))).toBe(true);
+
+    // 2. I Bob Nazariy va uslubiy asoslar
+    expect(doc.theorySection).toBeDefined();
+    expect(doc.theorySection.title).toContain(
+      "I BOB. DISPERSION VA STATISTIK TAHLILNING NAZARIY-USLUBIY ASOSLARI"
+    );
+    expect(doc.theorySection.paragraphs.length).toBeGreaterThanOrEqual(4);
+    expect(doc.theorySection.paragraphs[0]).toContain("X_ij = μ + α_j + ε_ij");
+    expect(doc.theorySection.keyFormulas.length).toBeGreaterThanOrEqual(6);
+    expect(doc.theorySection.keyFormulas.some((f) => f.name.includes("Fisher"))).toBe(true);
+
+    // 3. Adabiyotlar ro'yxati (References)
+    expect(doc.references).toBeDefined();
+    expect(doc.references.length).toBeGreaterThanOrEqual(6);
+    expect(doc.references.some((r) => r.includes("Xurramov"))).toBe(true);
+    expect(doc.references.some((r) => r.includes("Berkinov"))).toBe(true);
+
+    // 4. Markdown chapters
+    expect(doc.markdown).toContain("## KIRISH");
+    expect(doc.markdown).toContain("### Mavzuning dolzarbligi");
+    expect(doc.markdown).toContain(
+      "## I BOB. DISPERSION VA STATISTIK TAHLILNING NAZARIY-USLUBIY ASOSLARI"
+    );
+    expect(doc.markdown).toContain("## II BOB. AMALIY ISHNING HISOBLASH VA TAHLIL QISMI");
+    expect(doc.markdown).toContain(
+      "## III BOB. AMALIY ISHNI MS EXCEL DASTURIDA BAJARISH METODIKASI"
+    );
+    expect(doc.markdown).toContain("## FOYDALANILGAN ADABIYOTLAR RO'YXATI");
+
+    // 5. Word HTML content
+    const wordHtml = buildAmaliyIshWordHtml(doc);
+    expect(wordHtml).toContain("KIRISH");
+    expect(wordHtml).toContain("Mavzuning dolzarbligi:");
+    expect(wordHtml).toContain("I BOB: NAZARIY VA USLUBIY ASOSLAR");
+    expect(wordHtml).toContain("FOYDALANILGAN ADABIYOTLAR");
+    expect(wordHtml).toContain("text-indent:1.25cm");
+  });
+
+  it("supports academic introduction and theory section localization for RU and EN", () => {
+    const ruDoc = generateDeterministicAmaliyIsh({
+      variant: "14-variant",
+      language: "ru",
+    });
+    expect(ruDoc.introduction.title).toBe("ВВЕДЕНИЕ");
+    expect(ruDoc.theorySection.title).toContain("ГЛАВА I");
+    expect(ruDoc.references.some((r) => r.includes("Хуррамов"))).toBe(true);
+    expect(ruDoc.markdown).toContain("## ВВЕДЕНИЕ");
+    expect(ruDoc.markdown).toContain("СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ");
+
+    const enDoc = generateDeterministicAmaliyIsh({
+      variant: "14-variant",
+      language: "en",
+    });
+    expect(enDoc.introduction.title).toBe("INTRODUCTION");
+    expect(enDoc.theorySection.title).toContain("CHAPTER I");
+    expect(enDoc.references.some((r) => r.includes("Pearson"))).toBe(true);
+    expect(enDoc.markdown).toContain("## INTRODUCTION");
+    expect(enDoc.markdown).toContain("LIST OF REFERENCES");
+  });
 });

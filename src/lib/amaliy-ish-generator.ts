@@ -87,6 +87,21 @@ export interface AmaliyIshExcelRow {
   result: string;
 }
 
+export interface AmaliyIshIntroduction {
+  title: string;
+  relevance: string;
+  purpose: string;
+  tasks: string[];
+  objectAndSubject: string;
+  methods: string[];
+}
+
+export interface AmaliyIshTheorySection {
+  title: string;
+  paragraphs: string[];
+  keyFormulas: Array<{ name: string; formula: string; note: string }>;
+}
+
 export interface AmaliyIshDocument {
   meta: {
     ministry: string;
@@ -109,6 +124,8 @@ export interface AmaliyIshDocument {
     title: string;
     rules: string[];
   };
+  introduction: AmaliyIshIntroduction;
+  theorySection: AmaliyIshTheorySection;
   problems: AmaliyIshProblem[];
   excelSection: {
     title: string;
@@ -123,6 +140,7 @@ export interface AmaliyIshDocument {
     conclusions: string[];
     practicalRecommendations: string[];
   };
+  references: string[];
   markdown: string;
 }
 
@@ -403,6 +421,302 @@ export function parseCustomGroupsFromText(
     return parsed;
   }
   return null;
+}
+
+export function buildDefaultIntroduction(
+  meta: AmaliyIshDocument["meta"],
+  problemCount: number
+): AmaliyIshIntroduction {
+  const isRu = meta.language === "ru";
+  const isEn = meta.language === "en";
+
+  if (isRu) {
+    return {
+      title: "ВВЕДЕНИЕ",
+      relevance: `В современных условиях модернизации экономики Республики Узбекистан и реализации задач Стратегии «Цифровой Узбекистан – 2030» особую актуальность приобретает принятие научно обоснованных управленческих решений на основе прикладного статистического и эконометрического моделирования. В производственных и сервисных секторах на результативные показатели качества и производительности труда воздействует комплекс факторов (рабочие смены, квалификация персонала, цеховые условия). Дисперсионный анализ (ANOVA) является признанным фундаментальным методом выявления статистической значимости влияния факторных признаков и исключения случайных погрешностей наблюдений.`,
+      purpose: `Целью выполнения данной практической работы по дисциплине «${meta.subject}» в рамках ${meta.variant} является углубленное освоение методов однофакторного и двухфакторного дисперсионного анализа (ANOVA), количественная оценка силы влияния факторов, формулировка статистических гипотез, их проверка по F-критерию Фишера и реализация расчётных алгоритмов в табличном процессоре MS Excel.`,
+      tasks: [
+        `1. Сформировать и структурировать первичные статистические данные по ${problemCount} практическим задачам в контексте кейса «${meta.situation}»;`,
+        "2. Сформулировать нулевую (H₀) и альтернативную (H₁) гипотезы для каждого анализируемого процесса;",
+        "3. Выполнить пошаговый расчет выборочных средних, внутригрупповых и межгрупповых сумм квадратов отклонений (SS);",
+        "4. Определить число степеней свободы (df), средние квадраты (MS) и эмпирическое значение критерия Фишера (F_набл);",
+        "5. Сопоставить F_набл с критической границей F_крит при уровне значимости α = 0,05 и принять статистическое решение;",
+        "6. Рассчитать коэффициент детерминации (η²) и провести апостериорный анализ парных различий по методу наименьшей существенной разности (Fisher LSD);",
+        "7. Провести автоматизированную верификацию результатов с использованием пакета «Анализ данных» MS Excel и сформировать управленческие рекомендации.",
+      ],
+      objectAndSubject: `Объект исследования — производственные подразделения, рабочие смены и показатели производительности труда предприятия. Предмет исследования — статистические закономерности и дисперсионные взаимосвязи результативных признаков под влиянием варьирующих факторов производства.`,
+      methods: [
+        "Однофакторный дисперсионный анализ (One-Way ANOVA)",
+        "Двухфакторный дисперсионный анализ без повторений (Two-Way ANOVA without replication)",
+        "F-критерий Фишера (F-test)",
+        "Критерий наименьшей существенной разности Фишера (Fisher's LSD post-hoc test)",
+        "Коэффициент детерминации (η² — мера силы влияния фактора)",
+        "Пакет «Анализ данных (Data Analysis)» и статистические функции MS Excel (СРЗНАЧ, КВАДРОТКЛ, Ф.ОБР.ПХ, Ф.РАСП.ПХ, СТЬЮДЕНТ.ОБР.2Х)",
+      ],
+    };
+  }
+
+  if (isEn) {
+    return {
+      title: "INTRODUCTION",
+      relevance: `In modern market economies and in accordance with Uzbekistan's national industrial modernization policies, data-driven decision making is critical for optimizing operations, boosting labor productivity, and ensuring product quality. Manufacturing outcomes are subject to multiple systematic and random factors (e.g., operating work shifts, operator expertise levels, departmental setup). Analysis of Variance (ANOVA) provides a mathematically rigorous framework to establish whether observed variance between groups is statistically significant or merely attributable to random sampling noise.`,
+      purpose: `The primary objective of this practical work for the course «${meta.subject}» (${meta.variant}) is to apply one-way and two-way Analysis of Variance (ANOVA) to real-world industrial observations, test formal statistical hypotheses via Fisher's F-test, evaluate effect sizes (η²), and verify analytical models using MS Excel Data Analysis tools.`,
+      tasks: [
+        `1. Systematize and group sample observations across ${problemCount} practical problems based on the «${meta.situation}» operational case;`,
+        "2. Formulate null (H₀) and alternative (H₁) statistical hypotheses for all evaluated operational factors;",
+        "3. Carry out step-by-step arithmetic derivations of group sample means, sums of squares (SS), and variance components;",
+        "4. Calculate degrees of freedom (df), mean squares (MS), and observed Fisher test statistics (F_obs);",
+        "5. Compare F_obs with the critical threshold F_crit (α = 0.05) and determine corresponding p-values to arrive at decisive conclusions;",
+        "6. Compute eta-squared (η²) effect sizes and conduct pairwise post-hoc evaluations using Fisher's Least Significant Difference (LSD);",
+        "7. Verify all computational steps using MS Excel standard statistical formulas and formulate practical managerial recommendations.",
+      ],
+      objectAndSubject: `Research Object — enterprise production shifts, workshop divisions, and employee productivity metrics. Research Subject — statistical variance distribution and dependencies between operational factor levels and performance indicators.`,
+      methods: [
+        "Single-Factor Analysis of Variance (One-Way ANOVA)",
+        "Two-Factor Analysis of Variance without Replication (Two-Way ANOVA)",
+        "Fisher's F-test for variance ratio significance",
+        "Fisher's Least Significant Difference (LSD) pairwise post-hoc comparison",
+        "Coefficient of determination (η² effect size)",
+        "MS Excel Data Analysis ToolPak and statistical formulas (AVERAGE, DEVSQ, F.INV.RT, F.DIST.RT, T.INV.2T)",
+      ],
+    };
+  }
+
+  return {
+    title: "KIRISH",
+    relevance: `Zamonaviy bozor iqtisodiyoti sharoitida O'zbekiston Respublikasi sanoat tarmoqlari va ishlab chiqarish korxonalarining raqobatbardoshligini ta'minlash bevosita operatsion jarayonlarni ilmiy asosda boshqarish, xodimlar mehnat unumdorligini oshirish va sifat barqarorligini ta'minlash bilan uzviy bog'liqdir. O'zbekiston Respublikasi Prezidentining 2020-yil 5-oktyabrdagi PF-6079-son «Raqamli O'zbekiston – 2030» strategiyasida belgilanganidek, korxonalarda boshqaruv qarorlarini qabul qilishda ma'lumotlarga tayanish (Data-driven decision making) va zamonaviy matematik-statistik tahlil usullarini keng joriy etish talab etiladi. Ishlab chiqarish jarayonlarida olingan yakuniy natijalarga bir vaqtning o'zida ko'plab omillar (ish smenalari, xodimlarning malaka toifalari, texnologik uskunalar, sex sharoitlari) ta'sir ko'rsatadi. Ushbu omillarning natijaviy ko'rsatkichlarga ta'siri tasodifiymi yoki statistik jihatdan qonuniy (ahamiyatli) ekanligini aniqlashda dispersion tahlil (ANOVA — Analysis of Variance) usuli zamonaviy iqtisodiy statistika va ekonometrikaning eng ishonchli hamda universal apparati sanaladi.`,
+    purpose: `Ushbu amaliy ishning asosiy maqsadi — «${meta.subject}» fani doirasida ${meta.variant} bo'yicha berilgan «${meta.topic}» mavzusi va «${meta.situation}» amaliy vaziyati asosida bir omilli va ikki omilli dispersion tahlil usullarini chuqur o'rganish, omillarning mehnat unumdorligiga ta'sir darajasini miqdoriy baholash, statistik gipotezalarni tekshirish hamda MS Excel dasturida zamonaviy tahlil ko'nikmalarini amalda shakllantirishdan iborat.`,
+    tasks: [
+      `1. «${meta.situation}» amaliy keysi doirasida jami ${problemCount} ta amaliy masala bo'yicha dastlabki statistik tanlanma kuzatuvlarini tizimlashtirish va guruhlar kesimida jamlash;`,
+      "2. Har bir masala uchun bosh to'plam o'rtachalarining tengligi to'g'risidagi nol (H₀) hamda muqobil (H₁) statistik gipotezalarni aniq shakllantirish;",
+      "3. Tanlanma o'rtachalar, guruh ichidagi kvadratik chetlanishlar va dispersiyalarni qo'lda hisoblash bosqichlarini to'liq amalga oshirish;",
+      "4. Kvadratlar yig'indisi (SS_omil, SS_qoldiq, SS_umumiy) va erkinlik darajalari (df₁, df₂) asosida o'rtacha kvadratlar (MS) hamda Fisherning kuzatilgan mezonini (F_kuz) hisoblash;",
+      "5. F_kuz qiymatini α = 0,05 ahamiyatlilik darajasidagi kritik chegara (F_kr) va p-qiymat bilan qiyoslab, statistik asoslangan qaror qabul qilish;",
+      "6. Determinatsiya koeffitsiyenti (η²) orqali omil kuchini va Fisher LSD mezoni yordamida guruhlararo juftlik farqlarini miqdoriy baholash;",
+      "7. Tahlil natijalarini MS Excel dasturining «Data Analysis» moduli va standart formulalari orqali verifikatsiya qilib, korxona faoliyati samaradorligini oshirish bo'yicha ilmiy-amaliy takliflar ishlab chiqish.",
+    ],
+    objectAndSubject: `Tadqiqot obyekti — korxonaning ishlab chiqarish smenalari, tarkibiy bo'limlari (sexlari) va xodimlarining mehnat unumdorligi ko'rsatkichlari. Tadqiqot predmeti — ishlab chiqarish omillari (smena omili, sex sharoitlari, malaka toifalari) o'zgarishining natijaviy hajm ko'rsatkichlari dispersiyasiga ta'sir qilish qonuniyatlari va statistik bog'liqliklari.`,
+    methods: [
+      "Bir omilli dispersion tahlil (One-Way ANOVA)",
+      "Takrorlanishsiz ikki omilli dispersion tahlil (Two-Way ANOVA without replication)",
+      "Yig'ma statistikalar (n, x̄, s²) asosida ANOVA hisoblash usuli",
+      "Qisman to'ldirilgan ANOVA jadvalini balans ayniyatlari bo'yicha to'ldirish",
+      "Fisher F-statistik mezonini qo'llash (F-test)",
+      "Fisherning minimal ahamiyatli farq usuli (Fisher LSD post-hoc test)",
+      "Determinatsiya koeffitsiyenti (η² — omil ta'sir kuchi)",
+      "MS Excel «Data Analysis» paketi va standart funksiyalari (AVERAGE, DEVSQ, F.INV.RT, F.DIST.RT, T.INV.2T)",
+    ],
+  };
+}
+
+export function buildDefaultTheorySection(meta: AmaliyIshDocument["meta"]): AmaliyIshTheorySection {
+  const isRu = meta.language === "ru";
+  const isEn = meta.language === "en";
+
+  if (isRu) {
+    return {
+      title: "ГЛАВА I. ТЕОРЕТИЧЕСКИЕ И МЕТОДОЛОГИЧЕСКИЕ ОСНОВЫ ДИСПЕРСИОННОГО АНАЛИЗА",
+      paragraphs: [
+        "1.1. Сущность и математическая модель дисперсионного анализа (ANOVA). Дисперсионный анализ, разработанный сэром Рональдом Фишером, предназначен для исследования влияния одного или нескольких качественных факторов на непрерывный результирующий показатель. Однофакторная модель имеет вид: X_ij = μ + α_j + ε_ij, где X_ij — значение i-го наблюдения в j-й группе, μ — генеральное среднее, α_j — чистый эффект j-го фактора, ε_ij — случайная ошибка с нормальным распределением N(0, σ²).",
+        "1.2. Аддитивность дисперсий и разложение общей суммы квадратов. Фундаментальный принцип ANOVA заключается в разложении общей вариации (SS_общ) на аддитивные компоненты: SS_общ = SS_факт + SS_ост (для двухфакторной модели: SS_общ = SS_A + SS_B + SS_ост). Межгрупповая сумма квадратов (SS_факт) отражает влияние изучаемого фактора, а внутригрупповая (SS_ост) — воздействие неконтролируемых случайных факторов.",
+        "1.3. Степени свободы и средние квадраты (MS). Делением сумм квадратов на соответствующие степени свободы вычисляются средние квадраты: MS_факт = SS_факт / (k − 1), MS_ост = SS_ост / (N − k). При этом строго сохраняется баланс: df_общ = df_факт + df_ост (N − 1 = (k − 1) + (N − k)).",
+        "1.4. Критерий Фишера (F) и правило принятия статистического решения. Статистика критерия определяется как отношение факториальной дисперсии к случайной: F_набл = MS_факт / MS_ост. Если при уровне значимости α = 0,05 выполняется F_набл > F_крит(α; df₁; df₂) или p-значение < 0,05, нулевая гипотеза H₀ о равенстве средних отвергается и признается статистически значимое влияние фактора.",
+        "1.5. Оценка силы влияния фактора (η²) и апостериорный анализ LSD. Относительный вклад фактора в общую дисперсию оценивается коэффициентом детерминации: η² = (SS_факт / SS_общ) × 100%. Для выявления значимых различий между отдельными парами групп используется критерий наименьшей существенной разности: LSD = t_крит × √(MS_ост × (1/n_i + 1/n_j)).",
+      ],
+      keyFormulas: [
+        {
+          name: "Однофакторная модель ANOVA",
+          formula: "X_ij = μ + α_j + ε_ij",
+          note: "Математическая модель эффекта фактора и случайного остатка",
+        },
+        {
+          name: "Аддитивность дисперсий",
+          formula: "SS_общ = SS_факт + SS_ост",
+          note: "Разложение общей суммы квадратов отклонений",
+        },
+        {
+          name: "Межгрупповая сумма квадратов",
+          formula: "SS_факт = ∑ n_j · (x̄_j − X̄)²",
+          note: "Вариация групповых средних вокруг общего среднего",
+        },
+        {
+          name: "Внутригрупповая сумма квадратов",
+          formula: "SS_ост = ∑∑ (x_ij − x̄_j)²",
+          note: "Случайная вариация наблюдений внутри групп",
+        },
+        {
+          name: "Средние квадраты (MS)",
+          formula: "MS = SS / df",
+          note: "Дисперсия на одну степень свободы",
+        },
+        {
+          name: "Критерий Фишера",
+          formula: "F_набл = MS_факт / MS_ост",
+          note: "Отношение межгрупповой дисперсии к внутригрупповой",
+        },
+        {
+          name: "Коэффициент детерминации",
+          formula: "η² = (SS_факт / SS_общ) × 100%",
+          note: "Доля вариации, обусловленная действием фактора (%)",
+        },
+        {
+          name: "Граница Фишера LSD",
+          formula: "LSD = t_крит · √(MS_ост · (1/n_i + 1/n_j))",
+          note: "Порог наименьшей существенной разности для пар средних",
+        },
+      ],
+    };
+  }
+
+  if (isEn) {
+    return {
+      title: "CHAPTER I. THEORETICAL AND METHODOLOGICAL FOUNDATIONS OF ANOVA",
+      paragraphs: [
+        "1.1. Nature and Mathematical Model of Analysis of Variance (ANOVA). Pioneered by Sir Ronald Fisher, ANOVA tests for equality of means across multiple groups by partitioning total variability. The single-factor theoretical specification is: X_ij = μ + α_j + ε_ij, where X_ij is the i-th observation in group j, μ is the grand mean, α_j represents the systematic effect of factor level j, and ε_ij is the independent normally distributed random error term N(0, σ²).",
+        "1.2. Variance Additivity and Decomposition of Sum of Squares. The cornerstone of ANOVA is the algebraic identity: SS_total = SS_between + SS_within (for two-way designs: SS_total = SS_row + SS_col + SS_error). Between-group variability captures systematic treatment effects, whereas within-group variability measures uncontrolled random error.",
+        "1.3. Degrees of Freedom and Mean Squares. Dividing sums of squares by their respective degrees of freedom produces unbiased variance estimates: MS_between = SS_between / (k − 1), MS_within = SS_within / (N − k). The degrees of freedom identity df_total = df_between + df_within strictly holds.",
+        "1.4. Fisher's F-test and Statistical Decision Rule. The test statistic is formed as the variance ratio: F_obs = MS_between / MS_within. Under the null hypothesis H₀: μ₁ = μ₂ = ... = μ_k, this statistic follows Snedecor's F-distribution. When F_obs > F_crit(α; df₁, df₂) or p-value < 0.05, H₀ is rejected, proving that factor effects are statistically significant.",
+        "1.5. Effect Size (η²) and Fisher's LSD Post-Hoc Test. The proportion of total variation attributable to the factor is quantified by eta-squared: η² = (SS_between / SS_total) × 100%. Specific pairwise group differences are identified via Fisher's Least Significant Difference: LSD = t_crit × √(MS_within × (1/n_i + 1/n_j)).",
+      ],
+      keyFormulas: [
+        {
+          name: "One-Way ANOVA Model",
+          formula: "X_ij = μ + α_j + ε_ij",
+          note: "Decomposition into general mean, treatment effect, and residual error",
+        },
+        {
+          name: "Sum of Squares Identity",
+          formula: "SS_total = SS_between + SS_within",
+          note: "Total variance partitioned into explained and residual parts",
+        },
+        {
+          name: "Between-Group SS",
+          formula: "SS_between = ∑ n_j · (x̄_j − X̄)²",
+          note: "Deviation of group averages from the grand average",
+        },
+        {
+          name: "Within-Group SS",
+          formula: "SS_within = ∑∑ (x_ij − x̄_j)²",
+          note: "Unexplained residual variations inside groups",
+        },
+        {
+          name: "Mean Squares (MS)",
+          formula: "MS = SS / df",
+          note: "Variance scaled per degree of freedom",
+        },
+        {
+          name: "Fisher's F Statistic",
+          formula: "F_obs = MS_between / MS_within",
+          note: "Ratio of explained to unexplained mean square",
+        },
+        {
+          name: "Eta-Squared (η²)",
+          formula: "η² = (SS_between / SS_total) × 100%",
+          note: "Percentage of total variance explained by the factor (%)",
+        },
+        {
+          name: "Fisher LSD Threshold",
+          formula: "LSD = t_crit · √(MS_within · (1/n_i + 1/n_j))",
+          note: "Minimum absolute difference required for significance between two means",
+        },
+      ],
+    };
+  }
+
+  return {
+    title: "I BOB. DISPERSION VA STATISTIK TAHLILNING NAZARIY-USLUBIY ASOSLARI",
+    paragraphs: [
+      "1.1. Dispersion tahlilning mohiyati va matematik modeli. Dispersion tahlil (inglizcha Analysis of Variance — ANOVA) XX asrning 20-yillarida atoqli statistik olim Ronald Fisher tomonidan yaratilgan bo'lib, bir yoki bir nechta sifat omillarining miqdoriy natijaviy belgiga ta'sirini o'rganishda xizmat qiladi. Bir omilli modelning matematik ifodasi quyidagicha yoziladi: X_ij = μ + α_j + ε_ij. Bunda X_ij — j-guruhdagi i-kuzatuv qiymati, μ — bosh to'plamning umumiy o'rtacha darajasi, α_j — o'rganilayotgan j-omil darajasining sof ta'siri (effekti), ε_ij — har bir kuzatuvdagi tasodifiy xatolik (qoldiq tebranish). Tasodifiy qoldiqlar o'zaro bog'liq emas va o'rtachasi 0 hamda doimiy dispersiyasi σ² bo'lgan normal taqsimotga ega (ε_ij ~ N(0, σ²)) deb faraz qilinadi.",
+      "1.2. Dispersiyalarning additivligi qoidasi va umumiy kvadratlar yig'indisi. ANOVA metodologiyasining asosiy ustuni — umumiy kvadratik chetlanishlar yig'indisining (SS_umumiy) mustaqil tarkibiy qismlarga ajralishidir: SS_umumiy = SS_omil + SS_qoldiq (ikki omilli modelda: SS_umumiy = SS_A + SS_B + SS_qoldiq). Guruhlararo SS_omil (Between-group Sum of Squares) omil darajalari o'zgarishi natijasida yuzaga keladigan tizimli tebranishlarni, guruh ichidagi SS_qoldiq (Within-group Sum of Squares) esa boshqa nazorat qilib bo'lmaydigan tasodifiy omillar ta'sirini ko'rsatadi. Ushbu ayniyat barcha hisob-kitoblar aniqligini tekshirishning asosiy mezonidir.",
+      "1.3. Erkinlik darajalari va o'rtacha kvadratlar (MS). Kvadratlar yig'indisi erkinlik darajalariga bo'linib, o'rtacha kvadratlar (Mean Squares — MS) hosil qilinadi: MS_omil = SS_omil / (k − 1), MS_qoldiq = SS_qoldiq / (N − k). Erkinlik darajalari balansi qat'iy saqlanadi: df_umumiy = df_omil + df_qoldiq, ya'ni (N − 1) = (k − 1) + (N − k).",
+      "1.4. Fisher (F) statistik mezoni va statistik qaror qabul qilish. Guruhlararo dispersiya bilan tasodifiy qoldiq dispersiyasi nisbati Fisher mezoni orqali baholanadi: F_kuz = MS_omil / MS_qoldiq. Agar nol gipoteza H₀ (barcha guruh o'rtachalari o'zaro teng: μ₁ = μ₂ = ... = μ_k) to'g'ri bo'lsa, ushbu nisbat F(df₁, df₂) Fisher-Snedekor taqsimotiga bo'ysunadi. Tanlanma asosida hisoblangan F_kuz qiymati Fisher jadvalidan α = 0,05 darajasida olingan kritik chegaradan katta bo'lsa (F_kuz > F_kr(α; df₁; df₂)) yoki p-qiymat < 0,05 bo'lsa, H₀ rad etiladi va o'rganilayotgan omil natijaviy ko'rsatkichga statistik jihatdan yuqori ahamiyatli ta'sir ko'rsatadi deb topiladi.",
+      "1.5. Omil ta'sir kuchi (η²) va Fisher LSD juftlik tahlili. H₀ rad etilganda, omilning umumiy variatsiyadagi salmog'i determinatsiya koeffitsiyenti yordamida aniqlanadi: η² = (SS_omil / SS_umumiy) × 100%. Qaysi guruhlar o'rtasida eng katta statistik farq mavjudligini aniqlash uchun esa Fisherning eng kichik ahamiyatli farq (LSD — Least Significant Difference) mezoni qo'llaniladi: LSD = t_kr × √(MS_qoldiq × (1/n_i + 1/n_j)). Agar guruhlar o'rtachalari ayirmasining moduli LSD dan katta bo'lsa (|x̄_i − x̄_j| ≥ LSD), ushbu guruhlar o'rtasidagi farq statistik ishonchli hisoblanadi.",
+    ],
+    keyFormulas: [
+      {
+        name: "Bir omilli ANOVA modeli",
+        formula: "X_ij = μ + α_j + ε_ij",
+        note: "Omil ta'siri (α_j) va tasodifiy qoldiq (ε_ij) modeli",
+      },
+      {
+        name: "Dispersiyalar additivligi",
+        formula: "SS_umumiy = SS_omil + SS_qoldiq",
+        note: "Kvadratik chetlanishlarning tarkibiy qismlarga ajralishi",
+      },
+      {
+        name: "Guruhlararo SS (SS_omil)",
+        formula: "SS_omil = ∑ n_j · (x̄_j − X̄)²",
+        note: "Guruh o'rtachalarining umumiy o'rtachadan og'ishi",
+      },
+      {
+        name: "Guruh ichidagi SS (SS_qoldiq)",
+        formula: "SS_qoldiq = ∑∑ (x_ij − x̄_j)²",
+        note: "Guruhlar ichidagi tasodifiy xatoliklar yig'indisi",
+      },
+      {
+        name: "O'rtacha kvadratlar (MS)",
+        formula: "MS = SS / df",
+        note: "Dispersiyaning erkinlik darajasiga to'g'ri keluvchi ulushi",
+      },
+      {
+        name: "Fisher mezonining hisobi",
+        formula: "F_kuz = MS_omil / MS_qoldiq",
+        note: "Omil dispersiyasining qoldiq dispersiyasiga nisbati",
+      },
+      {
+        name: "Determinatsiya koeffitsiyenti",
+        formula: "η² = (SS_omil / SS_umumiy) × 100%",
+        note: "Natijadagi tebranishning omil hissasiga to'g'ri keluvchi ulushi (%)",
+      },
+      {
+        name: "Fisher LSD kritik chegarasi",
+        formula: "LSD = t_kr · √(MS_qoldiq · (1/n_i + 1/n_j))",
+        note: "Guruhlararo minimal ahamiyatli farq chegarasi",
+      },
+    ],
+  };
+}
+
+export function buildDefaultReferences(meta: AmaliyIshDocument["meta"]): string[] {
+  const isRu = meta.language === "ru";
+  const isEn = meta.language === "en";
+
+  if (isRu) {
+    return [
+      '1. Указ Президента Республики Узбекистан № УП-6079 «Об утверждении стратегии "Цифровой Узбекистан – 2030"» от 5 октября 2020 года.',
+      `2. ${meta.university}. Методические указания к практическим занятиям по дисциплине «${meta.subject}». – ${meta.city}: Изд-во вуза, ${meta.year}. – 96 с.`,
+      "3. Хуррамов Ш.Р. Высшая математика и математическая статистика. Учебник для вузов. – Ташкент: «Фан ва технология», 2021. – 480 с.",
+      "4. Беркинов Б.Б., Ходиев Б.Ю. Эконометрика и анализ данных. Учебник. – Ташкент: «Иктисодиёт», 2022. – 364 с.",
+      "5. Абдуллаев О.М., Касымова М.М. Основы математической статистики и прикладного анализа. – Ташкент: «Университет», 2023. – 288 с.",
+      "6. Айвазян С.А., Мхитарян В.С. Прикладная статистика и основы эконометрики. – М.: ЮНИТИ-ДАНА, 2021. – 656 с.",
+      "7. Левин Р.И., Рубин Д.С. Статистика для менеджеров. – Персон Эдьюкейшн, 2020. – 1024 с.",
+      "8. Практическое руководство по дисперсионному анализу данных в среде MS Excel. ТГЭУ, 2024. – 64 с.",
+    ];
+  }
+
+  if (isEn) {
+    return [
+      "1. Decree of the President of the Republic of Uzbekistan No. UP-6079 'On Approval of the Digital Uzbekistan - 2030 Strategy', Oct 5, 2020.",
+      `2. ${meta.university}. Methodological Guidelines for Practical Coursework in «${meta.subject}». – ${meta.city}, ${meta.year}. – 96 p.`,
+      "3. Khurramov Sh.R. Higher Mathematics and Mathematical Statistics. Textbook. – Tashkent: 'Fan va texnologiya', 2021. – 480 p.",
+      "4. Berkinov B.B., Khodiev B.Yu. Econometrics and Data Analysis. – Tashkent: 'Iqtisodiyot', 2022. – 364 p.",
+      "5. Abdullaev O.M., Kasimova M.M. Mathematical Statistics and Applied Analysis. – Tashkent: 'Universitet', 2023. – 288 p.",
+      "6. Levin R.I., Rubin D.S. Statistics for Management. 8th Global Edition. Pearson Education, 2020. – 1024 p.",
+      "7. Montgomery D.C. Design and Analysis of Experiments. 10th Edition. John Wiley & Sons, 2021. – 688 p.",
+      "8. Reference Manual on Statistical Data Analysis using Microsoft Excel. TSUE, 2024. – 64 p.",
+    ];
+  }
+
+  return [
+    "1. O'zbekiston Respublikasi Prezidentining 2020-yil 5-oktyabrdagi PF-6079-son «Raqamli O'zbekiston – 2030» strategiyasini tasdiqlash to'g'risida Farmoni. – Qonun hujjatlari ma'lumotlari milliy bazasi, 06.10.2020-y., 06/20/6079/1349-son.",
+    `2. ${meta.university}. «${meta.subject}» fanidan amaliy mashg'ulotlar uchun uslubiy ko'rsatmalar to'plami. – ${meta.city}: OTM nashriyoti, ${meta.year}. – 96 b.`,
+    "3. Xurramov Sh.R. Oliy matematika va matematik statistika. Oliy o'quv yurtlari talabalari uchun darslik. – Toshkent: «Fan va texnologiya», 2021. – 480 b.",
+    "4. Berkinov B.B., Xodiyev B.Yu. Ekonometrika va ma'lumotlar tahlili. Darslik. – Toshkent: «Iqtisodiyot», 2022. – 364 b.",
+    "5. Abdullayev O.M., Qosimova M.M. Matematik statistika va amaliy tahlil asoslari. – Toshkent: «Universitet», 2023. – 288 b.",
+    "6. Ayvazyan S.A., Mxitaryan V.S. Prikladnaya statistika i osnovi ekonometriki. Uchebnik dlya vuzov. – Moskva: YuNITI-DANA, 2021. – 656 s.",
+    "7. Levin R.I., Rubin D.S. Statistics for Management. 8th Global Edition. Pearson Education, 2020. – 1024 p.",
+    "8. Microsoft Excel dasturida «Data Analysis» paketi yordamida statistik ma'lumotlarni tahlil qilish bo'yicha amaliy yo'riqnoma. TDIU, 2024. – 64 b.",
+  ];
 }
 
 /**
@@ -1415,34 +1729,40 @@ export function generateDeterministicAmaliyIsh(
       : ``,
   ].filter(Boolean);
 
+  const cleanMeta = {
+    ministry:
+      language === "ru"
+        ? "МИНИСТЕРСТВО ВЫСШЕГО ОБРАЗОВАНИЯ, НАУКИ И ИННОВАЦИЙ РЕСПУБЛИКИ УЗБЕКИСТАН"
+        : language === "en"
+          ? "MINISTRY OF HIGHER EDUCATION, SCIENCE AND INNOVATIONS OF THE REPUBLIC OF UZBEKISTAN"
+          : "O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI",
+    university,
+    department,
+    subject,
+    workType:
+      language === "ru"
+        ? "ПРАКТИЧЕСКАЯ РАБОТА (AMALIY ISH)"
+        : language === "en"
+          ? "PRACTICAL WORK (AMALIY ISH)"
+          : "AMALIY ISH",
+    variant: variantLabel,
+    topic,
+    situation,
+    studentName,
+    studentGroup,
+    teacherName,
+    city,
+    year,
+    language,
+    totalPoints,
+  };
+
+  const defaultIntro = buildDefaultIntroduction(cleanMeta, problemCount);
+  const defaultTheory = buildDefaultTheorySection(cleanMeta);
+  const defaultRefs = buildDefaultReferences(cleanMeta);
+
   const docWithoutMarkdown: Omit<AmaliyIshDocument, "markdown"> = {
-    meta: {
-      ministry:
-        language === "ru"
-          ? "МИНИСТЕРСТВО ВЫСШЕГО ОБРАЗОВАНИЯ, НАУКИ И ИННОВАЦИЙ РЕСПУБЛИКИ УЗБЕКИСТАН"
-          : language === "en"
-            ? "MINISTRY OF HIGHER EDUCATION, SCIENCE AND INNOVATIONS OF THE REPUBLIC OF UZBEKISTAN"
-            : "O'ZBEKISTON RESPUBLIKASI OLIY TA'LIM, FAN VA INNOVATSIYALAR VAZIRLIGI",
-      university,
-      department,
-      subject,
-      workType:
-        language === "ru"
-          ? "ПРАКТИЧЕСКАЯ РАБОТА (AMALIY ISH)"
-          : language === "en"
-            ? "PRACTICAL WORK (AMALIY ISH)"
-            : "AMALIY ISH",
-      variant: variantLabel,
-      topic,
-      situation,
-      studentName,
-      studentGroup,
-      teacherName,
-      city,
-      year,
-      language,
-      totalPoints,
-    },
+    meta: cleanMeta,
     methodologicalNote: {
       title:
         language === "ru"
@@ -1460,6 +1780,8 @@ export function generateDeterministicAmaliyIsh(
         "MS Excel nazorati: Barcha tahlillar MS Excel dasturining «Data Analysis» paketi hamda DEVSQ, F.DIST.RT, F.INV.RT funksiyalari orqali avtomatlashtirilgan tarzda tekshirilishi ko'rsatiladi.",
       ],
     },
+    introduction: defaultIntro,
+    theorySection: defaultTheory,
     problems: allProblems,
     excelSection: {
       title: "EXCEL’DA BAJARISH VA FORMULALAR RO'YXATI",
@@ -1515,6 +1837,7 @@ export function generateDeterministicAmaliyIsh(
         "Barcha iqtisodiy-statistik monitoring hisobotlarini MS Excel «Data Analysis (ANOVA)» moduli yordamida har oyda avtomatlashtirilgan tarzda yuritish.",
       ],
     },
+    references: defaultRefs,
   };
 
   return {
@@ -1532,7 +1855,10 @@ function renderTableMarkdown(t: AmaliyIshTable): string {
 
 export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown">): string {
   const lines: string[] = [];
+  const isRu = doc.meta.language === "ru";
+  const isEn = doc.meta.language === "en";
 
+  // TITUL VARAG'I
   lines.push(`# ${doc.meta.ministry}`);
   lines.push(`## ${doc.meta.university.toUpperCase()}`);
   if (doc.meta.department) {
@@ -1555,12 +1881,73 @@ export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown
   lines.push("<!-- PAGE_BREAK -->");
   lines.push("");
 
-  lines.push(`## Amaliy ish yechimi (${doc.meta.variant})`);
-  lines.push(`### ${doc.methodologicalNote.title}`);
-  for (const r of doc.methodologicalNote.rules) {
-    lines.push(`- ${r}`);
+  // KIRISH / ВВЕДЕНИЕ / INTRODUCTION
+  lines.push(`## ${doc.introduction.title}`);
+  lines.push(
+    `### ${isRu ? "Актуальность темы" : isEn ? "Relevance of the Topic" : "Mavzuning dolzarbligi"}`
+  );
+  lines.push(doc.introduction.relevance);
+  lines.push("");
+  lines.push(
+    `### ${isRu ? "Цель работы" : isEn ? "Purpose of Practical Work" : "Amaliy ishning maqsadi"}`
+  );
+  lines.push(doc.introduction.purpose);
+  lines.push("");
+  lines.push(
+    `### ${isRu ? "Основные задачи работы" : isEn ? "Primary Tasks" : "Amaliy ishning asosiy vazifalari"}`
+  );
+  for (const t of doc.introduction.tasks) {
+    lines.push(`- ${t}`);
   }
   lines.push("");
+  lines.push(
+    `### ${isRu ? "Объект и предмет исследования" : isEn ? "Object and Subject of Research" : "Tadqiqot obyekti va predmeti"}`
+  );
+  lines.push(doc.introduction.objectAndSubject);
+  lines.push("");
+  lines.push(
+    `### ${isRu ? "Методы исследования" : isEn ? "Applied Methods & Tools" : "Qo'llanilgan metodlar va dasturiy vositalar"}`
+  );
+  for (const m of doc.introduction.methods) {
+    lines.push(`- ${m}`);
+  }
+  lines.push("");
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
+
+  // I BOB / ГЛАВА I / CHAPTER I: NAZARIY ASOSLAR
+  lines.push(`## ${doc.theorySection.title}`);
+  for (const p of doc.theorySection.paragraphs) {
+    lines.push(p);
+    lines.push("");
+  }
+  lines.push(
+    renderTableMarkdown({
+      title: isRu
+        ? "Таблица 0. Ключевые формулы дисперсионного анализа"
+        : isEn
+          ? "Table 0. Key ANOVA Mathematical Formulas"
+          : "Nazariy asoslar: Dispersion tahlilning asosiy matematik formulalari",
+      headers: [
+        isRu ? "Показатель" : isEn ? "Indicator" : "Ko'rsatkich nomi",
+        isRu ? "Формула" : isEn ? "Formula" : "Matematik formula",
+        isRu ? "Описание" : isEn ? "Description" : "Iqtisodiy-statistik tavsifi",
+      ],
+      rows: doc.theorySection.keyFormulas.map((f) => [f.name, f.formula, f.note]),
+    })
+  );
+  lines.push("");
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
+
+  // II BOB / ГЛАВА II / CHAPTER II: HISOBLASH VA TAHLIL QISMI
+  const ch2Title = isRu
+    ? "ГЛАВА II. РАСЧЕТНО-АНАЛИТИЧЕСКАЯ ЧАСТЬ ПРАКТИЧЕСКОЙ РАБОТЫ"
+    : isEn
+      ? "CHAPTER II. COMPUTATIONAL AND EMPIRICAL ANALYSIS"
+      : "II BOB. AMALIY ISHNING HISOBLASH VA TAHLIL QISMI";
+  lines.push(`## ${ch2Title}`);
+  lines.push(`*«${doc.meta.topic}» (${doc.meta.situation})*\n`);
 
   for (const p of doc.problems) {
     lines.push(`## ${p.title} (${p.points})`);
@@ -1602,7 +1989,16 @@ export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown
     lines.push(`---\n`);
   }
 
-  lines.push(`## ${doc.excelSection.title}`);
+  // III BOB / ГЛАВА III / CHAPTER III: EXCEL
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
+  const ch3Title = isRu
+    ? "ГЛАВА III. МЕТОДИКА РАСЧЁТА В СРЕДЕ MICROSOFT EXCEL"
+    : isEn
+      ? "CHAPTER III. COMPUTATIONAL IMPLEMENTATION IN MICROSOFT EXCEL"
+      : "III BOB. AMALIY ISHNI MS EXCEL DASTURIDA BAJARISH METODIKASI";
+  lines.push(`## ${ch3Title}`);
+  lines.push(`### ${doc.excelSection.title}`);
   lines.push(`*${doc.excelSection.subtitle}*\n`);
   for (const s of doc.excelSection.steps) {
     lines.push(`${s}`);
@@ -1621,8 +2017,11 @@ export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown
       ]),
     })
   );
-  lines.push(`\n---\n`);
+  lines.push("");
 
+  // XULOSA VA TAVSIYALAR
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
   lines.push(`## ${doc.summarySection.title}`);
   lines.push(renderTableMarkdown(doc.summarySection.comparisonTable));
   lines.push("\n### Asosiy xulosalar:");
@@ -1632,6 +2031,20 @@ export function renderAmaliyIshToMarkdown(doc: Omit<AmaliyIshDocument, "markdown
   lines.push("\n### Amaliy va boshqaruv tavsiyalari:");
   for (const r of doc.summarySection.practicalRecommendations) {
     lines.push(`- ${r}`);
+  }
+  lines.push("");
+
+  // FOYDALANILGAN ADABIYOTLAR
+  lines.push("<!-- PAGE_BREAK -->");
+  lines.push("");
+  const litTitle = isRu
+    ? "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ"
+    : isEn
+      ? "LIST OF REFERENCES"
+      : "FOYDALANILGAN ADABIYOTLAR RO'YXATI";
+  lines.push(`## ${litTitle}`);
+  for (const ref of doc.references) {
+    lines.push(ref);
   }
 
   return lines.join("\n");
@@ -1865,12 +2278,99 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
 
     <br clear="all" style="page-break-before:always" />
 
-    <!-- ASOSIY YECHIM QISMI -->
-    <h1 style="font-size:16pt;font-weight:bold;text-align:center;color:#0f172a;margin-bottom:4pt;">
-      Amaliy ish yechimi (${escapeHtml(doc.meta.variant)})
+    <!-- 1. KIRISH -->
+    <h1 style="font-size:16pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:14pt;text-transform:uppercase;">
+      ${escapeHtml(doc.introduction.title)}
+    </h1>
+    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+      ${doc.meta.language === "ru" ? "Актуальность темы:" : doc.meta.language === "en" ? "Relevance of the Topic:" : "Mavzuning dolzarbligi:"}
+    </h3>
+    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+      ${escapeHtml(doc.introduction.relevance)}
+    </p>
+
+    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+      ${doc.meta.language === "ru" ? "Цель работы:" : doc.meta.language === "en" ? "Purpose of Practical Work:" : "Amaliy ishning maqsadi:"}
+    </h3>
+    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+      ${escapeHtml(doc.introduction.purpose)}
+    </p>
+
+    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+      ${doc.meta.language === "ru" ? "Основные задачи работы:" : doc.meta.language === "en" ? "Primary Tasks:" : "Amaliy ishning asosiy vazifalari:"}
+    </h3>
+    <ul style="margin:4pt 0 8pt 24pt;font-size:12pt;line-height:1.5;">
+      ${doc.introduction.tasks.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}
+    </ul>
+
+    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+      ${doc.meta.language === "ru" ? "Объект и предмет исследования:" : doc.meta.language === "en" ? "Object and Subject of Research:" : "Tadqiqot obyekti va predmeti:"}
+    </h3>
+    <p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">
+      ${escapeHtml(doc.introduction.objectAndSubject)}
+    </p>
+
+    <h3 style="font-size:13pt;font-weight:bold;color:#000000;margin:10pt 0 4pt 0;">
+      ${doc.meta.language === "ru" ? "Методы исследования:" : doc.meta.language === "en" ? "Applied Methods & Tools:" : "Qo'llanilgan metodlar va dasturiy vositalar:"}
+    </h3>
+    <ul style="margin:4pt 0 8pt 24pt;font-size:12pt;line-height:1.5;">
+      ${doc.introduction.methods.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}
+    </ul>
+
+    <br clear="all" style="page-break-before:always" />
+
+    <!-- 2. I BOB: NAZARIY VA USLUBIY ASOSLAR -->
+    <h1 style="font-size:15pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:14pt;text-transform:uppercase;">
+      ${escapeHtml(doc.theorySection.title)}
+    </h1>
+    ${doc.theorySection.paragraphs
+      .map(
+        (p) =>
+          `<p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin-bottom:8pt;">${escapeHtml(p)}</p>`
+      )
+      .join("")}
+
+    ${renderHtmlTableForWord({
+      title:
+        doc.meta.language === "ru"
+          ? "Таблица 0. Ключевые аналитические формулы дисперсионного анализа"
+          : doc.meta.language === "en"
+            ? "Table 0. Key Analytical Formulas of ANOVA"
+            : "Nazariy asoslar: Dispersion tahlilning asosiy matematik formulalari",
+      headers: [
+        doc.meta.language === "ru"
+          ? "Показатель"
+          : doc.meta.language === "en"
+            ? "Indicator"
+            : "Ko'rsatkich nomi",
+        doc.meta.language === "ru"
+          ? "Формула"
+          : doc.meta.language === "en"
+            ? "Formula"
+            : "Matematik formula",
+        doc.meta.language === "ru"
+          ? "Описание"
+          : doc.meta.language === "en"
+            ? "Description"
+            : "Iqtisodiy-statistik tavsifi",
+      ],
+      rows: doc.theorySection.keyFormulas.map((f) => [f.name, f.formula, f.note]),
+    })}
+
+    <br clear="all" style="page-break-before:always" />
+
+    <!-- 3. II BOB: ASOSIY HISOBLASH VA TAHLIL QISMI -->
+    <h1 style="font-size:15pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:4pt;text-transform:uppercase;">
+      ${
+        doc.meta.language === "ru"
+          ? "ГЛАВА II. РАСЧЕТНО-АНАЛИТИЧЕСКАЯ ЧАСТЬ ПРАКТИЧЕСКОЙ РАБОТЫ"
+          : doc.meta.language === "en"
+            ? "CHAPTER II. COMPUTATIONAL AND EMPIRICAL ANALYSIS"
+            : "II BOB. AMALIY ISHNING HISOBLASH VA TAHLIL QISMI"
+      }
     </h1>
     <p style="font-size:11pt;text-align:center;color:#334155;margin-top:0;margin-bottom:12pt;">
-      <b>Mavzu:</b> ${escapeHtml(doc.meta.topic)} | <b>Vaziyat:</b> ${escapeHtml(doc.meta.situation)}
+      <b>${doc.meta.variant}:</b> ${escapeHtml(doc.meta.topic)} (${escapeHtml(doc.meta.situation)})
     </p>
 
     <div style="border:1pt solid #cbd5e1;background:#f8fafc;padding:10pt 12pt;margin-bottom:14pt;">
@@ -1886,8 +2386,17 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
 
     <br clear="all" style="page-break-before:always" />
 
-    <!-- EXCEL BO'LIMI -->
-    <h2 style="font-size:14pt;font-weight:bold;color:#0f172a;border-bottom:1.5pt solid #166534;padding-bottom:4pt;">
+    <!-- 4. III BOB: EXCEL BO'LIMI -->
+    <h1 style="font-size:15pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:8pt;text-transform:uppercase;">
+      ${
+        doc.meta.language === "ru"
+          ? "ГЛАВА III. МЕТОДИКА РАСЧЁТА В СРЕДЕ MICROSOFT EXCEL"
+          : doc.meta.language === "en"
+            ? "CHAPTER III. COMPUTATIONAL IMPLEMENTATION IN MICROSOFT EXCEL"
+            : "III BOB. AMALIY ISHNI MS EXCEL DASTURIDA BAJARISH METODIKASI"
+      }
+    </h1>
+    <h2 style="font-size:13pt;font-weight:bold;color:#0f172a;border-bottom:1.5pt solid #166534;padding-bottom:4pt;">
       ${escapeHtml(doc.excelSection.title)}
     </h2>
     <p style="font-size:11pt;font-style:italic;margin-bottom:8pt;">
@@ -1898,24 +2407,42 @@ export function buildAmaliyIshWordHtml(doc: AmaliyIshDocument): string {
     </ol>
     ${renderHtmlTableForWord(excelTable)}
 
-    <!-- UMUMIY XULOSA -->
-    <h2 style="font-size:14pt;font-weight:bold;color:#0f172a;border-bottom:1.5pt solid #1e3a8a;padding-bottom:4pt;margin-top:18pt;">
+    <br clear="all" style="page-break-before:always" />
+
+    <!-- 5. UMUMIY XULOSA VA TAVSIYALAR -->
+    <h1 style="font-size:15pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:12pt;text-transform:uppercase;">
       ${escapeHtml(doc.summarySection.title)}
-    </h2>
+    </h1>
     ${renderHtmlTableForWord(doc.summarySection.comparisonTable)}
 
-    <p style="font-size:11.5pt;font-weight:bold;margin:10pt 0 4pt 0;">Ilmiy-amaliy xulosalar:</p>
+    <p style="font-size:12pt;font-weight:bold;margin:10pt 0 4pt 0;">Ilmiy-amaliy xulosalar:</p>
     ${doc.summarySection.conclusions
       .map(
         (c) =>
-          `<p style="font-size:11pt;line-height:1.5;text-align:justify;margin:4pt 0;">${escapeHtml(c)}</p>`
+          `<p style="font-size:12pt;line-height:1.5;text-align:justify;text-indent:1.25cm;margin:4pt 0;">${escapeHtml(c)}</p>`
       )
       .join("")}
 
-    <p style="font-size:11.5pt;font-weight:bold;margin:10pt 0 4pt 0;">Boshqaruv uchun amaliy tavsiyalar:</p>
-    <ul style="margin:4pt 0 12pt 18pt;font-size:11pt;line-height:1.5;">
+    <p style="font-size:12pt;font-weight:bold;margin:10pt 0 4pt 0;">Boshqaruv uchun amaliy tavsiyalar:</p>
+    <ul style="margin:4pt 0 12pt 24pt;font-size:12pt;line-height:1.5;">
       ${doc.summarySection.practicalRecommendations.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}
     </ul>
+
+    <br clear="all" style="page-break-before:always" />
+
+    <!-- 6. FOYDALANILGAN ADABIYOTLAR -->
+    <h1 style="font-size:15pt;font-weight:bold;text-align:center;color:#000000;margin-bottom:14pt;text-transform:uppercase;">
+      ${
+        doc.meta.language === "ru"
+          ? "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ"
+          : doc.meta.language === "en"
+            ? "LIST OF REFERENCES"
+            : "FOYDALANILGAN ADABIYOTLAR RO'YXATI"
+      }
+    </h1>
+    <ol style="margin:4pt 0 12pt 24pt;font-size:11.5pt;line-height:1.6;">
+      ${doc.references.map((r) => `<li style="margin-bottom:4pt;">${escapeHtml(r.replace(/^\d+\.\s*/, ""))}</li>`).join("")}
+    </ol>
   </div>
 </body>
 </html>`;

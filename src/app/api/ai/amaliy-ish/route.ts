@@ -12,22 +12,37 @@ import {
 export const maxDuration = 60;
 
 interface AiAmaliyEnrichment {
+  introduction?: {
+    relevance?: string;
+    purpose?: string;
+    tasks?: string[];
+    objectAndSubject?: string;
+  };
+  theoreticalSummary?: string;
   problem1Condition?: string;
   problem1Interpretation?: string;
+  problem1Recommendations?: string[];
   problem2Condition?: string;
   problem2Interpretation?: string;
+  problem2Recommendations?: string[];
   problem3Condition?: string;
   problem3Interpretation?: string;
+  problem3Recommendations?: string[];
   problem4Condition?: string;
   problem4Interpretation?: string;
+  problem4Recommendations?: string[];
   conclusions?: string[];
   practicalRecommendations?: string[];
+  references?: string[];
 }
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    const body = (await req.json().catch(() => ({}))) as Partial<AmaliyIshFormInput>;
+    const body = (await req.json().catch(() => ({}))) as Partial<AmaliyIshFormInput> & {
+      forceAi?: boolean;
+      useAi?: boolean;
+    };
 
     const subject = String(body.subject || "").trim();
     const topic = String(body.topic || "").trim();
@@ -83,12 +98,14 @@ export async function POST(req: NextRequest) {
 
     const document = generateDeterministicAmaliyIsh(cleanInput);
 
-    // Optional AI enrichment for custom topics/subjects/languages while keeping 100% verified ANOVA math
+    // AI enrichment for custom topics/subjects/languages or when explicitly requested
     const isDefault18 =
       (cleanInput.language || "uz") === "uz" &&
       cleanInput.topic?.toLowerCase().includes("bir omilli va ikki omilli dispersion tahlil") &&
       cleanInput.situation?.toLowerCase().includes("ishlab chiqarish smenalari") &&
-      !cleanInput.customProblemText;
+      !cleanInput.customProblemText &&
+      !body.forceAi &&
+      !body.useAi;
 
     if (!isDefault18) {
       try {
@@ -98,42 +115,95 @@ export async function POST(req: NextRequest) {
             : cleanInput.language === "en"
               ? "ingliz tilida (in English)"
               : "o'zbek tilida";
-        const prompt = `Siz OTM professori va statistik-iqtisodiy tahlil ekspertisiz.
-Quyidagi amaliy ish uchun masalalar sharti va iqtisodiy talqinlarini ${langName} mazmunan boyitib JSON formatda qaytaring:
+
+        const prompt = `Siz O‘zbekiston Respublikasi Oliy ta’lim, fan va innovatsiyalar vazirligi standartlari (Toshkent davlat iqtisodiyot universiteti - TDIU, Toshkent to‘qimachilik va yengil sanoat instituti - TTESI, O‘zbekiston Milliy universiteti - O‘zMU) bo‘yicha tajribali professor, akademik muharrir va iqtisodiy-statistik tahlil ekspertisiz.
+
+Bizning "Amaliy ish" (Practical Work) modulimiz uchun quyidagi parametrlar asosida professional, haqiqiy talaba yozadigan chuqur akademik matnlarni ${langName} tayyorlab, faqat toza JSON formatida qaytaring:
+- OTM: "${cleanInput.university}"
+- Kafedra: "${cleanInput.department}"
 - Fan: "${cleanInput.subject}"
 - Mavzu: "${cleanInput.topic}"
-- Vaziyat: "${cleanInput.situation}"
+- Vaziyat / keys: "${cleanInput.situation}"
 - Variant: "${cleanInput.variant}"
+- Masalalar soni: ${problemCount}
 - Til: "${cleanInput.language || "uz"}"
 ${cleanInput.customProblemText ? `- Talaba kiritgan masala sharti: "${cleanInput.customProblemText}"` : ""}
 
-Quyidagi JSON sxemasida javob qaytaring (faqat JSON):
+QAT'IY AKADEMIK TALABLAR:
+1. Akademik uslub: Matn O'zbekiston iqtisodiyoti, real sanoat korxonalari (to'qimachilik klasteri, mashinasozlik, oziq-ovqat, logistika, bank-moliya) amaliyoti va OTM uslubiy talablariga tayansin.
+2. Kirish qismi: Mavzuning dolzarbligi (dolzarblik, PF-6079 "Raqamli O'zbekiston-2030"), ishning maqsadi, 5 ta aniq vazifasi, tadqiqot obyekti va predmeti.
+3. Nazariy asos: Dispersion tahlil (ANOVA), Fisher F-mezoni, dispersiyalarning additivligi va LSD tahlilining matematik-iqtisodiy mohiyatini ilmiy tilda bayon qiling.
+4. Masalalar talqini: Har bir masala uchun O'zbekiston korxonalari misolida real keys sharti, chuqur iqtisodiy talqin va aniq boshqaruv takliflarini bering.
+5. Xulosa va tavsiyalar: Barcha masalalar natijalarini umumlashtiruvchi professional xulosalar hamda korxona rahbariyati uchun 3 ta amaliy tavsiya bering.
+6. Adabiyotlar: O'zbekiston OTMlarining amaldagi 5-6 ta rasmiy darsliklari va normativ hujjatlarini keltiring.
+
+Quyidagi JSON sxemasida javob qaytaring (faqat JSON, ortiqcha belgisiz):
 {
-  "problem1Condition": "1-masala sharti (bir omilli tahlil, 3 guruh x 5 kuzatuv)",
-  "problem1Interpretation": "1-masala yakuniy iqtisodiy-amaliy talqini",
-  "problem2Condition": "2-masala sharti (yig'ma statistikalar bo'yicha tahlil, teng bo'lmagan 3 ta guruh: 5, 4, 5 kuzatuv)",
-  "problem2Interpretation": "2-masala yakuniy talqini",
-  "problem3Condition": "3-masala sharti (ikki omilli tahlil: 3x4 jadval)",
-  "problem3Interpretation": "3-masala yakuniy talqini",
-  "problem4Condition": "4-masala sharti (qisman to'ldirilgan ANOVA jadvalini to'ldirish va Fisher LSD juftlik tahlili)",
-  "problem4Interpretation": "4-masala yakuniy talqini",
-  "conclusions": ["1-xulosa", "2-xulosa", "3-xulosa"],
-  "practicalRecommendations": ["1-tavsiya", "2-tavsiya", "3-tavsiya"]
+  "introduction": {
+    "relevance": "Mavzuning dolzarbligi (1-2 abzas, O'zbekiston iqtisodiyoti kontekstida)",
+    "purpose": "Amaliy ishning aniq akademik maqsadi",
+    "tasks": ["1-vazifa", "2-vazifa", "3-vazifa", "4-vazifa", "5-vazifa"],
+    "objectAndSubject": "Tadqiqot obyekti va predmeti"
+  },
+  "theoreticalSummary": "Dispersion tahlilning nazariy va uslubiy asoslari bo'yicha ilmiy xulosa (1-2 abzas)",
+  "problem1Condition": "1-masala sharti (bir omilli tahlil, 3 guruh x 5 kuzatuv, korxona smenalari misolida)",
+  "problem1Interpretation": "1-masala yakuniy iqtisodiy va statistik talqini",
+  "problem1Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem2Condition": "2-masala sharti (yig'ma statistikalar bo'yicha tahlil, teng bo'lmagan 3 ta sex)",
+  "problem2Interpretation": "2-masala talqini",
+  "problem2Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem3Condition": "3-masala sharti (ikki omilli tahlil: smena x malaka toifasi)",
+  "problem3Interpretation": "3-masala talqini",
+  "problem3Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem4Condition": "4-masala sharti (ANOVA jadvalini to'ldirish va Fisher LSD juftlik tahlili)",
+  "problem4Interpretation": "4-masala talqini",
+  "problem4Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "conclusions": ["1-ilmiy xulosa", "2-ilmiy xulosa", "3-ilmiy xulosa", "4-ilmiy xulosa"],
+  "practicalRecommendations": ["1-boshqaruv tavsiyasi", "2-boshqaruv tavsiyasi", "3-boshqaruv tavsiyasi"],
+  "references": [
+    "1. Darslik / Hujjat 1",
+    "2. Darslik / Hujjat 2",
+    "3. Darslik / Hujjat 3",
+    "4. Darslik / Hujjat 4",
+    "5. Darslik / Hujjat 5"
+  ]
 }`;
 
         const aiRes = await generateGeminiJson<AiAmaliyEnrichment>(prompt, {
           temperature: 0.3,
-          maxOutputTokens: 2048,
-          timeoutMs: 14_000,
+          maxOutputTokens: 2500,
+          timeoutMs: 16_000,
         });
 
         const data = aiRes.data;
         if (data) {
+          if (data.introduction?.relevance) {
+            document.introduction.relevance = data.introduction.relevance;
+          }
+          if (data.introduction?.purpose) {
+            document.introduction.purpose = data.introduction.purpose;
+          }
+          if (Array.isArray(data.introduction?.tasks) && data.introduction.tasks.length >= 2) {
+            document.introduction.tasks = data.introduction.tasks;
+          }
+          if (data.introduction?.objectAndSubject) {
+            document.introduction.objectAndSubject = data.introduction.objectAndSubject;
+          }
+          if (data.theoreticalSummary) {
+            document.theorySection.paragraphs[0] = data.theoreticalSummary;
+          }
           if (data.problem1Condition && document.problems[0]) {
             document.problems[0].condition = data.problem1Condition;
           }
           if (data.problem1Interpretation && document.problems[0]) {
             document.problems[0].stepE.economicInterpretation = data.problem1Interpretation;
+          }
+          if (
+            Array.isArray(data.problem1Recommendations) &&
+            data.problem1Recommendations.length > 0 &&
+            document.problems[0]
+          ) {
+            document.problems[0].stepE.recommendations = data.problem1Recommendations;
           }
           if (data.problem2Condition && document.problems[1]) {
             document.problems[1].condition = data.problem2Condition;
@@ -141,17 +211,38 @@ Quyidagi JSON sxemasida javob qaytaring (faqat JSON):
           if (data.problem2Interpretation && document.problems[1]) {
             document.problems[1].stepE.economicInterpretation = data.problem2Interpretation;
           }
+          if (
+            Array.isArray(data.problem2Recommendations) &&
+            data.problem2Recommendations.length > 0 &&
+            document.problems[1]
+          ) {
+            document.problems[1].stepE.recommendations = data.problem2Recommendations;
+          }
           if (data.problem3Condition && document.problems[2]) {
             document.problems[2].condition = data.problem3Condition;
           }
           if (data.problem3Interpretation && document.problems[2]) {
             document.problems[2].stepE.economicInterpretation = data.problem3Interpretation;
           }
+          if (
+            Array.isArray(data.problem3Recommendations) &&
+            data.problem3Recommendations.length > 0 &&
+            document.problems[2]
+          ) {
+            document.problems[2].stepE.recommendations = data.problem3Recommendations;
+          }
           if (data.problem4Condition && document.problems[3]) {
             document.problems[3].condition = data.problem4Condition;
           }
           if (data.problem4Interpretation && document.problems[3]) {
             document.problems[3].stepE.economicInterpretation = data.problem4Interpretation;
+          }
+          if (
+            Array.isArray(data.problem4Recommendations) &&
+            data.problem4Recommendations.length > 0 &&
+            document.problems[3]
+          ) {
+            document.problems[3].stepE.recommendations = data.problem4Recommendations;
           }
           if (Array.isArray(data.conclusions) && data.conclusions.length >= 2) {
             document.summarySection.conclusions = data.conclusions;
@@ -161,6 +252,9 @@ Quyidagi JSON sxemasida javob qaytaring (faqat JSON):
             data.practicalRecommendations.length >= 2
           ) {
             document.summarySection.practicalRecommendations = data.practicalRecommendations;
+          }
+          if (Array.isArray(data.references) && data.references.length >= 3) {
+            document.references = data.references;
           }
           document.markdown = renderAmaliyIshToMarkdown(document);
         }
