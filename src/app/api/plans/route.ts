@@ -34,7 +34,20 @@ const FALLBACK_PLANS = [
   },
 ];
 
+let cachedPlans: unknown[] | null = null;
+let cachedPlansAt = 0;
+const PLANS_CACHE_TTL_MS = 60_000;
+
 export async function GET() {
+  const now = Date.now();
+  if (cachedPlans && now - cachedPlansAt < PLANS_CACHE_TTL_MS) {
+    return NextResponse.json(cachedPlans, {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      },
+    });
+  }
+
   try {
     let plans = await prisma.plan.findMany({
       orderBy: { priceMonthly: "asc" },
@@ -51,11 +64,15 @@ export async function GET() {
       return p;
     });
 
-    if (!plans || plans.length === 0) {
-      return NextResponse.json(FALLBACK_PLANS);
-    }
+    const result = !plans || plans.length === 0 ? FALLBACK_PLANS : plans;
+    cachedPlans = result;
+    cachedPlansAt = Date.now();
 
-    return NextResponse.json(plans);
+    return NextResponse.json(result, {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Plans fetch error";
     console.error("Database connection failed in /api/plans:", message);

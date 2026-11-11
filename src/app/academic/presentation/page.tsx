@@ -28,11 +28,15 @@ import {
   Save,
   X,
   Globe2,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { SlideItem } from "@/app/api/academic/presentation/route";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import { UrlImageModeSync } from "@/components/academic/creation-mode-selector";
+import { ImageTopicParser } from "@/components/academic/image-topic-parser";
+import { estimateAveragePageCount, formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 import {
   StaleBuildError,
   deliverPdf,
@@ -167,7 +171,13 @@ function PresentationContent() {
   const [topic, setTopic] = useState(() => searchParams.get("topic") || "");
   const [sourceText, setSourceText] = useState("");
   const [showSourceText, setShowSourceText] = useState(false);
-  const [slidesCount, setSlidesCount] = useState<number>(10);
+  const [showImageParser, setShowImageParser] = useState(
+    () => searchParams.get("mode") === "image"
+  );
+  const [slidesCount, setSlidesCount] = useState<number>(() => {
+    const raw = Number(searchParams.get("slides"));
+    return Number.isFinite(raw) && raw >= 1 && raw <= 100 ? Math.round(raw) : 10;
+  });
   const [selectedStyle, setSelectedStyle] = useState<PresentationStyle>("academic");
   const [presentationType, setPresentationType] = useState<string>(
     () => searchParams.get("module") || searchParams.get("type") || "coursework"
@@ -196,6 +206,42 @@ function PresentationContent() {
 
   const slideRef = useRef<HTMLDivElement>(null);
   const deckExportRef = useRef<HTMLDivElement>(null);
+  const imageParserRef = useRef<HTMLDivElement>(null);
+  const generateButtonRef = useRef<HTMLButtonElement>(null);
+  const deckSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openImageSection = () => {
+      setShowImageParser(true);
+      window.setTimeout(() => {
+        imageParserRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+      }, 60);
+    };
+    const handleUrlModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: string | null }>;
+      const nextMode =
+        customEvent.detail && "mode" in customEvent.detail
+          ? customEvent.detail.mode
+          : new URLSearchParams(window.location.search).get("mode");
+      if (nextMode === "image") {
+        openImageSection();
+      } else if (customEvent.detail?.mode === null) {
+        setShowImageParser(false);
+      }
+    };
+    const handlePopState = () => {
+      if (new URLSearchParams(window.location.search).get("mode") === "image") {
+        openImageSection();
+      }
+    };
+    window.addEventListener("docnova:url-mode-change", handleUrlModeChange);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("docnova:url-mode-change", handleUrlModeChange);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   // Animated progress tracker
   useEffect(() => {
@@ -297,6 +343,11 @@ function PresentationContent() {
         title: "Prezentatsiya tayyor! 🎓",
         description: `${data.slides.length} ta slayd va ma'ruzachi nutqlari muvaffaqiyatli yaratildi.`,
       });
+      if (typeof window !== "undefined") {
+        window.setTimeout(() => {
+          deckSectionRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        }, 80);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Xatolik yuz berdi";
       toast({
@@ -952,7 +1003,109 @@ function PresentationContent() {
           <div
             className={`${slides.length > 0 ? "lg:col-span-4" : "lg:col-span-7"} transition-all duration-300`}
           >
-            <div className="border-border bg-surface-card rounded-2xl border p-5 shadow-sm sm:p-6">
+            <div className="border-border bg-surface-card space-y-5 rounded-2xl border p-5 shadow-sm sm:p-6">
+              <UrlImageModeSync />
+              <div className="flex flex-col gap-3 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-0.5">
+                  <p className="text-foreground text-xs font-bold sm:text-sm">
+                    Mavzular rasm ko&apos;rinishida bormi?
+                  </p>
+                  <p className="text-foreground-muted text-[11px] leading-relaxed">
+                    Telefon galereyasidan rasm tashlang — AI mavzularni ajratadi va har biri uchun
+                    nechta slayd/bet tayyorlashni belgilaysiz.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImageParser(true);
+                    const inputEl = document.getElementById(
+                      "presentation-image-upload-input"
+                    ) as HTMLInputElement | null;
+                    inputEl?.click();
+                  }}
+                  className="inline-flex min-h-[42px] w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-sky-600 sm:w-auto"
+                >
+                  <FileImage className="h-4 w-4 shrink-0" />
+                  <span>Rasm tashlash</span>
+                </button>
+              </div>
+
+              <div ref={imageParserRef} className={showImageParser ? "block" : "hidden"}>
+                <ImageTopicParser
+                  workType="presentation"
+                  accentColor="blue"
+                  fileInputId="presentation-image-upload-input"
+                  defaultPagesPerTopic="10"
+                  subjectHint={topic}
+                  onImageSelected={() => setShowImageParser(true)}
+                  onApplyTopicsToForm={(topics) => {
+                    if (topics.length === 0) return;
+                    const primaryTopic = topics[0]?.title?.trim();
+                    if (primaryTopic) {
+                      setTopic(primaryTopic);
+                    }
+                    setSourceText(formatTopicsAsBlueprint(topics));
+                    setShowSourceText(true);
+                    const numericSlides = Math.round(
+                      topics.reduce(
+                        (sum, item) => sum + estimateAveragePageCount(item.pageCount || "10"),
+                        0
+                      )
+                    );
+                    if (numericSlides > 0) {
+                      setSlidesCount(Math.min(100, Math.max(1, numericSlides)));
+                    }
+                    toast({
+                      title: "Rasmdan prezentatsiya mavzulari qo'llandi!",
+                      description: `${topics.length} ta mavzu va slaydlar hajmi shaklga joylashtirildi.`,
+                    });
+                    if (typeof window !== "undefined") {
+                      window.setTimeout(() => {
+                        generateButtonRef.current?.scrollIntoView?.({
+                          behavior: "smooth",
+                          block: "nearest",
+                        });
+                      }, 80);
+                    }
+                  }}
+                  onWorksGenerated={(works) => {
+                    if (works.length === 0) return;
+                    const combinedMarkdown = works
+                      .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                      .join("\n\n---\n\n");
+                    const primaryTopic = works[0]?.title?.trim();
+                    if (primaryTopic) {
+                      setTopic(primaryTopic);
+                    }
+                    setSourceText(combinedMarkdown);
+                    setShowSourceText(true);
+                    const totalSlides = Math.round(
+                      works.reduce(
+                        (sum, item) => sum + estimateAveragePageCount(item.pageCount || "10"),
+                        0
+                      )
+                    );
+                    if (totalSlides > 0) {
+                      setSlidesCount(Math.min(100, Math.max(1, totalSlides)));
+                    }
+                    toast({
+                      title: "Rasmdan taqdimot materiallari tayyorlandi!",
+                      description: `${works.length} ta mavzu shaklga joylashtirildi. Slaydlar yaratish tugmasini bosing.`,
+                    });
+                    if (typeof window !== "undefined") {
+                      window.setTimeout(() => {
+                        generateButtonRef.current?.scrollIntoView?.({
+                          behavior: "smooth",
+                          block: "nearest",
+                        });
+                      }, 80);
+                    }
+                  }}
+                  compact
+                />
+              </div>
+
               <form onSubmit={handleGenerate} className="space-y-5">
                 {/* 2-RASMDAGI BARCHA BO'LIMLAR TANLOVI */}
                 <div>
@@ -1181,6 +1334,7 @@ function PresentationContent() {
 
                 {/* Submit Action */}
                 <button
+                  ref={generateButtonRef}
                   type="submit"
                   disabled={isGenerating}
                   className="bg-primary hover:bg-primary-hover flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-semibold text-white shadow-md transition-all disabled:opacity-50 sm:text-sm"
@@ -1198,6 +1352,7 @@ function PresentationContent() {
 
           {/* RIGHT: Slide Deck Preview & Actions */}
           <div
+            ref={deckSectionRef}
             className={`${slides.length > 0 ? "lg:col-span-8" : "lg:col-span-5"} transition-all duration-300`}
           >
             {isGenerating && (

@@ -27,6 +27,7 @@ import {
   KeyRound,
   Wrench,
   ArrowUpRight,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -39,6 +40,8 @@ export default function AcademicHubPage() {
       description:
         "Titul varag'i, avtomatik mundarija, kirish, 3 ta asosiy bob, xulosa va OTM talablariga mos adabiyotlar ro'yxati.",
       href: "/academic/coursework",
+      secondaryHref: "/academic/coursework?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: GraduationCap,
       badge: "Eng ommabop",
       badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -55,6 +58,8 @@ export default function AcademicHubPage() {
       description:
         "Ilmiy muammoning dolzarbligi, obyekti, predmeti, metodologiyasi, amaliy tahlillar hamda 3 boblik to'liq ilmiy apparat.",
       href: "/academic/diplom-bmi",
+      secondaryHref: "/academic/diplom-bmi?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: Award,
       badge: "Ilmiy daraja",
       badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
@@ -71,6 +76,8 @@ export default function AcademicHubPage() {
       description:
         "Universitet fani bo'yicha mustaqil topshiriqlar, esse, referat va ilmiy tezislar. 2 daqiqada tayyorlanadi.",
       href: "/academic/referat",
+      secondaryHref: "/academic/referat?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: FileText,
       badge: "Tezkor (2 min)",
       badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -81,12 +88,30 @@ export default function AcademicHubPage() {
       iconBg: "text-emerald-400",
     },
     {
+      id: "image-topics",
+      title: "Rasm orqali mavzu va sahifalar",
+      subtitle: "Konspekt yoki darslik rasmidan avtomatik ajratish",
+      description:
+        "Yuklangan rasm ichidagi 1 ta yoki 10+ mavzuni AI yordamida o'qib, alohida tahrirlanadigan bloklarga ajratadi, har bir mavzuga nechta bet yozilishini so'raydi va bazaga saqlaydi.",
+      href: "/academic/image-topics",
+      icon: FileImage,
+      badge: "AI Vision (Yangi)",
+      badgeColor: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+      stats: "Galereyadan rasm -> Nechta bet -> Tayyor ish",
+      cta: "Rasm tashlash",
+      accent: "from-sky-600/20 to-indigo-500/5 hover:border-sky-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-sky-400",
+    },
+    {
       id: "presentation",
       title: "Prezentatsiya va Slaydlar",
       subtitle: "PowerPoint (.pptx) va Ma'ruzachi nutqi (Speaker Notes)",
       description:
         "Kurs ishi, diplom (BMI) yoki referat himoyasi uchun professional taqdimot slaydlari. Har bir slayd uchun asosiy tezislar va komissiya oldida so'zlash uchun ma'ruzachi nutqi avtomatik shakllantiriladi.",
       href: "/academic/presentation",
+      secondaryHref: "/academic/presentation?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: Presentation,
       badge: "PPTX & AI",
       badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
@@ -104,6 +129,8 @@ export default function AcademicHubPage() {
       description:
         "Iqtisodiyot, statistika, ekonometrika va aniq fanlardan variantli amaliy ishlar: a), b), c), d), e) bosqichli yechim, hisob-kitob jadvallari, ustunli diagramma va Excel (EN/RU) formulalari.",
       href: "/academic/amaliy-ish",
+      secondaryHref: "/academic/amaliy-ish?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: Calculator,
       badge: "Hisob-kitob & Jadvallar",
       badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
@@ -120,6 +147,8 @@ export default function AcademicHubPage() {
       description:
         "Fanlar bo'yicha imtihon biletlari, 10 talik variantli testlar (MCQ) va tushuntirishli yechimlar orqali sessiyaga 100% tayyorlaning.",
       href: "/academic/exam-prep",
+      secondaryHref: "/academic/exam-prep?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: CheckSquare,
       badge: "Interaktiv",
       badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
@@ -253,16 +282,24 @@ export default function AcademicHubPage() {
 
       {/* Main Modules Grid */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-foreground flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
               <Layers className="text-primary h-5 w-5" />
               Talabalar uchun asosiy bo&apos;limlar
             </h2>
             <p className="text-foreground-secondary mt-1 text-xs sm:text-sm">
-              O&apos;zingizga kerakli bo&apos;limni tanlang va bir necha soniyada natijaga erishing
+              O&apos;zingizga kerakli bo&apos;limni tanlang yoki telefon galereyasidan mavzular
+              rasmini tashlab, nechta bet yozilishini belgilang
             </p>
           </div>
+          <Link
+            href="/academic/referat?mode=image"
+            className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2.5 text-xs font-bold whitespace-nowrap text-white shadow-md shadow-sky-500/25 transition-all hover:scale-[1.02] hover:from-sky-400 hover:to-blue-500 sm:w-auto sm:text-sm"
+          >
+            <FileImage className="h-4 w-4 shrink-0" />
+            <span>Rasm tashlash</span>
+          </Link>
         </div>
 
         {/* 3-Column Desktop Responsive Grid */}
@@ -358,13 +395,24 @@ export default function AcademicHubPage() {
                       <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
                       <span>{module.stats}</span>
                     </span>
-                    <Link
-                      href={module.href}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02] hover:bg-orange-500 sm:w-auto"
-                    >
-                      <span>{module.cta}</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                    </Link>
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      {"secondaryHref" in module && module.secondaryHref && (
+                        <Link
+                          href={module.secondaryHref}
+                          className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-sky-500 transition-all hover:bg-sky-500/20 sm:w-auto"
+                        >
+                          <FileImage className="h-3.5 w-3.5 shrink-0" />
+                          <span>{module.secondaryCta || "Rasm tashlash"}</span>
+                        </Link>
+                      )}
+                      <Link
+                        href={module.href}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02] hover:bg-orange-500 sm:w-auto"
+                      >
+                        <span>{module.cta}</span>
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
@@ -424,13 +472,24 @@ export default function AcademicHubPage() {
                   <span className="text-foreground-muted text-[11px] font-medium">
                     {module.stats}
                   </span>
-                  <Link
-                    href={module.href}
-                    className="bg-surface-elevated hover:bg-primary hover:text-primary-foreground border-border text-foreground group-hover:bg-primary group-hover:text-primary-foreground inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap shadow-sm transition-all sm:w-auto"
-                  >
-                    <span>{module.cta}</span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                    {"secondaryHref" in module && module.secondaryHref && (
+                      <Link
+                        href={module.secondaryHref}
+                        className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-sky-500 transition-all hover:bg-sky-500/20 sm:w-auto"
+                      >
+                        <FileImage className="h-3.5 w-3.5 shrink-0" />
+                        <span>{module.secondaryCta || "Rasm tashlash"}</span>
+                      </Link>
+                    )}
+                    <Link
+                      href={module.href}
+                      className="bg-surface-elevated hover:bg-primary hover:text-primary-foreground border-border text-foreground group-hover:bg-primary group-hover:text-primary-foreground inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap shadow-sm transition-all sm:w-auto"
+                    >
+                      <span>{module.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

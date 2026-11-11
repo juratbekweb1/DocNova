@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
 
 interface LogoProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   className?: string;
@@ -12,25 +11,30 @@ interface LogoProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   showText?: boolean;
 }
 
-export function Logo({ className, iconClassName, textClassName, showText = true, ...props }: LogoProps) {
+export function Logo({
+  className,
+  iconClassName,
+  textClassName,
+  showText = true,
+  ...props
+}: LogoProps) {
   return (
     <Link
       href="/"
-      className={cn("flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg", className)}
+      className={cn(
+        "group focus-visible:ring-primary focus-visible:ring-offset-background flex items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+        className
+      )}
       aria-label="DocNova Home"
       {...props}
     >
-      <motion.div
-        whileHover={{ scale: 1.1, rotate: 5 }}
-        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-        className="relative"
-      >
+      <div className="relative transition-transform duration-200 md:group-hover:scale-105 md:group-hover:rotate-3">
         <div className="relative">
-          {/* Glow effect */}
-          <div className="absolute inset-0 bg-primary blur-xl opacity-30 group-hover:opacity-50 transition-opacity" />
-          
+          {/* Glow effect (Desktop only to avoid Gaussian blur pass in fixed mobile header) */}
+          <div className="bg-primary pointer-events-none absolute inset-0 hidden opacity-30 blur-xl transition-opacity group-hover:opacity-50 md:block" />
+
           {/* Logo container */}
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-shadow">
+          <div className="from-primary to-accent shadow-primary/30 group-hover:shadow-primary/50 relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg transition-shadow">
             <svg
               width="28"
               height="28"
@@ -59,9 +63,33 @@ export function Logo({ className, iconClassName, textClassName, showText = true,
                 strokeLinejoin="round"
               />
               {/* Text lines */}
-              <line x1="10.5" y1="12.5" x2="18.5" y2="12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="10.5" y1="16" x2="16" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="10.5" y1="19.5" x2="14" y2="19.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line
+                x1="10.5"
+                y1="12.5"
+                x2="18.5"
+                y2="12.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <line
+                x1="10.5"
+                y1="16"
+                x2="16"
+                y2="16"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <line
+                x1="10.5"
+                y1="19.5"
+                x2="14"
+                y2="19.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
               {/* AI spark */}
               <path
                 d="M21 13L22 11L23 13L25 14L23 15L22 17L21 15L19 14L21 13Z"
@@ -71,14 +99,19 @@ export function Logo({ className, iconClassName, textClassName, showText = true,
             </svg>
           </div>
         </div>
-      </motion.div>
+      </div>
       {showText && (
         <div className="flex flex-col">
-          <span className={cn("text-2xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors", textClassName)}>
+          <span
+            className={cn(
+              "text-foreground group-hover:text-primary text-2xl font-black tracking-tight transition-colors",
+              textClassName
+            )}
+          >
             DocNova
           </span>
-          {props['aria-label'] === 'DocNova Home' && (
-            <span className="text-[10px] font-bold text-primary tracking-wider uppercase">
+          {props["aria-label"] === "DocNova Home" && (
+            <span className="text-primary text-[10px] font-bold tracking-wider uppercase">
               AI Tools Hub
             </span>
           )}

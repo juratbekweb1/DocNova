@@ -191,7 +191,18 @@ export interface SectionLimitStat {
   href: string;
 }
 
+const sectionLimitsCache = new Map<string, { data: SectionLimitStat[]; expiresAt: number }>();
+const SECTION_LIMITS_TTL_MS = 10_000;
+
 export async function getAllUserSectionLimits(userId: string): Promise<SectionLimitStat[]> {
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  if (!isTest) {
+    const cached = sectionLimitsCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+  }
+
   const [sub, apiLimit, usageGroup] = await Promise.all([
     getUserSubscription(userId),
     prisma.userApiLimit.findUnique({ where: { userId } }),
@@ -249,7 +260,7 @@ export async function getAllUserSectionLimits(userId: string): Promise<SectionLi
     href,
   });
 
-  return [
+  const result = [
     buildStat(
       "coursework",
       "Kurs ishi, Referat va BMI",
@@ -287,6 +298,15 @@ export async function getAllUserSectionLimits(userId: string): Promise<SectionLi
       "/academic/mock-test"
     ),
   ];
+
+  if (!isTest) {
+    sectionLimitsCache.set(userId, {
+      data: result,
+      expiresAt: Date.now() + SECTION_LIMITS_TTL_MS,
+    });
+  }
+
+  return result;
 }
 
 export async function trackAIUsage({
@@ -339,6 +359,10 @@ export async function trackAIUsage({
       },
       select: { id: true },
     });
+
+    if (userId) {
+      sectionLimitsCache.delete(userId);
+    }
 
     // Opportunistically check if the daily Telegram report (21:00+ Tashkent) needs to be dispatched
     void ensureDailyTelegramReportSent();
@@ -399,6 +423,7 @@ export async function getUserSubscription(userId: string) {
  * Deduct/increment AI generation credits and daily usage in the database
  */
 export async function deductUserAiCredit(userId: string): Promise<void> {
+  sectionLimitsCache.delete(userId);
   try {
     const now = new Date();
     const user = await prisma.user.findUnique({
@@ -436,6 +461,7 @@ export async function refundUserAiCredit(params: {
   errorCode?: string;
 }): Promise<boolean> {
   const { userId, usageId, errorCode = "GENERATION_FAILED_REFUND" } = params;
+  sectionLimitsCache.delete(userId);
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -468,4 +494,3 @@ export async function refundUserAiCredit(params: {
     return false;
   }
 }
-

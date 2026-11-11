@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Crown, Lock, Sparkles, X, CheckCircle2, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import type { SectionLimitStat } from "@/lib/limits";
+import {
+  fetchClientUsageData,
+  invalidateClientUsageCache,
+} from "@/components/layout/usage-indicator";
 
 export interface PaywallEventDetail {
   message?: string;
@@ -54,14 +58,16 @@ export function LimitPaywallModal() {
 
   useEffect(() => {
     if (status !== "authenticated") return;
-    fetch("/api/user/usage")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.sections && Array.isArray(data.sections)) {
-          sectionsRef.current = data.sections;
-        }
-      })
-      .catch(() => {});
+    const timer = setTimeout(() => {
+      fetchClientUsageData()
+        .then((data) => {
+          if (data?.sections && Array.isArray(data.sections)) {
+            sectionsRef.current = data.sections;
+          }
+        })
+        .catch(() => {});
+    }, 1200);
+    return () => clearTimeout(timer);
   }, [status]);
 
   useEffect(() => {
@@ -118,6 +124,10 @@ export function LimitPaywallModal() {
       }
 
       const response = await originalFetch.apply(this, args);
+
+      if (method === "POST" && url.includes("/api/") && response.ok) {
+        invalidateClientUsageCache();
+      }
 
       if (
         method === "POST" &&

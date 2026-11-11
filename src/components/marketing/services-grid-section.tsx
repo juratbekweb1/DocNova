@@ -33,6 +33,7 @@ import {
   QrCode,
   KeyRound,
   BookOpen,
+  FileImage,
 } from "lucide-react";
 
 export function ServicesGridSection() {
@@ -292,6 +293,8 @@ export function ServicesGridSection() {
       description:
         "Titul varag'i, avtomatik mundarija, kirish, 3 ta asosiy bob, xulosa va OTM talablariga mos adabiyotlar ro'yxati.",
       href: "/academic/coursework",
+      secondaryHref: "/academic/coursework?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: GraduationCap,
       badge: "Eng ommabop",
       badgeStyle: "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -320,6 +323,8 @@ export function ServicesGridSection() {
       description:
         "Ilmiy muammoning dolzarbligi, obyekti, predmeti, metodologiyasi, amaliy tahlillar hamda 3 boblik to'liq ilmiy apparat.",
       href: "/academic/diplom-bmi",
+      secondaryHref: "/academic/diplom-bmi?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: Award,
       badge: "Ilmiy daraja",
       badgeStyle: "bg-amber-500/15 text-amber-400 border-amber-500/30",
@@ -348,6 +353,8 @@ export function ServicesGridSection() {
       description:
         "Universitet fani bo'yicha mustaqil topshiriqlar, esse, referat va ilmiy tezislar. 2 daqiqada tayyorlanadi.",
       href: "/academic/referat",
+      secondaryHref: "/academic/referat?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: FileText,
       badge: "Tezkor (2 min)",
       badgeStyle: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -376,6 +383,8 @@ export function ServicesGridSection() {
       description:
         "Iqtisodiyot, statistika, ekonometrika va aniq fanlardan variantli amaliy ishlar: a), b), c), d), e) bosqichli yechim, hisob-kitob jadvallari, ustunli diagramma va Excel (EN/RU) formulalari.",
       href: "/academic/amaliy-ish",
+      secondaryHref: "/academic/amaliy-ish?mode=image",
+      secondaryCta: "Rasm tashlash",
       icon: Calculator,
       badge: "Hisob-kitob & Jadvallar",
       badgeStyle: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
@@ -406,6 +415,8 @@ export function ServicesGridSection() {
     description:
       "Kurs ishi, diplom (BMI) yoki referat himoyasi uchun professional taqdimot slaydlari. Har bir slayd uchun asosiy tezislar va komissiya oldida so'zlash uchun ma'ruzachi nutqi avtomatik shakllantiriladi.",
     href: "/academic/presentation",
+    secondaryHref: "/academic/presentation?mode=image",
+    secondaryCta: "Rasm tashlash",
     icon: Presentation,
     badges: [
       { text: "PPTX & AI", style: "border-orange-500/30 bg-orange-500/15 text-orange-400" },
@@ -469,6 +480,8 @@ export function ServicesGridSection() {
     description:
       "Fanlar bo'yicha imtihon biletlari, 10 talik variantli testlar (MCQ) va tushuntirishli yechimlar orqali sessiyaga 100% tayyorlaning.",
     href: "/academic/exam-prep",
+    secondaryHref: "/academic/exam-prep?mode=image",
+    secondaryCta: "Rasm tashlash",
     icon: CheckSquare,
     badge: "Interaktiv",
     badgeStyle: "bg-purple-500/15 text-purple-300 border-purple-500/35",
@@ -683,18 +696,18 @@ export function ServicesGridSection() {
                     href={service.href}
                     className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${service.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${service.theme.cardGlow}`}
                   >
-                    {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                    {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
                     <div
-                      className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                      className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${service.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                     />
                     <div
-                      className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                      className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${service.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
                     />
                     <div
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${service.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                      className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${service.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                     />
                     <div
-                      className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                      className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                     />
 
                     {/* Card Content */}
@@ -764,16 +777,26 @@ export function ServicesGridSection() {
                ========================================================================= */
           <div key="students-grid" className="space-y-6 text-left">
             {/* TOP HEADER: 1-rasmdagi "Talabalar uchun asosiy bo'limlar" */}
-            <div className="flex items-center gap-2.5">
-              <Layers className="h-5 w-5 text-sky-400" />
-              <div>
-                <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
-                  Talabalar uchun asosiy bo‘limlar
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-                  O‘zingizga kerakli bo‘limni tanlang va bir necha soniyada natijaga erishing
-                </p>
+            <div className="flex flex-col justify-between gap-4 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center">
+              <div className="flex items-start gap-2.5 sm:items-center">
+                <Layers className="mt-0.5 h-5 w-5 shrink-0 text-sky-400 sm:mt-0" />
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                    Talabalar uchun asosiy bo‘limlar
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                    O‘zingizga kerakli bo‘limni tanlang yoki mavzular yozilgan rasmni galereyadan
+                    tashlab, nechta bet yozilishini belgilang
+                  </p>
+                </div>
               </div>
+              <Link
+                href="/academic/referat?mode=image"
+                className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2.5 text-xs font-bold whitespace-nowrap text-white shadow-md shadow-sky-500/25 transition-all hover:scale-[1.02] hover:from-sky-400 hover:to-blue-500 active:scale-[0.98] sm:w-auto sm:text-sm"
+              >
+                <FileImage className="h-4 w-4 shrink-0" />
+                <span>Rasm tashlash</span>
+              </Link>
             </div>
 
             {/* 4 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat, Amaliy ish) */}
@@ -785,18 +808,18 @@ export function ServicesGridSection() {
                     <div
                       className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${module.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${module.theme.cardGlow}`}
                     >
-                      {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                      {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
                       <div
-                        className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                        className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${module.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                       />
                       <div
-                        className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                        className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${module.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${module.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${module.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                       />
 
                       {/* Card Content */}
@@ -841,13 +864,24 @@ export function ServicesGridSection() {
                           <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                             {module.stats}
                           </span>
-                          <Link
-                            href={module.href}
-                            className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
-                          >
-                            <span>{module.cta}</span>
-                            <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                          </Link>
+                          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                            {"secondaryHref" in module && module.secondaryHref && (
+                              <Link
+                                href={module.secondaryHref}
+                                className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-sky-600 transition-all hover:bg-sky-500/20 sm:w-auto dark:text-sky-300"
+                              >
+                                <FileImage className="h-3.5 w-3.5 shrink-0" />
+                                <span>{module.secondaryCta || "Rasm tashlash"}</span>
+                              </Link>
+                            )}
+                            <Link
+                              href={module.href}
+                              className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
+                            >
+                              <span>{module.cta}</span>
+                              <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -861,18 +895,18 @@ export function ServicesGridSection() {
               <div
                 className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${widePresentationModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-8 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${widePresentationModule.theme.cardGlow}`}
               >
-                {/* Ambient 3D Neon Orbs & Top Light Beam (Smooth Lighting) */}
+                {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
                 <div
-                  className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                  className={`pointer-events-none absolute -top-20 -right-20 hidden h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${widePresentationModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                 />
                 <div
-                  className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                  className={`pointer-events-none absolute -bottom-20 -left-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${widePresentationModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
                 />
                 <div
-                  className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                 />
                 <div
-                  className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                 />
 
                 {/* Card Content */}
@@ -944,13 +978,25 @@ export function ServicesGridSection() {
                       <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
                       <span>{widePresentationModule.stats}</span>
                     </span>
-                    <Link
-                      href={widePresentationModule.href}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] hover:from-orange-600 hover:to-amber-600 sm:w-auto"
-                    >
-                      <span>{widePresentationModule.cta}</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                    </Link>
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      {"secondaryHref" in widePresentationModule &&
+                        widePresentationModule.secondaryHref && (
+                          <Link
+                            href={widePresentationModule.secondaryHref}
+                            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-sky-600 transition-all hover:bg-sky-500/20 sm:w-auto dark:text-sky-300"
+                          >
+                            <FileImage className="h-3.5 w-3.5 shrink-0" />
+                            <span>{widePresentationModule.secondaryCta || "Rasm tashlash"}</span>
+                          </Link>
+                        )}
+                      <Link
+                        href={widePresentationModule.href}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] hover:from-orange-600 hover:to-amber-600 sm:w-auto"
+                      >
+                        <span>{widePresentationModule.cta}</span>
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -965,18 +1011,18 @@ export function ServicesGridSection() {
                 <div
                   className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${examModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${examModule.theme.cardGlow}`}
                 >
-                  {/* Ambient 3D Neon Orbs & Top Light Beam */}
+                  {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
                   <div
-                    className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${examModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                   />
                   <div
-                    className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                    className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${examModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${examModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${examModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
 
                   {/* Card Content */}
@@ -1016,13 +1062,24 @@ export function ServicesGridSection() {
                       <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                         {examModule.stats}
                       </span>
-                      <Link
-                        href={examModule.href}
-                        className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${examModule.theme.btnStyle}`}
-                      >
-                        <span>{examModule.cta}</span>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
-                      </Link>
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                        {"secondaryHref" in examModule && examModule.secondaryHref && (
+                          <Link
+                            href={examModule.secondaryHref}
+                            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-sky-600 transition-all hover:bg-sky-500/20 sm:w-auto dark:text-sky-300"
+                          >
+                            <FileImage className="h-3.5 w-3.5 shrink-0" />
+                            <span>{examModule.secondaryCta || "Rasm tashlash"}</span>
+                          </Link>
+                        )}
+                        <Link
+                          href={examModule.href}
+                          className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${examModule.theme.btnStyle}`}
+                        >
+                          <span>{examModule.cta}</span>
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1033,18 +1090,18 @@ export function ServicesGridSection() {
                 <div
                   className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${mockTestModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${mockTestModule.theme.cardGlow}`}
                 >
-                  {/* Ambient 3D Neon Orbs & Top Light Beam */}
+                  {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
                   <div
-                    className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    className={`pointer-events-none absolute -top-20 -right-20 hidden h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${mockTestModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
                   />
                   <div
-                    className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                    className={`pointer-events-none absolute -bottom-20 -left-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${mockTestModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
                   />
 
                   {/* Card Content */}
@@ -1200,9 +1257,9 @@ export function ServicesGridSection() {
                   DAVLAT TA'LIM STANDARTI (MOVSO RUZ) AKADEMIK BANNER
                  ========================================================================= */}
             <div className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xl sm:p-8 md:flex-row dark:border-slate-800/90 dark:bg-gradient-to-r dark:from-[#0a1636]/95 dark:via-[#070e24]/98 dark:to-[#04091a]">
-              {/* Ambient Glow */}
-              <div className="pointer-events-none absolute -top-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25)_0%,transparent_70%)]" />
-              <div className="pointer-events-none absolute -right-20 -bottom-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.2)_0%,transparent_70%)]" />
+              {/* Ambient Glow (Desktop only) */}
+              <div className="pointer-events-none absolute -top-20 -left-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25)_0%,transparent_70%)] md:block" />
+              <div className="pointer-events-none absolute -right-20 -bottom-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.2)_0%,transparent_70%)] md:block" />
 
               <div className="relative z-10 max-w-2xl space-y-2 text-left">
                 <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-cyan-400 uppercase">

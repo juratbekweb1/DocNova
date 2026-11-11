@@ -14,6 +14,9 @@ const DEFAULT_FREE_PLAN_FEATURES = {
   export_formats: ["txt"],
 };
 
+const subscriptionCache = new Map<string, { data: SubscriptionStatus; expiresAt: number }>();
+const SUBSCRIPTION_CACHE_TTL_MS = 15_000;
+
 /**
  * Validates if the user currently has an active Pro/Premium subscription
  * by checking both their Personal Organization's Subscription and the User record.
@@ -28,15 +31,46 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
     };
   }
 
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  if (!isTest) {
+    const cached = subscriptionCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+  }
+
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        role: true,
-        plan: true,
-        subscriptionEndDate: true,
-      },
-    });
+    const [user, orgUser] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          role: true,
+          plan: true,
+          subscriptionEndDate: true,
+        },
+      }),
+      prisma.organizationUser.findFirst({
+        where: { userId, role: "OWNER" },
+        include: {
+          organization: {
+            include: {
+              subscriptions: {
+                where: {
+                  status: "active",
+                },
+                include: {
+                  plan: true,
+                },
+                orderBy: {
+                  createdAt: "desc",
+                },
+                take: 1,
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
     if (!user) {
       return {
@@ -48,7 +82,7 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
     }
 
     if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
-      return {
+      const adminStatus: SubscriptionStatus = {
         isPremium: true,
         planSlug: "premium",
         planName: "Super Admin (Cheksiz)",
@@ -59,41 +93,33 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
           unlimited: true,
         },
       };
+      if (!isTest) {
+        subscriptionCache.set(userId, {
+          data: adminStatus,
+          expiresAt: Date.now() + SUBSCRIPTION_CACHE_TTL_MS,
+        });
+      }
+      return adminStatus;
     }
 
     const now = new Date();
 
-    const orgUser = await prisma.organizationUser.findFirst({
-      where: { userId, role: "OWNER" },
-      include: {
-        organization: {
-          include: {
-            subscriptions: {
-              where: {
-                status: "active",
-              },
-              include: {
-                plan: true,
-              },
-              orderBy: {
-                createdAt: "desc",
-              },
-              take: 1,
-            },
-          },
-        },
-      },
-    });
-
     const activeSub = orgUser?.organization.subscriptions[0];
     if (activeSub && (!activeSub.currentPeriodEnd || new Date(activeSub.currentPeriodEnd) >= now)) {
-      return {
+      const orgStatus: SubscriptionStatus = {
         isPremium: activeSub.plan.slug !== "free",
         planSlug: activeSub.plan.slug,
         planName: activeSub.plan.name,
         expiresAt: activeSub.currentPeriodEnd,
         features: (activeSub.plan.features as Record<string, unknown>) || {},
       };
+      if (!isTest) {
+        subscriptionCache.set(userId, {
+          data: orgStatus,
+          expiresAt: Date.now() + SUBSCRIPTION_CACHE_TTL_MS,
+        });
+      }
+      return orgStatus;
     }
 
     // Fallback to User.plan & User.subscriptionEndDate
@@ -103,7 +129,7 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
 
     if (userSubValid) {
       const isPrem = user.plan === "PREMIUM";
-      return {
+      const paidStatus: SubscriptionStatus = {
         isPremium: true,
         planSlug: isPrem ? "premium" : "pro",
         planName: isPrem ? "DocNova Premium" : "DocNova Pro",
@@ -115,14 +141,28 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionS
           export_formats: ["txt", "pdf", "docx"],
         },
       };
+      if (!isTest) {
+        subscriptionCache.set(userId, {
+          data: paidStatus,
+          expiresAt: Date.now() + SUBSCRIPTION_CACHE_TTL_MS,
+        });
+      }
+      return paidStatus;
     }
 
-    return {
+    const freeStatus: SubscriptionStatus = {
       isPremium: false,
       planSlug: "free",
       planName: "Free",
       features: DEFAULT_FREE_PLAN_FEATURES,
     };
+    if (!isTest) {
+      subscriptionCache.set(userId, {
+        data: freeStatus,
+        expiresAt: Date.now() + SUBSCRIPTION_CACHE_TTL_MS,
+      });
+    }
+    return freeStatus;
   } catch (error) {
     console.error("Failed to fetch subscription, defaulting to FREE:", error);
     return {

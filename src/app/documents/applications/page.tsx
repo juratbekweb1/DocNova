@@ -467,7 +467,7 @@ ${bodyText}
 
           {/* Right Live Paper Preview (7 cols) */}
           <div className="lg:col-span-7">
-            <div className="border-border bg-surface sticky top-24 rounded-3xl border p-4 shadow-xl sm:p-8">
+            <div className="border-border bg-surface rounded-3xl border p-4 shadow-xl sm:p-8 lg:sticky lg:top-24">
               <div className="border-border mb-4 flex items-center justify-between border-b pb-3">
                 <span className="text-foreground-secondary text-xs font-bold tracking-wider uppercase">
                   Hujjat ko&apos;rinishi (A4 Rasmiy blank)

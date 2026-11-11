@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -29,6 +29,8 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
+import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
+import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 import {
   StaleBuildError,
   deliverPdf,
@@ -247,6 +249,7 @@ const markdownComponents = {
 export default function DiplomBmiPage() {
   const { toast } = useToast();
   const documentRef = useRef<HTMLDivElement>(null);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
 
   const [selectedSpecialtyIdx, setSelectedSpecialtyIdx] = useState<number>(0);
   const activeSpecialty = SPECIALTIES[selectedSpecialtyIdx];
@@ -276,6 +279,11 @@ export default function DiplomBmiPage() {
   const [copied, setCopied] = useState(false);
   const [slidesCount, setSlidesCount] = useState<number>(15);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
+
+  const renderedMarkdown = useMemo(
+    () => (result ? <ReactMarkdown components={markdownComponents}>{result}</ReactMarkdown> : null),
+    [result]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -538,7 +546,7 @@ export default function DiplomBmiPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 print:p-0">
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 print:block">
           {/* Left Form */}
-          <div className="border-border bg-surface sticky top-24 rounded-2xl border p-6 shadow-sm lg:col-span-5 print:hidden">
+          <div className="border-border bg-surface rounded-2xl border p-6 shadow-sm lg:sticky lg:top-24 lg:col-span-5 print:hidden">
             <div className="border-border mb-4 flex items-center justify-between border-b pb-3">
               <h2 className="text-foreground flex items-center gap-2 text-base font-bold">
                 <Sparkles className="h-4 w-4 text-amber-400" />
@@ -554,6 +562,8 @@ export default function DiplomBmiPage() {
               <CreationModeSelector
                 moduleType="diplom-bmi"
                 accentColor="amber"
+                defaultPagesPerTopic="15"
+                subjectHint={formData.specialty}
                 onSampleBlueprintReady={(blueprint) => {
                   setFormData((prev) => ({
                     ...prev,
@@ -585,6 +595,49 @@ export default function DiplomBmiPage() {
                         ? `Iltimos, yetishmayotgan maydonlarni tekshiring: ${parsed.missingFields.join(", ")}`
                         : "Mavzu va hajm shaklga kiritildi!",
                   });
+                }}
+                onApplyTopicsToForm={(topics) => {
+                  if (topics.length === 0) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: topics[0].title || prev.topic,
+                    pageCount: topics[0].pageCount || prev.pageCount,
+                    templateText: formatTopicsAsBlueprint(topics),
+                  }));
+                  toast({
+                    title: "Rasmdan olingan mavzular qo'llanildi!",
+                    description: `${topics.length} ta mavzu BMI shaklga yuklandi.`,
+                  });
+                }}
+                onWorksGenerated={(works) => {
+                  if (works.length === 0) return;
+                  const combinedMarkdown = works
+                    .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                    .join("\n\n---\n\n");
+                  const distinctPages = new Set(
+                    works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                  );
+                  const syncedPage =
+                    distinctPages.size === 1 ? Array.from(distinctPages)[0] : works[0]?.pageCount;
+                  setResult(combinedMarkdown);
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: works[0]?.title?.trim() || prev.topic,
+                    pageCount: syncedPage || prev.pageCount,
+                    templateText: formatTopicsAsBlueprint(works),
+                  }));
+                  toast({
+                    title: "Rasmdan tanlangan betlarda ilmiy matn tayyor!",
+                    description: `${works.length} ta mavzu bo'yicha matnlar ko'rish oynasida tayyor.`,
+                  });
+                  if (typeof window !== "undefined") {
+                    window.setTimeout(() => {
+                      resultPreviewRef.current?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }, 80);
+                  }
                 }}
               />
 
@@ -629,9 +682,12 @@ export default function DiplomBmiPage() {
 
               {/* Mavzu + Tavsiyalar */}
               <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Tadqiqot mavzusi (Aniq va to&apos;liq) *
-                </label>
+                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-foreground-secondary block text-xs font-semibold">
+                    Tadqiqot mavzusi (Aniq va to&apos;liq) *
+                  </label>
+                  <GalleryTopicTriggerButton accentColor="amber" label="Rasm tashlash" />
+                </div>
                 <textarea
                   rows={2}
                   name="topic"
@@ -922,10 +978,24 @@ export default function DiplomBmiPage() {
                 </Link>
               </div>
             </form>
+            {result && (
+              <button
+                type="button"
+                onClick={() =>
+                  resultPreviewRef.current?.scrollIntoView?.({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-500 lg:hidden"
+              >
+                <span>Tayyor natijaga o&apos;tish ↓</span>
+              </button>
+            )}
           </div>
 
           {/* Right Preview */}
-          <div className="flex flex-col lg:col-span-7">
+          <div ref={resultPreviewRef} className="flex flex-col lg:col-span-7">
             {/* Loading Wizard Stepper */}
             {loading && (
               <div className="border-border bg-surface mb-6 rounded-2xl border border-amber-500/30 p-6 shadow-xl">
@@ -1110,14 +1180,14 @@ export default function DiplomBmiPage() {
                 <div className="flex w-full justify-center overflow-x-auto p-2 print:p-0">
                   <div
                     ref={documentRef}
-                    className="a4-document border-border prose prose-slate w-[210mm] max-w-full shrink-0 rounded-sm border bg-white p-8 font-serif text-sm leading-relaxed text-black shadow-2xl sm:p-12 print:border-0 print:p-0 print:shadow-none"
+                    className="a4-document border-border prose prose-slate w-full max-w-[210mm] shrink-0 rounded-sm border bg-white p-8 font-serif text-sm leading-relaxed text-black shadow-2xl sm:p-12 print:border-0 print:p-0 print:shadow-none"
                     style={{
                       boxSizing: "border-box",
                       padding: "20mm 20mm 20mm 25mm", // GOST: chap 25mm, yuqori/o'ng/past 20mm
                       minHeight: "297mm",
                     }}
                   >
-                    <ReactMarkdown components={markdownComponents}>{result}</ReactMarkdown>
+                    {renderedMarkdown}
                   </div>
                 </div>
               </div>

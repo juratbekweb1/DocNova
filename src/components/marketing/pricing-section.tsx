@@ -19,10 +19,27 @@ export function PricingSection() {
   const [dbPlans, setDbPlans] = useState<DbPlan[]>([]);
 
   React.useEffect(() => {
-    fetch("/api/plans")
-      .then((res) => res.json())
-      .then((data) => setDbPlans(Array.isArray(data) ? data : []))
-      .catch(() => setDbPlans([]));
+    let active = true;
+    const timer = setTimeout(() => {
+      fetch("/api/plans")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!active || !Array.isArray(data)) return;
+          const pro = data.find((p: DbPlan) => p.slug === "pro");
+          const premium = data.find((p: DbPlan) => p.slug === "premium");
+          const matchesDefaults =
+            (!pro || (pro.priceMonthly === 39000 && pro.priceYearly === 374000)) &&
+            (!premium || (premium.priceMonthly === 69000 && premium.priceYearly === 662000));
+          if (!matchesDefaults) {
+            setDbPlans(data);
+          }
+        })
+        .catch(() => {});
+    }, 800);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const getDbPrice = (slug: string, yearly: boolean) => {
@@ -100,8 +117,8 @@ export function PricingSection() {
   return (
     <section id="pricing" className="mx-auto w-full max-w-7xl px-6 py-24 sm:px-8 lg:px-12">
       <div className="border-border bg-background/80 relative overflow-hidden rounded-[2.5rem] border p-8 lg:p-14">
-        {/* Background decoration - GPU-friendly radial gradient */}
-        <div className="pointer-events-none absolute top-0 right-0 z-0 h-[480px] w-[480px] translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18)_0%,rgba(14,165,233,0.05)_45%,transparent_70%)]" />
+        {/* Background decoration - GPU-friendly radial gradient (Desktop only) */}
+        <div className="pointer-events-none absolute top-0 right-0 z-0 hidden h-[480px] w-[480px] translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18)_0%,rgba(14,165,233,0.05)_45%,transparent_70%)] md:block" />
 
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">

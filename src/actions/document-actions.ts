@@ -6,13 +6,14 @@ import { authOptions } from "@/lib/auth-options";
 import { revalidatePath } from "next/cache";
 import { DocumentType, DocumentStatus, Prisma } from "@prisma/client";
 
-export async function getDocuments() {
+export async function getDocuments(limit?: number) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const docs = await prisma.document.findMany({
     where: { userId: session.user.id, deletedAt: null },
     orderBy: { updatedAt: "desc" },
+    ...(typeof limit === "number" && limit > 0 ? { take: limit } : {}),
   });
 
   return docs;

@@ -135,11 +135,13 @@ export async function exportElementsToPdf(
       scrollX: 0,
       scrollY: 0,
       onclone: (_doc: Document, cloned: HTMLElement) => {
+        _doc.body.classList.add("pdf-export-mode");
+        cloned.classList.add("pdf-export-mode");
         cloned.classList.remove("hidden");
         cloned.style.display = cloned.style.display === "none" ? "block" : cloned.style.display;
         if (opts.captureWidth) {
-          cloned.style.width = `${opts.captureWidth}px`;
-          cloned.style.maxWidth = "none";
+          cloned.style.setProperty("width", `${opts.captureWidth}px`, "important");
+          cloned.style.setProperty("max-width", "none", "important");
         }
         cloned.style.boxShadow = "none";
         // Expand scroll containers so the full content is captured.
@@ -181,17 +183,23 @@ export async function exportElementsToPdf(
 
       const findSafeCut = (target: number): number => {
         if (!srcCtx || target >= canvas.height) return Math.min(target, canvas.height);
-        const minY = target - Math.floor(sliceHpx * 0.15);
-        for (let y = target; y > minY; y--) {
-          const row = srcCtx.getImageData(0, y, canvas.width, 1).data;
+        const minY = Math.max(0, target - Math.floor(sliceHpx * 0.15));
+        const bandHeight = target - minY + 1;
+        if (bandHeight <= 1) return target;
+        // Single GPU-to-CPU readback for the entire candidate band instead of ~180 per-row calls
+        const bandData = srcCtx.getImageData(0, minY, canvas.width, bandHeight).data;
+        const rowStride = canvas.width * 4;
+        for (let rowIdx = bandHeight - 1; rowIdx > 0; rowIdx--) {
+          const rowOffset = rowIdx * rowStride;
           let blank = true;
-          for (let p = 0; p < row.length; p += 16) {
-            if (row[p] < 235 || row[p + 1] < 235 || row[p + 2] < 235) {
+          for (let p = 0; p < rowStride; p += 16) {
+            const idx = rowOffset + p;
+            if (bandData[idx] < 235 || bandData[idx + 1] < 235 || bandData[idx + 2] < 235) {
               blank = false;
               break;
             }
           }
-          if (blank) return y;
+          if (blank) return minY + rowIdx;
         }
         return target;
       };

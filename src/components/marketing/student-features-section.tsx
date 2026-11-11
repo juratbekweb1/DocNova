@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { GraduationCap, ArrowRight, FileImage } from "lucide-react";
 
 export function StudentFeaturesSection() {
   const cards = [
@@ -111,19 +111,29 @@ export function StudentFeaturesSection() {
             tayyorlang.
           </p>
 
-          <Link
-            href="/academic"
-            className="group mt-8 inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-[0_0_25px_rgba(14,165,233,0.45)] transition-all hover:scale-105 hover:shadow-[0_0_35px_rgba(14,165,233,0.7)] active:scale-95"
-          >
-            <span>Barcha imkoniyatlar</span>
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/academic"
+              className="group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-[0_0_25px_rgba(14,165,233,0.45)] transition-all hover:scale-105 hover:shadow-[0_0_35px_rgba(14,165,233,0.7)] active:scale-95"
+            >
+              <span>Barcha imkoniyatlar</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            <Link
+              href="/academic/referat?mode=image"
+              className="inline-flex items-center gap-2 rounded-full border border-sky-400/50 bg-sky-500/10 px-6 py-3.5 text-sm font-semibold text-sky-600 transition-all hover:bg-sky-500/20 dark:text-sky-300"
+            >
+              <FileImage className="h-4 w-4 shrink-0" />
+              <span>Rasm tashlash</span>
+            </Link>
+          </div>
         </motion.div>
 
         {/* RIGHT COLUMN: 5 Multicolored Real 3D Cards & Paper Airplane */}
         <div className="relative w-full">
-          {/* 3D Paper Airplane floating at top-right */}
-          <div className="pointer-events-none absolute -top-10 right-2 z-20 sm:-top-14 sm:right-0">
+          {/* 3D Paper Airplane floating at top-right (desktop/tablet only to keep mobile scrolling light) */}
+          <div className="pointer-events-none absolute -top-14 right-0 z-20 hidden sm:block">
             <motion.div
               animate={{
                 y: [0, -8, 0],

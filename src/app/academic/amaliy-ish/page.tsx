@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   Calculator,
   Sparkles,
@@ -9,6 +10,7 @@ import {
   Copy,
   Check,
   Printer,
+  RotateCcw,
   Table2,
   BarChart3,
   FileSpreadsheet,
@@ -16,6 +18,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
+import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
+import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
+import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 import { useToast } from "@/hooks/use-toast";
 import {
   StaleBuildError,
@@ -656,6 +661,7 @@ export default function AmaliyIshPage() {
     city: "Toshkent",
     year: "2026",
     language: "uz" as "uz" | "ru" | "en",
+    pageCount: "5",
     customProblemText: "",
   });
 
@@ -678,11 +684,18 @@ export default function AmaliyIshPage() {
     })
   );
 
+  const [generatedWorksMarkdown, setGeneratedWorksMarkdown] = useState<string | null>(null);
+  const [generatedWorksInfo, setGeneratedWorksInfo] = useState<{
+    count: number;
+    pagesLabel: string;
+    title: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const documentRef = useRef<HTMLDivElement>(null);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -709,9 +722,12 @@ export default function AmaliyIshPage() {
       city: "Toshkent",
       year: "2026",
       language: "uz" as "uz" | "ru" | "en",
+      pageCount: "5",
       customProblemText: "",
     };
     setFormData(presetForm);
+    setGeneratedWorksMarkdown(null);
+    setGeneratedWorksInfo(null);
     const sampleDoc = generateDeterministicAmaliyIsh(presetForm);
     setDoc(sampleDoc);
     toast({
@@ -732,6 +748,8 @@ export default function AmaliyIshPage() {
       return;
     }
 
+    setGeneratedWorksMarkdown(null);
+    setGeneratedWorksInfo(null);
     setLoading(true);
     try {
       const res = await fetch("/api/ai/amaliy-ish", {
@@ -767,15 +785,39 @@ export default function AmaliyIshPage() {
     }
   };
 
+  const buildSafeSlug = (value: string, fallback = "Amaliy_ish") =>
+    value
+      .slice(0, 40)
+      .replace(/['`\u2018\u2019\u02BB\u02BC]/g, "")
+      .replace(/[^a-zA-Z0-9\u0400-\u04FF_-]+/g, "_")
+      .replace(/^_+|_+$/g, "") || fallback;
+
   // 100% ishlaydigan A4 Word (.doc) eksporti (Titul varag'i, barcha jadvallar, grafik chizmasi, Excel jadvali bilan)
   const handleDownloadWordDoc = () => {
-    const htmlContent = buildAmaliyIshWordHtml(doc);
+    const generatedTitle = (generatedWorksInfo?.title || formData.topic || "Amaliy ish").trim();
+    const escapedHtmlTitle = generatedTitle
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const htmlContent = generatedWorksMarkdown
+      ? `<html><head><meta charset="utf-8"><title>${escapedHtmlTitle}</title></head><body style="font-family:'Times New Roman',serif;font-size:14pt;line-height:1.5;">${generatedWorksMarkdown
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+          .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+          .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+          .replace(/\n/g, "<br/>")}</body></html>`
+      : buildAmaliyIshWordHtml(doc);
     const blob = new Blob(["\ufeff", htmlContent], {
       type: "application/msword;charset=utf-8",
     });
     const cleanVariant = doc.meta.variant.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const cleanTopic = doc.meta.topic.slice(0, 28).replace(/[^a-zA-Z0-9_-]/g, "_") || "Amaliy_ish";
-    const fileName = `Amaliy_ish_${cleanVariant}_${cleanTopic}.doc`;
+    const cleanTopic = buildSafeSlug(doc.meta.topic);
+    const cleanGeneratedTopic = buildSafeSlug(generatedTitle);
+    const fileName = generatedWorksMarkdown
+      ? `Amaliy_ish_${cleanGeneratedTopic}.doc`
+      : `Amaliy_ish_${cleanVariant}_${cleanTopic}.doc`;
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -788,8 +830,9 @@ export default function AmaliyIshPage() {
 
     toast({
       title: "Word (.doc) yuklab olindi! 📄",
-      description:
-        "Titul varag'i, ANOVA jadvallari, ustunli diagramma va Excel formulalari A4 formatda saqlandi.",
+      description: generatedWorksMarkdown
+        ? "Rasmdan yaratilgan barcha amaliy ish matnlari Word formatida saqlandi."
+        : "Titul varag'i, ANOVA jadvallari, ustunli diagramma va Excel formulalari A4 formatda saqlandi.",
     });
   };
 
@@ -797,15 +840,23 @@ export default function AmaliyIshPage() {
     if (isDownloadingDocx) return;
     setIsDownloadingDocx(true);
     try {
+      const generatedTitle = (generatedWorksInfo?.title || formData.topic || "Amaliy ish").trim();
       const exported = await downloadAcademicDocx({
-        topic: `${doc.meta.topic} (${doc.meta.variant})`,
-        markdownContent: doc.markdown,
+        topic: generatedWorksMarkdown ? generatedTitle : `${doc.meta.topic} (${doc.meta.variant})`,
+        markdownContent: generatedWorksMarkdown || doc.markdown,
         workType: "Amaliy ish",
-        subject: doc.meta.subject,
-        university: doc.meta.university,
-        studentName: `${doc.meta.studentName} (${doc.meta.studentGroup})`,
-        teacherName: doc.meta.teacherName,
-        language: doc.meta.language === "ru" ? "ru" : doc.meta.language === "en" ? "en" : "uz",
+        subject: generatedWorksMarkdown ? formData.subject : doc.meta.subject,
+        university: generatedWorksMarkdown ? formData.university : doc.meta.university,
+        studentName: generatedWorksMarkdown
+          ? formData.studentName
+          : `${doc.meta.studentName} (${doc.meta.studentGroup})`,
+        teacherName: generatedWorksMarkdown ? formData.teacherName : doc.meta.teacherName,
+        language:
+          (generatedWorksMarkdown ? formData.language : doc.meta.language) === "ru"
+            ? "ru"
+            : (generatedWorksMarkdown ? formData.language : doc.meta.language) === "en"
+              ? "en"
+              : "uz",
       });
 
       if (exported.deliveryMethod !== "cancelled") {
@@ -825,8 +876,11 @@ export default function AmaliyIshPage() {
   const handleDownloadPdf = async () => {
     if (!documentRef.current) return;
     setIsExportingPdf(true);
+    const generatedTitle = (generatedWorksInfo?.title || formData.topic || "Amaliy ish").trim();
     const cleanVariant = doc.meta.variant.replace(/[^a-zA-Z0-9]/g, "_");
-    const filename = `Amaliy_ish_${cleanVariant}.pdf`;
+    const filename = generatedWorksMarkdown
+      ? `Amaliy_ish_${buildSafeSlug(generatedTitle)}.pdf`
+      : `Amaliy_ish_${cleanVariant}.pdf`;
     try {
       const blob = await exportElementsToPdf([documentRef.current], {
         filename,
@@ -868,7 +922,7 @@ export default function AmaliyIshPage() {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(doc.markdown);
+    navigator.clipboard.writeText(generatedWorksMarkdown || doc.markdown);
     setCopied(true);
     toast({
       title: "Nusxalandi!",
@@ -929,6 +983,83 @@ export default function AmaliyIshPage() {
             </div>
 
             <form onSubmit={handleGenerate} className="space-y-3.5">
+              <CreationModeSelector
+                moduleType="amaliy-ish"
+                accentColor="blue"
+                defaultPagesPerTopic="5"
+                subjectHint={formData.subject}
+                onSampleBlueprintReady={(blueprint) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    customProblemText: blueprint,
+                  }));
+                }}
+                onSampleCleared={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customProblemText: "",
+                  }))
+                }
+                onApplyTopicsToForm={(topics) => {
+                  if (topics.length === 0) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: topics[0].title || prev.topic,
+                    pageCount: topics[0].pageCount || prev.pageCount,
+                    customProblemText: formatTopicsAsBlueprint(topics),
+                  }));
+                  toast({
+                    title: "Rasmdan olingan mavzular qo'llanildi!",
+                    description: `${topics.length} ta mavzu shaklga yuklandi.`,
+                  });
+                }}
+                onWorksGenerated={(works) => {
+                  if (works.length === 0) return;
+                  const combined = works
+                    .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                    .join("\n\n---\n\n");
+                  const distinctPages = new Set(
+                    works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                  );
+                  const syncedPage =
+                    distinctPages.size === 1 ? Array.from(distinctPages)[0] : works[0]?.pageCount;
+                  const pagesLabel =
+                    distinctPages.size === 1
+                      ? `${Array.from(distinctPages)[0]} bet`
+                      : "tanlangan betlarda";
+                  const generatedTitle =
+                    works.length === 1
+                      ? works[0].title.trim() || formData.topic
+                      : works[0]?.title?.trim()
+                        ? `${works[0].title.trim()} (${works.length} ta mavzu)`
+                        : formData.topic;
+                  setGeneratedWorksMarkdown(combined);
+                  setGeneratedWorksInfo({
+                    count: works.length,
+                    pagesLabel,
+                    title: generatedTitle || "Amaliy ish",
+                  });
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: works[0]?.title?.trim() || prev.topic,
+                    pageCount: syncedPage || prev.pageCount,
+                    customProblemText: formatTopicsAsBlueprint(works),
+                  }));
+                  toast({
+                    title: `Har bir mavzuga ${pagesLabel} amaliy ish tayyor!`,
+                    description: `${works.length} ta mavzu bo'yicha to'liq ishlar ko'rish oynasida tayyor.`,
+                  });
+                  if (typeof window !== "undefined") {
+                    window.setTimeout(() => {
+                      resultPreviewRef.current?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }, 80);
+                  }
+                }}
+              />
+
               {/* Quick Sample Preset Box */}
               <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -998,9 +1129,12 @@ export default function AmaliyIshPage() {
 
               {/* Mavzu */}
               <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Amaliy ish mavzusi *
-                </label>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-foreground-secondary block text-xs font-semibold">
+                    Amaliy ish mavzusi *
+                  </label>
+                  <GalleryTopicTriggerButton accentColor="blue" label="Rasm tashlash" />
+                </div>
                 <input
                   type="text"
                   name="topic"
@@ -1057,6 +1191,37 @@ export default function AmaliyIshPage() {
                     <option value={4}>4 ta masala (To&apos;liq)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Kutilayotgan hajm (Nechta bet?) */}
+              <div>
+                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                  Kutilayotgan hajm (Nechta bet? 1 — 50 bet)
+                </label>
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                  {["3", "5", "8", "10", "15"].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, pageCount: cnt }))}
+                      className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
+                        formData.pageCount === cnt
+                          ? "border-indigo-500 bg-indigo-600 text-white shadow-xs"
+                          : "border-border bg-background text-foreground-secondary hover:text-foreground hover:border-indigo-500/50"
+                      }`}
+                    >
+                      {cnt} bet
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  name="pageCount"
+                  value={formData.pageCount}
+                  onChange={handleChange}
+                  placeholder="Masalan: 5 bet, 12 bet..."
+                  className="border-border bg-background text-foreground min-h-[40px] w-full rounded-xl border px-3 py-2 text-xs focus:border-indigo-400 focus:outline-none sm:text-sm"
+                />
               </div>
 
               {/* Ixtiyoriy masala sharti */}
@@ -1153,21 +1318,60 @@ export default function AmaliyIshPage() {
                 )}
               </button>
             </form>
+            {generatedWorksMarkdown && (
+              <button
+                type="button"
+                onClick={() =>
+                  resultPreviewRef.current?.scrollIntoView?.({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-500 lg:hidden"
+              >
+                <span>Tayyor natijaga o&apos;tish ↓</span>
+              </button>
+            )}
           </div>
 
           {/* RIGHT COLUMN: A4 DOCUMENT PREVIEW & EXPORT */}
-          <div className="flex min-w-0 flex-col space-y-4 lg:col-span-8">
+          <div ref={resultPreviewRef} className="flex min-w-0 flex-col space-y-4 lg:col-span-8">
             {/* Export Toolbar */}
             <div className="border-border bg-surface flex flex-col gap-3 rounded-2xl border p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between print:hidden">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/15 px-2.5 py-1 text-xs font-bold text-indigo-400">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>{doc.meta.variant} tayyor</span>
-                </span>
-                <span className="text-foreground-secondary text-xs">
-                  {doc.problems.length} ta masala • Jami {doc.meta.totalPoints} ball • Jadval,
-                  Grafik & Excel
-                </span>
+                {generatedWorksMarkdown ? (
+                  <>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-500">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>
+                        Rasmdan {generatedWorksInfo?.count ?? 1} ta mavzu (
+                        {generatedWorksInfo?.pagesLabel}) tayyor
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGeneratedWorksMarkdown(null);
+                        setGeneratedWorksInfo(null);
+                      }}
+                      className="border-border bg-surface-elevated text-foreground-secondary hover:text-foreground inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>ANOVA hisob-kitobga qaytish</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/15 px-2.5 py-1 text-xs font-bold text-indigo-400">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>{doc.meta.variant} tayyor</span>
+                    </span>
+                    <span className="text-foreground-secondary text-xs">
+                      {doc.problems.length} ta masala • Jami {doc.meta.totalPoints} ball • Jadval,
+                      Grafik & Excel
+                    </span>
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -1221,7 +1425,18 @@ export default function AmaliyIshPage() {
             </div>
 
             {/* A4 DOCUMENT SHEET */}
-            <AmaliyIshDocumentSheet ref={documentRef} doc={doc} />
+            {generatedWorksMarkdown ? (
+              <div
+                ref={documentRef}
+                className="a4-document border-border max-h-[850px] overflow-x-auto overflow-y-auto rounded-2xl border bg-white p-5 font-serif text-sm leading-relaxed break-words text-slate-900 shadow-xl sm:p-12 print:m-0 print:max-h-none print:overflow-visible print:border-0 print:p-0 print:text-black print:shadow-none"
+              >
+                <div className="prose prose-slate max-w-none break-words text-slate-900 print:text-black">
+                  <ReactMarkdown>{generatedWorksMarkdown}</ReactMarkdown>
+                </div>
+              </div>
+            ) : (
+              <AmaliyIshDocumentSheet ref={documentRef} doc={doc} />
+            )}
           </div>
         </div>
       </div>

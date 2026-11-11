@@ -95,10 +95,10 @@ export function LandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden border-none bg-[#f8fafc] text-slate-900 transition-colors duration-300 outline-none selection:bg-cyan-500/30 selection:text-white dark:bg-[#020817] dark:text-white">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-clip border-none bg-[#f8fafc] text-slate-900 outline-none selection:bg-cyan-500/30 selection:text-white dark:bg-[#020817] dark:text-white">
       <AnimatedBackground />
 
-      <div className="relative z-10 w-full max-w-full overflow-x-hidden border-none outline-none">
+      <div className="relative z-10 w-full max-w-full overflow-x-clip border-none outline-none">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -106,7 +106,7 @@ export function LandingPage() {
 
         <main
           id="main-content"
-          className="w-full max-w-full overflow-x-hidden border-none outline-none"
+          className="w-full max-w-full overflow-x-clip border-none outline-none"
         >
           {/* =========================================================================
               1. HERO SECTION (100% Focused, Centered, Clean Cosmic Atmosphere)

@@ -1886,7 +1886,7 @@ export function LanguageProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setLang = (l: Lang) => {
+  const setLang = React.useCallback((l: Lang) => {
     setLangState(l);
     try {
       if (typeof document !== "undefined") {
@@ -1905,15 +1905,18 @@ export function LanguageProvider({
         // Safe fallback in test environments
       }
     }
-  };
+  }, []);
 
-  return (
-    <LanguageContext.Provider
-      value={{ lang, setLang, t: (translations[lang] || translations.uz) as Translations }}
-    >
-      {children}
-    </LanguageContext.Provider>
+  const contextValue = React.useMemo(
+    () => ({
+      lang,
+      setLang,
+      t: (translations[lang] || translations.uz) as Translations,
+    }),
+    [lang, setLang]
   );
+
+  return <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {

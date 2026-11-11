@@ -93,10 +93,29 @@ export interface AcademicDocxExportResult {
   verificationPayload: AcademicVerificationPayload;
 }
 
-const VERIFY_SECRET =
-  process.env.ENCRYPTION_KEY ||
-  process.env.NEXTAUTH_SECRET ||
-  "docnova_academic_verification_secret_2026";
+const EPHEMERAL_VERIFY_SECRET = "__docnovaEphemeralVerifySecret";
+
+function getVerifySecret(): string {
+  const configured =
+    process.env.ENCRYPTION_KEY?.trim() ||
+    process.env.AUTH_SECRET?.trim() ||
+    process.env.NEXTAUTH_SECRET?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Verification secret (ENCRYPTION_KEY, AUTH_SECRET, or NEXTAUTH_SECRET) must be configured in production."
+    );
+  }
+
+  const g = globalThis as unknown as Record<string, string | undefined>;
+  if (!g[EPHEMERAL_VERIFY_SECRET]) {
+    g[EPHEMERAL_VERIFY_SECRET] = crypto.randomBytes(32).toString("hex");
+  }
+  return g[EPHEMERAL_VERIFY_SECRET]!;
+}
 
 /**
  * Bazaviy sayt URL manzilini aniqlash (QR-kod havolasi uchun)
@@ -117,7 +136,7 @@ export function generateVerificationCode(topic: string, studentName = ""): strin
   const year = new Date().getFullYear();
   const randomBytes = crypto.randomBytes(4).toString("hex").toUpperCase();
   const hashSuffix = crypto
-    .createHmac("sha256", VERIFY_SECRET)
+    .createHmac("sha256", getVerifySecret())
     .update(`${topic}|${studentName}|${Date.now()}|${randomBytes}`)
     .digest("hex")
     .slice(0, 4)
@@ -130,7 +149,7 @@ export function generateVerificationCode(topic: string, studentName = ""): strin
  */
 export function signVerificationData(code: string, contentHash: string): string {
   return crypto
-    .createHmac("sha256", VERIFY_SECRET)
+    .createHmac("sha256", getVerifySecret())
     .update(`${code}:${contentHash}`)
     .digest("hex")
     .slice(0, 16);

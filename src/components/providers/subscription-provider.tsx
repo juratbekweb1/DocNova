@@ -18,20 +18,27 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
 
 export const useSubscription = () => useContext(SubscriptionContext);
 
-export function SubscriptionProvider({ children, initialData }: { children: React.ReactNode, initialData?: { isPremium: boolean, features: Record<string, unknown> } }) {
+export function SubscriptionProvider({
+  children,
+  initialData,
+}: {
+  children: React.ReactNode;
+  initialData?: { isPremium: boolean; features: Record<string, unknown> };
+}) {
   const [isPremium, setIsPremium] = useState(initialData?.isPremium || false);
   const [features, setFeatures] = useState(initialData?.features || {});
-  const [isLoading, setIsLoading] = useState(!initialData);
+  const [isLoading, setIsLoading] = useState(initialData === undefined);
 
   useEffect(() => {
-    if (initialData) return;
+    if (initialData !== undefined) return;
 
-    // Fallback client fetch if initialData wasn't passed from SSR
+    // Fallback client fetch only when initialData wasn't provided by SSR
     const fetchSub = async () => {
       try {
-        const res = await fetch('/api/user/subscription');
+        const res = await fetch("/api/user/subscription");
+        if (!res.ok) return;
         const data = await res.json();
-        setIsPremium(data.isPremium);
+        setIsPremium(Boolean(data.isPremium));
         setFeatures(data.features || {});
       } catch (e) {
         console.error("Failed to fetch subscription", e);

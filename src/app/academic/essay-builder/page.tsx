@@ -1,12 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRecentTool } from "@/hooks/useRecentTool";
-import { GraduationCap, Sparkles, Loader2, Copy, Eraser, FileDown, BookOpen } from "lucide-react";
+import {
+  GraduationCap,
+  Sparkles,
+  Loader2,
+  Copy,
+  Eraser,
+  FileDown,
+  FileImage,
+  BookOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
 import { useToast } from "@/hooks/use-toast";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
+import { UrlImageModeSync } from "@/components/academic/creation-mode-selector";
+import { ImageTopicParser } from "@/components/academic/image-topic-parser";
 import { downloadAcademicDocx } from "@/lib/docx-download-client";
 
 export default function AcademicEssayBuilderPage() {
@@ -16,7 +27,43 @@ export default function AcademicEssayBuilderPage() {
   const [topic, setTopic] = useState("");
   const [field, setField] = useState("Ijtimoiy-gumanitar");
   const [essayType, setEssayType] = useState("Argumentativ (Isbotlovchi)");
-  const [length, setLength] = useState("O'rtacha (3-5 bet)");
+  const [length, setLength] = useState("3-5 bet");
+  const [showImageParser, setShowImageParser] = useState(false);
+  const imageParserRef = useRef<HTMLDivElement>(null);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openAndScroll = () => {
+      setShowImageParser(true);
+      window.setTimeout(() => {
+        imageParserRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+      }, 60);
+    };
+    const handleUrlModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: string | null }>;
+      const nextMode =
+        customEvent.detail && "mode" in customEvent.detail
+          ? customEvent.detail.mode
+          : new URLSearchParams(window.location.search).get("mode");
+      if (nextMode === "image") {
+        openAndScroll();
+      } else if (customEvent.detail?.mode === null) {
+        setShowImageParser(false);
+      }
+    };
+    const handlePopState = () => {
+      if (new URLSearchParams(window.location.search).get("mode") === "image") {
+        openAndScroll();
+      }
+    };
+    window.addEventListener("docnova:url-mode-change", handleUrlModeChange);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("docnova:url-mode-change", handleUrlModeChange);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState("");
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -127,7 +174,92 @@ Quyidagi tuzilmani qat'iy saqla:
           akademik insho yarating.
         </p>
 
-        <div className="bg-surface border-border mb-12 w-full space-y-6 rounded-3xl border p-8 shadow-lg">
+        <div className="bg-surface border-border mb-12 w-full space-y-6 rounded-3xl border p-6 shadow-lg sm:p-8">
+          <div className="flex flex-col gap-3 rounded-2xl border border-sky-500/25 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5">
+              <p className="text-foreground text-xs font-bold sm:text-sm">
+                Mavzular rasm ko&apos;rinishida bormi?
+              </p>
+              <p className="text-foreground-muted text-xs">
+                Telefon galereyasidan rasm tashlang — AI mavzularni ajratib, har biriga nechta bet
+                yozilishini so&apos;raydi.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowImageParser(true);
+                const inputEl = document.getElementById(
+                  "image-upload-input"
+                ) as HTMLInputElement | null;
+                inputEl?.click();
+              }}
+              className="inline-flex min-h-[42px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-sky-600 sm:text-sm"
+            >
+              <FileImage className="h-4 w-4 shrink-0" />
+              <span>Rasm tashlash</span>
+            </button>
+          </div>
+
+          <div ref={imageParserRef} className={showImageParser ? "block" : "hidden"}>
+            <Suspense fallback={null}>
+              <UrlImageModeSync />
+            </Suspense>
+            <ImageTopicParser
+              workType="essay"
+              accentColor="blue"
+              defaultPagesPerTopic="3-4"
+              subjectHint={field}
+              onImageSelected={() => setShowImageParser(true)}
+              onApplyTopicsToForm={(topics) => {
+                if (topics.length === 0) return;
+                setTopic(topics[0].title);
+                if (topics[0].pageCount) {
+                  setLength(`${topics[0].pageCount} bet`);
+                }
+                toast({
+                  title: "Rasmdan mavzu qo'llanildi!",
+                  description: `${topics.length} ta mavzu aniqlandi va shaklga kiritildi.`,
+                });
+              }}
+              onWorksGenerated={(works) => {
+                if (works.length === 0) return;
+                const combinedMarkdown = works
+                  .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                  .join("\n\n---\n\n");
+                const distinctPages = new Set(
+                  works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                );
+                const syncedLength =
+                  distinctPages.size === 1
+                    ? `${Array.from(distinctPages)[0]} bet`
+                    : works[0]?.pageCount
+                      ? `${works[0].pageCount} bet`
+                      : undefined;
+                if (works[0]?.title?.trim()) {
+                  setTopic(works[0].title.trim());
+                }
+                if (syncedLength) {
+                  setLength(syncedLength);
+                }
+                setResult(combinedMarkdown);
+                toast({
+                  title: "Rasmdan tanlangan betlarda insho tayyor!",
+                  description: `${works.length} ta mavzu bo'yicha akademik insholar yaratildi.`,
+                });
+                if (typeof window !== "undefined") {
+                  window.setTimeout(() => {
+                    resultPreviewRef.current?.scrollIntoView?.({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }, 80);
+                }
+              }}
+              compact
+            />
+          </div>
+
           <div>
             <label className="text-foreground mb-2 block text-sm font-semibold">
               Insho mavzusi
@@ -141,7 +273,7 @@ Quyidagi tuzilmani qat'iy saqla:
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="text-foreground-secondary mb-1.5 block text-xs font-medium">
                 Fan sohasi
@@ -176,21 +308,35 @@ Quyidagi tuzilmani qat'iy saqla:
                 <option>Tavsifiy (Narrative)</option>
               </select>
             </div>
+          </div>
 
-            <div>
-              <label className="text-foreground-secondary mb-1.5 block text-xs font-medium">
-                Rejalashtirilgan hajm
-              </label>
-              <select
-                value={length}
-                onChange={(e) => setLength(e.target.value)}
-                className="bg-background border-border text-foreground w-full rounded-lg border px-3 py-2 text-xs outline-none"
-              >
-                <option>Qisqa (1-2 bet, ~500 so&apos;z)</option>
-                <option>O&apos;rtacha (3-5 bet, ~1500 so&apos;z)</option>
-                <option>Kengaytirilgan (6-8 bet, ~2500 so&apos;z)</option>
-              </select>
+          <div>
+            <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
+              Rejalashtirilgan hajm (Nechta bet yozilsin?)
+            </label>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {["1-2 bet", "3-5 bet", "6-8 bet", "10 bet", "15 bet"].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setLength(preset)}
+                  className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                    length === preset
+                      ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                      : "border-border bg-background text-foreground-secondary hover:text-foreground"
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
             </div>
+            <input
+              type="text"
+              value={length}
+              onChange={(e) => setLength(e.target.value)}
+              placeholder="Yoki aniq bet sonini yozing (masalan: 7 bet)..."
+              className="bg-background border-border text-foreground focus:border-primary/50 w-full rounded-xl border px-3.5 py-2 text-xs outline-none sm:text-sm"
+            />
           </div>
 
           <Button
@@ -210,48 +356,50 @@ Quyidagi tuzilmani qat'iy saqla:
           </Button>
         </div>
 
-        {result && (
-          <div className="animate-in fade-in slide-in-from-bottom-8 bg-surface-elevated border-primary/20 relative w-full overflow-hidden rounded-3xl border p-8 shadow-2xl duration-700">
-            <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-              <h3 className="text-foreground flex items-center gap-2 text-xl font-bold">
-                <BookOpen className="text-primary h-5 w-5" /> Akademik Insho Natijasi
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setResult("");
-                    setTopic("");
-                  }}
-                  className="border-border h-8 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
-                >
-                  <Eraser className="mr-1.5 h-4 w-4" /> Tozalash
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={downloadWordDoc}
-                  className="border-border h-8"
-                >
-                  <FileDown className="mr-1.5 h-4 w-4" /> Word (.doc)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyToClipboard}
-                  className="border-border h-8"
-                >
-                  <Copy className="mr-1.5 h-4 w-4" /> Nusxalash
-                </Button>
+        <div ref={resultPreviewRef}>
+          {result && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 bg-surface-elevated border-primary/20 relative w-full overflow-hidden rounded-3xl border p-8 shadow-2xl duration-700">
+              <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+                <h3 className="text-foreground flex items-center gap-2 text-xl font-bold">
+                  <BookOpen className="text-primary h-5 w-5" /> Akademik Insho Natijasi
+                </h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setResult("");
+                      setTopic("");
+                    }}
+                    className="border-border h-8 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
+                  >
+                    <Eraser className="mr-1.5 h-4 w-4" /> Tozalash
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadWordDoc}
+                    className="border-border h-8"
+                  >
+                    <FileDown className="mr-1.5 h-4 w-4" /> Word (.doc)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyToClipboard}
+                    className="border-border h-8"
+                  >
+                    <Copy className="mr-1.5 h-4 w-4" /> Nusxalash
+                  </Button>
+                </div>
+              </div>
+
+              <div className="text-foreground font-serif text-sm leading-relaxed whitespace-pre-wrap">
+                {result}
               </div>
             </div>
-
-            <div className="text-foreground font-serif text-sm leading-relaxed whitespace-pre-wrap">
-              {result}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

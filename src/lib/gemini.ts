@@ -76,28 +76,148 @@ export class GeminiError extends Error {
 }
 
 /**
- * In-memory sliding-window rate limiter to protect API quotas
+ * Adaptive Auto-Scaling Rate Limiter & Multi-Model Load Balancer.
+ * - Eliminates the fixed 30 RPM bottleneck that froze the 31st+ concurrent user.
+ * - Tracks each candidate model independently and automatically scales RPM capacity
+ *   (from 300 RPM/model up to 1,500 RPM/model on Pay-as-you-go tiers).
+ * - Automatically spills over / load-balances burst traffic across healthy candidate
+ *   models and routes around any model experiencing 429/503 responses with 0ms freeze.
  */
-class GeminiRateLimiter {
-  private timestamps: number[] = [];
-  private maxRequestsPerMinute: number = 30;
+interface ModelBucket {
+  timestamps: number[];
+  inFlight: number;
+  dynamicRpmLimit: number;
+  cooldownUntil: number;
+}
 
-  public async acquire(): Promise<void> {
+export class GeminiRateLimiter {
+  private buckets = new Map<string, ModelBucket>();
+  private readonly initialRpmPerModel: number;
+  private readonly minRpmPerModel = 30;
+  private readonly maxRpmPerModel = 1500;
+
+  constructor(initialRpm?: number) {
+    const envRpm = Number(process.env.GEMINI_MAX_RPM);
+    this.initialRpmPerModel = initialRpm ?? (Number.isFinite(envRpm) && envRpm > 0 ? envRpm : 300);
+  }
+
+  private getBucket(model: string): ModelBucket {
+    let bucket = this.buckets.get(model);
+    if (!bucket) {
+      bucket = {
+        timestamps: [],
+        inFlight: 0,
+        dynamicRpmLimit: this.initialRpmPerModel,
+        cooldownUntil: 0,
+      };
+      this.buckets.set(model, bucket);
+    }
+    return bucket;
+  }
+
+  private prune(bucket: ModelBucket, now: number): void {
+    if (bucket.timestamps.length > 0 && now - bucket.timestamps[0] >= 60_000) {
+      bucket.timestamps = bucket.timestamps.filter((ts) => now - ts < 60_000);
+    }
+  }
+
+  /**
+   * Ranks candidate models so that healthy, non-throttled models with the lowest
+   * current load are tried first during traffic spikes (31st, 100th+ concurrent requests).
+   */
+  public rankModels(models: string[]): string[] {
+    if (models.length <= 1) return models;
     const now = Date.now();
-    // Keep timestamps from the last 60 seconds
-    this.timestamps = this.timestamps.filter((ts) => now - ts < 60_000);
 
-    if (this.timestamps.length >= this.maxRequestsPerMinute) {
-      const oldest = this.timestamps[0];
-      const waitTime = Math.max(100, 60_000 - (now - oldest));
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    return [...models].sort((a, b) => {
+      const bucketA = this.getBucket(a);
+      const bucketB = this.getBucket(b);
+      this.prune(bucketA, now);
+      this.prune(bucketB, now);
+
+      const coolingA = bucketA.cooldownUntil > now ? 1 : 0;
+      const coolingB = bucketB.cooldownUntil > now ? 1 : 0;
+      if (coolingA !== coolingB) return coolingA - coolingB;
+
+      const saturatedA = bucketA.timestamps.length >= bucketA.dynamicRpmLimit ? 1 : 0;
+      const saturatedB = bucketB.timestamps.length >= bucketB.dynamicRpmLimit ? 1 : 0;
+      if (saturatedA !== saturatedB) return saturatedA - saturatedB;
+
+      // Keep preferred order unless one model has a heavy burst (e.g. >= 25 in-flight/recent)
+      const loadRatioA =
+        (bucketA.timestamps.length + bucketA.inFlight * 2) / bucketA.dynamicRpmLimit;
+      const loadRatioB =
+        (bucketB.timestamps.length + bucketB.inFlight * 2) / bucketB.dynamicRpmLimit;
+      if (Math.abs(loadRatioA - loadRatioB) > 0.35) {
+        return loadRatioA - loadRatioB;
+      }
+      return 0;
+    });
+  }
+
+  public async acquire(model: string = "default"): Promise<void> {
+    const now = Date.now();
+    const bucket = this.getBucket(model);
+    this.prune(bucket, now);
+
+    // Never block the request thread for seconds/minutes; if a single model is at capacity,
+    // apply at most a tiny 25ms micro-stagger so concurrent requests don't collide on the same ms.
+    if (bucket.timestamps.length >= bucket.dynamicRpmLimit) {
+      await new Promise((resolve) => setTimeout(resolve, 25));
     }
 
-    this.timestamps.push(Date.now());
+    bucket.timestamps.push(Date.now());
+    bucket.inFlight += 1;
+  }
+
+  public release(model: string = "default"): void {
+    const bucket = this.getBucket(model);
+    bucket.inFlight = Math.max(0, bucket.inFlight - 1);
+  }
+
+  public recordSuccess(model: string): void {
+    const bucket = this.getBucket(model);
+    bucket.cooldownUntil = 0;
+    // Automatically scale up capacity on healthy traffic up to maxRpmPerModel (1,500 RPM)
+    if (bucket.dynamicRpmLimit < this.maxRpmPerModel) {
+      bucket.dynamicRpmLimit = Math.min(
+        this.maxRpmPerModel,
+        Math.ceil(bucket.dynamicRpmLimit * 1.15)
+      );
+    }
+  }
+
+  public recordThrottle(model: string, isDailyQuota = false, isServiceSpike = false): void {
+    const bucket = this.getBucket(model);
+    const now = Date.now();
+    if (isDailyQuota) {
+      // Cool down this specific model for 5 minutes so traffic routes to fallback models immediately
+      bucket.cooldownUntil = now + 5 * 60_000;
+      bucket.dynamicRpmLimit = this.minRpmPerModel;
+    } else if (isServiceSpike) {
+      bucket.cooldownUntil = now + 10_000;
+    } else {
+      bucket.cooldownUntil = now + 6_000;
+      bucket.dynamicRpmLimit = Math.max(
+        this.minRpmPerModel,
+        Math.floor(bucket.dynamicRpmLimit * 0.7)
+      );
+    }
+  }
+
+  public getStats(model: string) {
+    const bucket = this.getBucket(model);
+    this.prune(bucket, Date.now());
+    return {
+      recentRequestsLastMinute: bucket.timestamps.length,
+      inFlight: bucket.inFlight,
+      dynamicRpmLimit: bucket.dynamicRpmLimit,
+      isCoolingDown: bucket.cooldownUntil > Date.now(),
+    };
   }
 }
 
-const rateLimiter = new GeminiRateLimiter();
+export const rateLimiter = new GeminiRateLimiter();
 
 /**
  * Returns a generative model instance for a specific model name.
@@ -162,9 +282,10 @@ export async function generateGeminiContent(
     jsonMode = false,
   } = options;
 
-  const modelsToTry = preferredModel
+  const rawModelsToTry = preferredModel
     ? [preferredModel, ...CANDIDATE_MODELS.filter((m) => m !== preferredModel)]
     : CANDIDATE_MODELS;
+  const modelsToTry = rateLimiter.rankModels(rawModelsToTry);
 
   const startTime = Date.now();
   const hardDeadline = startTime + timeoutMs;
@@ -179,7 +300,7 @@ export async function generateGeminiContent(
       }
 
       try {
-        await rateLimiter.acquire();
+        await rateLimiter.acquire(modelCandidate);
 
         const attemptRemainingMs = Math.max(1500, hardDeadline - Date.now());
         // Cap individual model attempt so a single slow model doesn't consume 100% of budget when fallbacks exist
@@ -214,6 +335,7 @@ export async function generateGeminiContent(
         const text = response.text();
 
         if (text && text.trim().length > 0) {
+          rateLimiter.recordSuccess(modelCandidate);
           const durationMs = Date.now() - startTime;
           const usageMetadata: UsageMetadata | undefined = response.usageMetadata;
 
@@ -239,6 +361,7 @@ export async function generateGeminiContent(
         const errMsg = err instanceof Error ? err.message : String(err);
         const is503 = errMsg.includes("503") || errMsg.includes("high demand");
         if (is503) {
+          rateLimiter.recordThrottle(modelCandidate, false, true);
           console.warn(
             `[GeminiSpike] Model ${modelCandidate} is in high demand (503). Switching to next candidate model.`
           );
@@ -255,22 +378,33 @@ export async function generateGeminiContent(
         const isTimeout = err instanceof GeminiError && err.code === "TIMEOUT";
 
         if (isDailyQuotaExceeded) {
+          rateLimiter.recordThrottle(modelCandidate, true, false);
           console.warn(
             `[GeminiDailyQuota] Model ${modelCandidate} daily quota exhausted. Switching immediately to next candidate.`
           );
           break;
         }
 
-        if (isRateLimit && attempt < maxRetries) {
-          const backoffDelay = (attempt + 1) * 1500 + Math.random() * 500;
-          console.warn(
-            `[GeminiRateLimit] Retrying ${modelCandidate} in ${Math.round(backoffDelay)}ms...`
-          );
-          await sleep(backoffDelay);
-          continue;
+        if (isRateLimit) {
+          rateLimiter.recordThrottle(modelCandidate, false, false);
+          if (modelsToTry.length > 1) {
+            console.warn(
+              `[GeminiAutoBalance] Model ${modelCandidate} hit 429 rate limit. Routing immediately to next healthy model.`
+            );
+            break;
+          }
+          if (attempt < maxRetries) {
+            const backoffDelay = (attempt + 1) * 1500 + Math.random() * 500;
+            console.warn(
+              `[GeminiRateLimit] Retrying ${modelCandidate} in ${Math.round(backoffDelay)}ms...`
+            );
+            await sleep(backoffDelay);
+            continue;
+          }
         }
 
         if (isTimeout) {
+          rateLimiter.recordThrottle(modelCandidate, false, true);
           console.warn(
             `[GeminiTimeout] Model ${modelCandidate} timed out after ${timeoutMs}ms. Moving to next candidate.`
           );
@@ -284,6 +418,8 @@ export async function generateGeminiContent(
         if (!isRateLimit) {
           break;
         }
+      } finally {
+        rateLimiter.release(modelCandidate);
       }
     }
   }

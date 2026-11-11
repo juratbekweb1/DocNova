@@ -61,5 +61,31 @@ describe("proxy middleware", () => {
     expect(csp).not.toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline'");
     expect(csp).toContain("object-src 'none'");
   });
-});
 
+  it("handles 100+ concurrent AI requests without 31st-request freeze and auto-balances across candidate models", async () => {
+    const { GeminiRateLimiter } = await import("./lib/gemini");
+    const limiter = new GeminiRateLimiter(30);
+
+    const start = Date.now();
+    await Promise.all(
+      Array.from({ length: 100 }, (_, i) =>
+        limiter.acquire("gemini-3.5-flash").then(() => {
+          if (i % 2 === 0) limiter.recordSuccess("gemini-3.5-flash");
+          limiter.release("gemini-3.5-flash");
+        })
+      )
+    );
+    const elapsedMs = Date.now() - start;
+
+    expect(elapsedMs).toBeLessThan(1500);
+    expect(limiter.getStats("gemini-3.5-flash").dynamicRpmLimit).toBeGreaterThan(300);
+
+    limiter.recordThrottle("gemini-3.5-flash", false, false);
+    const ranked = limiter.rankModels([
+      "gemini-3.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.8-flash",
+    ]);
+    expect(ranked[0]).toBe("gemini-3.5-flash-lite");
+  });
+});

@@ -20,15 +20,15 @@ function createPrismaClient(): PrismaClient {
     const adapter = new PrismaNeon(pool as unknown as ConstructorParameters<typeof PrismaNeon>[0]);
     return new PrismaClient({
       adapter,
-      log: isProduction ? ["error"] : ["query", "error", "warn"],
+      log: isProduction ? ["error"] : ["error", "warn"],
     });
   } else if (databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://")) {
     // Standard PG adapter
-    const pool = new PgPool({ connectionString: databaseUrl });
+    const pool = new PgPool({ connectionString: databaseUrl, max: 10 });
     const adapter = new PrismaPg(pool);
     return new PrismaClient({
       adapter,
-      log: isProduction ? ["error"] : ["query", "error", "warn"],
+      log: isProduction ? ["error"] : ["error", "warn"],
     });
   }
 
@@ -36,11 +36,9 @@ function createPrismaClient(): PrismaClient {
   const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
   const client = isTest ? new PGlite() : new PGlite("./prisma/pglite");
   const adapter = new PrismaPGlite(client);
-  return new PrismaClient({ adapter, log: isTest ? ["error"] : ["query", "error", "warn"] });
+  return new PrismaClient({ adapter, log: isTest ? ["error"] : ["error", "warn"] });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;

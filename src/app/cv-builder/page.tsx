@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, Suspense } from "react";
+import React, { useState, useRef, useEffect, useMemo, useDeferredValue, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Download,
@@ -398,6 +398,14 @@ function CvBuilderContent() {
     { id: "lang-3", name: "Rus tili", level: "Erkin so'zlashuv" },
   ]);
 
+  // Deferred values keep mobile input typing at 60fps without blocking on full A4 DOM re-renders
+  const deferredTemplate = useDeferredValue(activeTemplate);
+  const deferredPersonalInfo = useDeferredValue(personalInfo);
+  const deferredExperiences = useDeferredValue(experiences);
+  const deferredEducation = useDeferredValue(education);
+  const deferredSkills = useDeferredValue(skills);
+  const deferredLanguages = useDeferredValue(languages);
+
   // Skill Handlers
   const handleAddSkill = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -558,9 +566,9 @@ function CvBuilderContent() {
         }
       `}</style>
 
-      <div className="bg-background flex min-h-[calc(100vh-80px)] w-full max-w-full flex-col overflow-x-hidden md:h-[calc(100vh-80px)] md:flex-row md:overflow-hidden">
+      <div className="bg-background flex min-h-[calc(100dvh-80px)] w-full max-w-full flex-col overflow-x-clip md:h-[calc(100vh-80px)] md:flex-row md:overflow-hidden">
         {/* Left Sidebar: Tabs for Templates & Editor */}
-        <div className="border-border bg-surface z-10 flex h-[calc(100vh-80px)] w-full max-w-full shrink-0 flex-col border-r shadow-lg md:h-full md:w-[430px] md:min-w-[360px]">
+        <div className="border-border bg-surface z-10 flex h-auto w-full max-w-full shrink-0 flex-col border-b shadow-lg md:h-full md:w-[430px] md:min-w-[360px] md:border-r md:border-b-0">
           {/* Header */}
           <div className="border-border bg-surface/90 flex items-center justify-between border-b p-4 backdrop-blur">
             <div>
@@ -636,7 +644,7 @@ function CvBuilderContent() {
           </div>
 
           {/* Sidebar Body */}
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="flex-1 space-y-4 p-4 md:overflow-y-auto">
             {/* TAB 1: TEMPLATES GRID */}
             {activeTab === "templates" && (
               <div className="space-y-4">
@@ -1133,7 +1141,7 @@ function CvBuilderContent() {
         </div>
 
         {/* Right Side: Live A4 Resume Preview */}
-        <div className="bg-surface-elevated/80 flex min-h-[60vh] w-full flex-1 flex-col items-center overflow-x-auto overflow-y-auto p-4 md:p-10">
+        <div className="bg-surface-elevated/80 flex min-h-[60vh] w-full flex-1 flex-col items-center overflow-x-auto p-4 md:overflow-y-auto md:p-10">
           {/* Top Preview Bar */}
           <div className="text-foreground-secondary mb-4 flex w-full max-w-[210mm] items-center justify-between text-xs">
             <div className="flex items-center gap-2">
@@ -1178,807 +1186,860 @@ function CvBuilderContent() {
             className="box-border min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-sm bg-white text-black shadow-2xl transition-all duration-200"
             style={{ fontFamily: "'Inter', sans-serif" }}
           >
-            {/* GROUP A: TECH SIDEBARS (tech, cyber, terminal, cloud) */}
-            {["tech", "cyber", "terminal", "cloud"].includes(activeTemplate) && (
-              <div className="flex min-h-[297mm]">
-                <div
-                  className={`flex w-[34%] flex-col justify-between space-y-6 p-7 text-white ${
-                    activeTemplate === "cyber"
-                      ? "bg-[#041c2c]"
-                      : activeTemplate === "terminal"
-                        ? "bg-[#0b1410]"
-                        : activeTemplate === "cloud"
-                          ? "bg-[#0f172a]"
-                          : "bg-slate-900"
-                  }`}
-                >
-                  <div className="space-y-6">
-                    <div
-                      className={`flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black shadow-lg ${
-                        activeTemplate === "cyber"
-                          ? "bg-cyan-500 text-slate-950"
-                          : activeTemplate === "terminal"
-                            ? "bg-emerald-500 font-mono text-slate-950"
-                            : activeTemplate === "cloud"
-                              ? "bg-indigo-500 text-white"
-                              : "bg-sky-500 text-slate-900"
-                      }`}
-                    >
-                      {personalInfo.fullName
-                        ? personalInfo.fullName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join("")
-                        : "CV"}
-                    </div>
-
-                    <div className="space-y-2.5 text-xs text-slate-300">
-                      <h3 className="border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
-                        Aloqa
-                      </h3>
-                      {personalInfo.email && (
-                        <p className="flex items-center gap-2 break-all">
-                          <Mail className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
-                          {personalInfo.email}
-                        </p>
-                      )}
-                      {personalInfo.phone && (
-                        <p className="flex items-center gap-2">
-                          <Phone className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
-                          {personalInfo.phone}
-                        </p>
-                      )}
-                      {personalInfo.location && (
-                        <p className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
-                          {personalInfo.location}
-                        </p>
-                      )}
-                      {personalInfo.website && (
-                        <p className="flex items-center gap-2 break-all">
-                          <Globe className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
-                          {personalInfo.website}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
-                        Texnologiyalar
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {skills.map((s) => (
-                          <span
-                            key={s}
-                            className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200"
+            {useMemo(() => {
+              const activeTemplate = deferredTemplate;
+              const personalInfo = deferredPersonalInfo;
+              const experiences = deferredExperiences;
+              const education = deferredEducation;
+              const skills = deferredSkills;
+              const languages = deferredLanguages;
+              return (
+                <>
+                  {/* GROUP A: TECH SIDEBARS (tech, cyber, terminal, cloud) */}
+                  {["tech", "cyber", "terminal", "cloud"].includes(activeTemplate) && (
+                    <div className="flex min-h-[297mm]">
+                      <div
+                        className={`flex w-[34%] flex-col justify-between space-y-6 p-7 text-white ${
+                          activeTemplate === "cyber"
+                            ? "bg-[#041c2c]"
+                            : activeTemplate === "terminal"
+                              ? "bg-[#0b1410]"
+                              : activeTemplate === "cloud"
+                                ? "bg-[#0f172a]"
+                                : "bg-slate-900"
+                        }`}
+                      >
+                        <div className="space-y-6">
+                          <div
+                            className={`flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black shadow-lg ${
+                              activeTemplate === "cyber"
+                                ? "bg-cyan-500 text-slate-950"
+                                : activeTemplate === "terminal"
+                                  ? "bg-emerald-500 font-mono text-slate-950"
+                                  : activeTemplate === "cloud"
+                                    ? "bg-indigo-500 text-white"
+                                    : "bg-sky-500 text-slate-900"
+                            }`}
                           >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
-                        Ta&apos;lim
-                      </h3>
-                      {education.map((e) => (
-                        <div key={e.id} className="mb-2 text-xs">
-                          <p className="font-semibold text-white">{e.school}</p>
-                          <p className="text-[11px] text-slate-400">{e.degree}</p>
-                          <p className="mt-0.5 text-[10px] text-sky-400">{e.year}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
-                        Tillar
-                      </h3>
-                      <div className="space-y-1 text-xs">
-                        {languages.map((l) => (
-                          <div key={l.id} className="flex justify-between">
-                            <span className="text-slate-300">{l.name}</span>
-                            <span className="text-[11px] text-slate-500">{l.level}</span>
+                            {personalInfo.fullName
+                              ? personalInfo.fullName
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .slice(0, 2)
+                                  .join("")
+                              : "CV"}
                           </div>
-                        ))}
+
+                          <div className="space-y-2.5 text-xs text-slate-300">
+                            <h3 className="border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
+                              Aloqa
+                            </h3>
+                            {personalInfo.email && (
+                              <p className="flex items-center gap-2 break-all">
+                                <Mail className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
+                                {personalInfo.email}
+                              </p>
+                            )}
+                            {personalInfo.phone && (
+                              <p className="flex items-center gap-2">
+                                <Phone className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
+                                {personalInfo.phone}
+                              </p>
+                            )}
+                            {personalInfo.location && (
+                              <p className="flex items-center gap-2">
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
+                                {personalInfo.location}
+                              </p>
+                            )}
+                            {personalInfo.website && (
+                              <p className="flex items-center gap-2 break-all">
+                                <Globe className="h-3.5 w-3.5 shrink-0 text-sky-400" />{" "}
+                                {personalInfo.website}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
+                              Texnologiyalar
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {skills.map((s) => (
+                                <span
+                                  key={s}
+                                  className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
+                              Ta&apos;lim
+                            </h3>
+                            {education.map((e) => (
+                              <div key={e.id} className="mb-2 text-xs">
+                                <p className="font-semibold text-white">{e.school}</p>
+                                <p className="text-[11px] text-slate-400">{e.degree}</p>
+                                <p className="mt-0.5 text-[10px] text-sky-400">{e.year}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div>
+                            <h3 className="mb-2 border-b border-slate-700 pb-1 text-[11px] font-bold tracking-widest text-sky-400 uppercase">
+                              Tillar
+                            </h3>
+                            <div className="space-y-1 text-xs">
+                              {languages.map((l) => (
+                                <div key={l.id} className="flex justify-between">
+                                  <span className="text-slate-300">{l.name}</span>
+                                  <span className="text-[11px] text-slate-500">{l.level}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="w-[66%] space-y-6 p-8">
-                  <div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                      {personalInfo.fullName || "To'liq Ismingiz"}
-                    </h1>
-                    <p className="mt-0.5 text-base font-semibold text-sky-600">
-                      {personalInfo.role || "Mutaxassisligingiz"}
-                    </p>
-                  </div>
+                      <div className="w-[66%] space-y-6 p-8">
+                        <div>
+                          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                            {personalInfo.fullName || "To'liq Ismingiz"}
+                          </h1>
+                          <p className="mt-0.5 text-base font-semibold text-sky-600">
+                            {personalInfo.role || "Mutaxassisligingiz"}
+                          </p>
+                        </div>
 
-                  {personalInfo.summary && (
-                    <div>
-                      <h2 className="mb-1.5 border-b border-slate-200 pb-1 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                        Profil haqida
-                      </h2>
-                      <p className="text-xs leading-relaxed text-slate-700">
-                        {personalInfo.summary}
-                      </p>
+                        {personalInfo.summary && (
+                          <div>
+                            <h2 className="mb-1.5 border-b border-slate-200 pb-1 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                              Profil haqida
+                            </h2>
+                            <p className="text-xs leading-relaxed text-slate-700">
+                              {personalInfo.summary}
+                            </p>
+                          </div>
+                        )}
+
+                        <div>
+                          <h2 className="mb-3 border-b border-slate-200 pb-1 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                            Ish Tajribasi
+                          </h2>
+                          <div className="space-y-4">
+                            {experiences.map((exp) => (
+                              <div key={exp.id} className="border-l-2 border-sky-500 pl-3">
+                                <div className="flex items-baseline justify-between">
+                                  <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                                  <span className="text-[11px] font-medium text-slate-500">
+                                    {exp.period}
+                                  </span>
+                                </div>
+                                <p className="mb-1 text-xs font-semibold text-sky-700">
+                                  {exp.company}
+                                </p>
+                                <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                                  {exp.description}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div>
-                    <h2 className="mb-3 border-b border-slate-200 pb-1 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      Ish Tajribasi
-                    </h2>
-                    <div className="space-y-4">
-                      {experiences.map((exp) => (
-                        <div key={exp.id} className="border-l-2 border-sky-500 pl-3">
-                          <div className="flex items-baseline justify-between">
-                            <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                            <span className="text-[11px] font-medium text-slate-500">
-                              {exp.period}
-                            </span>
-                          </div>
-                          <p className="mb-1 text-xs font-semibold text-sky-700">{exp.company}</p>
-                          <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                            {exp.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* GROUP B: EXECUTIVE BANNERS (executive, banking, director, luxe, consultant) */}
-            {["executive", "banking", "director", "luxe", "consultant"].includes(
-              activeTemplate
-            ) && (
-              <div>
-                <div
-                  className={`px-10 py-8 text-white ${
-                    activeTemplate === "banking"
-                      ? "bg-[#062419]"
-                      : activeTemplate === "director"
-                        ? "bg-[#18181b]"
-                        : activeTemplate === "luxe"
-                          ? "bg-[#1c1917]"
-                          : activeTemplate === "consultant"
-                            ? "bg-[#0f172a]"
-                            : "bg-[#0f172a]"
-                  }`}
-                >
-                  <h1 className="text-3xl font-extrabold tracking-tight text-white uppercase">
-                    {personalInfo.fullName || "To'liq Ismingiz"}
-                  </h1>
-                  <p className="mt-1 text-base font-medium tracking-wide text-amber-400">
-                    {personalInfo.role || "Mutaxassisligingiz"}
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-700 pt-3 text-xs text-slate-300">
-                    {personalInfo.email && <span>{personalInfo.email}</span>}
-                    {personalInfo.phone && <span>• {personalInfo.phone}</span>}
-                    {personalInfo.location && <span>• {personalInfo.location}</span>}
-                    {personalInfo.website && <span>• {personalInfo.website}</span>}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-12 gap-6 p-8">
-                  <div className="col-span-4 space-y-6 border-r border-slate-200 pr-4">
+                  {/* GROUP B: EXECUTIVE BANNERS (executive, banking, director, luxe, consultant) */}
+                  {["executive", "banking", "director", "luxe", "consultant"].includes(
+                    activeTemplate
+                  ) && (
                     <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ko&apos;nikmalar
-                      </h3>
-                      <div className="space-y-1.5">
-                        {skills.map((s) => (
-                          <div
-                            key={s}
-                            className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800"
-                          >
-                            {s}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ta&apos;lim
-                      </h3>
-                      {education.map((e) => (
-                        <div key={e.id} className="mb-2 text-xs">
-                          <p className="font-bold text-slate-900">{e.school}</p>
-                          <p className="text-slate-700">{e.degree}</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">{e.year}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Tillar
-                      </h3>
-                      <div className="space-y-1 text-xs">
-                        {languages.map((l) => (
-                          <div key={l.id}>
-                            <p className="font-bold text-slate-800">{l.name}</p>
-                            <p className="text-[11px] text-slate-600">{l.level}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-span-8 space-y-6">
-                    {personalInfo.summary && (
-                      <div>
-                        <h3 className="mb-2 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                          Professional Xulosa
-                        </h3>
-                        <p className="text-xs leading-relaxed text-slate-700">
-                          {personalInfo.summary}
-                        </p>
-                      </div>
-                    )}
-
-                    <div>
-                      <h3 className="mb-3 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
-                        Ish Faoliyati & Tajriba
-                      </h3>
-                      <div className="space-y-4">
-                        {experiences.map((exp) => (
-                          <div key={exp.id}>
-                            <div className="flex items-baseline justify-between">
-                              <h4 className="text-sm font-bold text-slate-900">{exp.role}</h4>
-                              <span className="text-[11px] font-semibold text-slate-500">
-                                {exp.period}
-                              </span>
-                            </div>
-                            <p className="mb-1 text-xs font-semibold text-blue-900">
-                              {exp.company}
-                            </p>
-                            <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                              {exp.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* GROUP C: CREATIVE TIMELINES (emerald, sunset, mint, pastel, portfolio) */}
-            {["emerald", "sunset", "mint", "pastel", "portfolio"].includes(activeTemplate) && (
-              <div className="space-y-7 p-10">
-                <div
-                  className={`flex items-end justify-between border-b-2 pb-4 ${
-                    activeTemplate === "sunset"
-                      ? "border-orange-500"
-                      : activeTemplate === "mint"
-                        ? "border-teal-500"
-                        : activeTemplate === "pastel"
-                          ? "border-pink-500"
-                          : activeTemplate === "portfolio"
-                            ? "border-violet-600"
-                            : "border-emerald-600"
-                  }`}
-                >
-                  <div>
-                    <span
-                      className={`text-xs font-bold tracking-widest uppercase ${
-                        activeTemplate === "sunset"
-                          ? "text-orange-600"
-                          : activeTemplate === "mint"
-                            ? "text-teal-600"
-                            : activeTemplate === "pastel"
-                              ? "text-pink-600"
-                              : activeTemplate === "portfolio"
-                                ? "text-violet-600"
-                                : "text-emerald-600"
-                      }`}
-                    >
-                      Rezyume
-                    </span>
-                    <h1 className="text-3xl font-black text-slate-900">{personalInfo.fullName}</h1>
-                    <p className="mt-0.5 text-sm font-medium text-slate-600">{personalInfo.role}</p>
-                  </div>
-
-                  <div className="space-y-0.5 text-right text-xs text-slate-600">
-                    <p>{personalInfo.email}</p>
-                    <p>{personalInfo.phone}</p>
-                    <p>{personalInfo.location}</p>
-                  </div>
-                </div>
-
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
-                      Professional Tavsif
-                    </h2>
-                    <p className="rounded border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
-                      {personalInfo.summary}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <h2 className="mb-3 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
-                    Ish Tajribasi
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id} className="relative border-l-2 border-slate-300 pl-4">
-                        <div className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full bg-slate-900" />
-                        <div className="flex items-baseline justify-between">
-                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="text-[11px] font-semibold text-slate-600">
-                            {exp.period}
-                          </span>
-                        </div>
-                        <p className="mb-1 text-xs font-medium text-slate-600">{exp.company}</p>
-                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                          {exp.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="mb-2.5 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
-                    Ko&apos;nikmalar
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {skills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6 pt-2">
-                  <div>
-                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
-                      Ta&apos;lim
-                    </h2>
-                    {education.map((e) => (
-                      <div key={e.id} className="text-xs">
-                        <p className="font-bold text-slate-900">{e.school}</p>
-                        <p className="text-slate-600">{e.degree}</p>
-                        <p className="text-[11px] text-slate-500">{e.year}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
-                      Tillar
-                    </h2>
-                    <div className="space-y-1 text-xs">
-                      {languages.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span className="font-semibold text-slate-800">{l.name}</span>
-                          <span className="text-[11px] text-slate-600">{l.level}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* GROUP D: VIBRANT GRADIENTS (violet, fullstack) */}
-            {["violet", "fullstack"].includes(activeTemplate) && (
-              <div className="space-y-7 p-10">
-                <div
-                  className={`h-2 w-full rounded-full ${
-                    activeTemplate === "fullstack"
-                      ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600"
-                      : "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500"
-                  }`}
-                />
-
-                <div className="flex items-start justify-between pt-2">
-                  <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900">
-                      {personalInfo.fullName}
-                    </h1>
-                    <p className="mt-0.5 text-sm font-bold text-purple-600">{personalInfo.role}</p>
-                  </div>
-                  <div className="space-y-0.5 text-right text-xs text-slate-600">
-                    <p className="font-medium">{personalInfo.email}</p>
-                    <p>{personalInfo.phone}</p>
-                    <p>{personalInfo.location}</p>
-                  </div>
-                </div>
-
-                {personalInfo.summary && (
-                  <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-4">
-                    <p className="text-xs leading-relaxed text-slate-700">{personalInfo.summary}</p>
-                  </div>
-                )}
-
-                <div>
-                  <h2 className="mb-3 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
-                    <Briefcase className="h-4 w-4 text-purple-600" /> Ish Tajribasi
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
                       <div
-                        key={exp.id}
-                        className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm"
+                        className={`px-10 py-8 text-white ${
+                          activeTemplate === "banking"
+                            ? "bg-[#062419]"
+                            : activeTemplate === "director"
+                              ? "bg-[#18181b]"
+                              : activeTemplate === "luxe"
+                                ? "bg-[#1c1917]"
+                                : activeTemplate === "consultant"
+                                  ? "bg-[#0f172a]"
+                                  : "bg-[#0f172a]"
+                        }`}
                       >
-                        <div className="mb-1 flex items-baseline justify-between">
-                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-700">
-                            {exp.period}
-                          </span>
-                        </div>
-                        <p className="mb-2 text-xs font-semibold text-slate-600">{exp.company}</p>
-                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                          {exp.description}
+                        <h1 className="text-3xl font-extrabold tracking-tight text-white uppercase">
+                          {personalInfo.fullName || "To'liq Ismingiz"}
+                        </h1>
+                        <p className="mt-1 text-base font-medium tracking-wide text-amber-400">
+                          {personalInfo.role || "Mutaxassisligingiz"}
                         </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div>
-                  <h2 className="mb-2.5 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
-                    <Code2 className="h-4 w-4 text-purple-600" /> Ko&apos;nikmalar
-                  </h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {skills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-md border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-900"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h3 className="mb-2 text-xs font-bold text-slate-900 uppercase">Ta&apos;lim</h3>
-                    {education.map((e) => (
-                      <div key={e.id} className="text-xs">
-                        <p className="font-bold text-slate-900">{e.school}</p>
-                        <p className="text-slate-600">{e.degree}</p>
-                        <p className="text-[11px] font-medium text-purple-600">{e.year}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h3 className="mb-2 text-xs font-bold text-slate-900 uppercase">Tillar</h3>
-                    <div className="space-y-1 text-xs">
-                      {languages.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span className="font-medium text-slate-800">{l.name}</span>
-                          <span className="text-[11px] text-slate-500">{l.level}</span>
+                        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-700 pt-3 text-xs text-slate-300">
+                          {personalInfo.email && <span>{personalInfo.email}</span>}
+                          {personalInfo.phone && <span>• {personalInfo.phone}</span>}
+                          {personalInfo.location && <span>• {personalInfo.location}</span>}
+                          {personalInfo.website && <span>• {personalInfo.website}</span>}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* GROUP E: CLASSIC ATS STANDARDS (corporate, harvard, oxford, stanford, swiss) */}
-            {["corporate", "harvard", "oxford", "stanford", "swiss"].includes(activeTemplate) && (
-              <div className="space-y-6 p-10">
-                <div className="border-b border-black pb-4 text-center">
-                  <h1 className="font-serif text-2xl font-bold tracking-wider text-black uppercase">
-                    {personalInfo.fullName}
-                  </h1>
-                  <p className="mt-1 font-serif text-sm text-gray-700 italic">
-                    {personalInfo.role}
-                  </p>
-                  <p className="mt-2 text-xs text-gray-600">
-                    {[
-                      personalInfo.location,
-                      personalInfo.phone,
-                      personalInfo.email,
-                      personalInfo.website,
-                    ]
-                      .filter(Boolean)
-                      .join("  •  ")}
-                  </p>
-                </div>
-
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                      Professional Profile
-                    </h2>
-                    <p className="text-justify text-xs leading-relaxed text-gray-800">
-                      {personalInfo.summary}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <h2 className="mb-3 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Professional Experience
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id}>
-                        <div className="flex items-baseline justify-between text-xs font-bold text-black">
-                          <span>
-                            {exp.company} — <span className="font-normal italic">{exp.role}</span>
-                          </span>
-                          <span className="text-[11px] font-normal">{exp.period}</span>
-                        </div>
-                        <p className="mt-1 text-xs leading-relaxed whitespace-pre-line text-gray-700">
-                          {exp.description}
-                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Key Competencies & Technical Skills
-                  </h2>
-                  <p className="text-xs leading-relaxed text-gray-800">{skills.join(" • ")}</p>
-                </div>
-
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Education & Credentials
-                  </h2>
-                  {education.map((e) => (
-                    <div key={e.id} className="mb-1 flex justify-between text-xs text-black">
-                      <div>
-                        <span className="font-bold">{e.school}</span> — <span>{e.degree}</span>
-                      </div>
-                      <span className="text-[11px] text-gray-600">{e.year}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
-                    Languages
-                  </h2>
-                  <p className="text-xs text-gray-800">
-                    {languages.map((l) => `${l.name} (${l.level})`).join(" • ")}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* GROUP F: COMPACT GRID & BURGUNDY LUXE (compact, burgundy) */}
-            {["compact", "burgundy"].includes(activeTemplate) && (
-              <div className="space-y-5 p-8">
-                <div className="flex items-center justify-between border-b-2 border-amber-600 pb-3">
-                  <div>
-                    <h1 className="text-2xl font-black text-slate-900 uppercase">
-                      {personalInfo.fullName}
-                    </h1>
-                    <p className="text-xs font-bold text-amber-700">{personalInfo.role}</p>
-                  </div>
-                  <div className="text-right text-[11px] text-slate-600">
-                    <p>
-                      {personalInfo.email} • {personalInfo.phone}
-                    </p>
-                    <p>
-                      {personalInfo.location} • {personalInfo.website}
-                    </p>
-                  </div>
-                </div>
-
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                      Professional Xulosa
-                    </h2>
-                    <p className="text-xs leading-relaxed text-slate-700">{personalInfo.summary}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-12 gap-5">
-                  <div className="col-span-7 space-y-4">
-                    <h2 className="border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                      Ish Tajribasi
-                    </h2>
-                    <div className="space-y-3">
-                      {experiences.map((exp) => (
-                        <div key={exp.id}>
-                          <div className="flex items-baseline justify-between">
-                            <h3 className="text-xs font-bold text-slate-900">{exp.role}</h3>
-                            <span className="text-[10px] font-semibold text-slate-500">
-                              {exp.period}
-                            </span>
+                      <div className="grid grid-cols-12 gap-6 p-8">
+                        <div className="col-span-4 space-y-6 border-r border-slate-200 pr-4">
+                          <div>
+                            <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                              Ko&apos;nikmalar
+                            </h3>
+                            <div className="space-y-1.5">
+                              {skills.map((s) => (
+                                <div
+                                  key={s}
+                                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800"
+                                >
+                                  {s}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <p className="text-[11px] font-semibold text-amber-800">{exp.company}</p>
-                          <p className="mt-1 text-[11px] leading-snug whitespace-pre-line text-slate-700">
-                            {exp.description}
+
+                          <div>
+                            <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                              Ta&apos;lim
+                            </h3>
+                            {education.map((e) => (
+                              <div key={e.id} className="mb-2 text-xs">
+                                <p className="font-bold text-slate-900">{e.school}</p>
+                                <p className="text-slate-700">{e.degree}</p>
+                                <p className="mt-0.5 text-[11px] text-slate-500">{e.year}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div>
+                            <h3 className="mb-2 border-b-2 border-amber-500 pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                              Tillar
+                            </h3>
+                            <div className="space-y-1 text-xs">
+                              {languages.map((l) => (
+                                <div key={l.id}>
+                                  <p className="font-bold text-slate-800">{l.name}</p>
+                                  <p className="text-[11px] text-slate-600">{l.level}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="col-span-8 space-y-6">
+                          {personalInfo.summary && (
+                            <div>
+                              <h3 className="mb-2 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                                Professional Xulosa
+                              </h3>
+                              <p className="text-xs leading-relaxed text-slate-700">
+                                {personalInfo.summary}
+                              </p>
+                            </div>
+                          )}
+
+                          <div>
+                            <h3 className="mb-3 border-b-2 border-[#0f172a] pb-1 text-xs font-bold tracking-wider text-[#0f172a] uppercase">
+                              Ish Faoliyati & Tajriba
+                            </h3>
+                            <div className="space-y-4">
+                              {experiences.map((exp) => (
+                                <div key={exp.id}>
+                                  <div className="flex items-baseline justify-between">
+                                    <h4 className="text-sm font-bold text-slate-900">{exp.role}</h4>
+                                    <span className="text-[11px] font-semibold text-slate-500">
+                                      {exp.period}
+                                    </span>
+                                  </div>
+                                  <p className="mb-1 text-xs font-semibold text-blue-900">
+                                    {exp.company}
+                                  </p>
+                                  <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                                    {exp.description}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* GROUP C: CREATIVE TIMELINES (emerald, sunset, mint, pastel, portfolio) */}
+                  {["emerald", "sunset", "mint", "pastel", "portfolio"].includes(
+                    activeTemplate
+                  ) && (
+                    <div className="space-y-7 p-10">
+                      <div
+                        className={`flex items-end justify-between border-b-2 pb-4 ${
+                          activeTemplate === "sunset"
+                            ? "border-orange-500"
+                            : activeTemplate === "mint"
+                              ? "border-teal-500"
+                              : activeTemplate === "pastel"
+                                ? "border-pink-500"
+                                : activeTemplate === "portfolio"
+                                  ? "border-violet-600"
+                                  : "border-emerald-600"
+                        }`}
+                      >
+                        <div>
+                          <span
+                            className={`text-xs font-bold tracking-widest uppercase ${
+                              activeTemplate === "sunset"
+                                ? "text-orange-600"
+                                : activeTemplate === "mint"
+                                  ? "text-teal-600"
+                                  : activeTemplate === "pastel"
+                                    ? "text-pink-600"
+                                    : activeTemplate === "portfolio"
+                                      ? "text-violet-600"
+                                      : "text-emerald-600"
+                            }`}
+                          >
+                            Rezyume
+                          </span>
+                          <h1 className="text-3xl font-black text-slate-900">
+                            {personalInfo.fullName}
+                          </h1>
+                          <p className="mt-0.5 text-sm font-medium text-slate-600">
+                            {personalInfo.role}
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="col-span-5 space-y-4 border-l border-slate-200 pl-4">
-                    <div>
-                      <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                        Ko&apos;nikmalar
-                      </h2>
-                      <div className="flex flex-wrap gap-1">
-                        {skills.map((s) => (
-                          <span
-                            key={s}
-                            className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-800"
-                          >
-                            {s}
-                          </span>
-                        ))}
+                        <div className="space-y-0.5 text-right text-xs text-slate-600">
+                          <p>{personalInfo.email}</p>
+                          <p>{personalInfo.phone}</p>
+                          <p>{personalInfo.location}</p>
+                        </div>
+                      </div>
+
+                      {personalInfo.summary && (
+                        <div>
+                          <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
+                            Professional Tavsif
+                          </h2>
+                          <p className="rounded border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
+                            {personalInfo.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      <div>
+                        <h2 className="mb-3 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
+                          Ish Tajribasi
+                        </h2>
+                        <div className="space-y-4">
+                          {experiences.map((exp) => (
+                            <div key={exp.id} className="relative border-l-2 border-slate-300 pl-4">
+                              <div className="absolute top-1.5 -left-[5px] h-2 w-2 rounded-full bg-slate-900" />
+                              <div className="flex items-baseline justify-between">
+                                <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                                <span className="text-[11px] font-semibold text-slate-600">
+                                  {exp.period}
+                                </span>
+                              </div>
+                              <p className="mb-1 text-xs font-medium text-slate-600">
+                                {exp.company}
+                              </p>
+                              <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                                {exp.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-2.5 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
+                          Ko&apos;nikmalar
+                        </h2>
+                        <div className="flex flex-wrap gap-2">
+                          {skills.map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 pt-2">
+                        <div>
+                          <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
+                            Ta&apos;lim
+                          </h2>
+                          {education.map((e) => (
+                            <div key={e.id} className="text-xs">
+                              <p className="font-bold text-slate-900">{e.school}</p>
+                              <p className="text-slate-600">{e.degree}</p>
+                              <p className="text-[11px] text-slate-500">{e.year}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <h2 className="mb-2 border-l-4 border-current pl-2 text-xs font-bold tracking-wider uppercase">
+                            Tillar
+                          </h2>
+                          <div className="space-y-1 text-xs">
+                            {languages.map((l) => (
+                              <div key={l.id} className="flex justify-between">
+                                <span className="font-semibold text-slate-800">{l.name}</span>
+                                <span className="text-[11px] text-slate-600">{l.level}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    <div>
-                      <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                        Ta&apos;lim
-                      </h2>
-                      {education.map((e) => (
-                        <div key={e.id} className="mb-1.5 text-xs">
-                          <p className="text-[11px] font-bold text-slate-900">{e.school}</p>
-                          <p className="text-[10px] text-slate-600">{e.degree}</p>
-                          <p className="text-[10px] text-amber-700">{e.year}</p>
+                  {/* GROUP D: VIBRANT GRADIENTS (violet, fullstack) */}
+                  {["violet", "fullstack"].includes(activeTemplate) && (
+                    <div className="space-y-7 p-10">
+                      <div
+                        className={`h-2 w-full rounded-full ${
+                          activeTemplate === "fullstack"
+                            ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600"
+                            : "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500"
+                        }`}
+                      />
+
+                      <div className="flex items-start justify-between pt-2">
+                        <div>
+                          <h1 className="text-3xl font-extrabold text-slate-900">
+                            {personalInfo.fullName}
+                          </h1>
+                          <p className="mt-0.5 text-sm font-bold text-purple-600">
+                            {personalInfo.role}
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                        <div className="space-y-0.5 text-right text-xs text-slate-600">
+                          <p className="font-medium">{personalInfo.email}</p>
+                          <p>{personalInfo.phone}</p>
+                          <p>{personalInfo.location}</p>
+                        </div>
+                      </div>
 
-                    <div>
-                      <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                        Tillar
-                      </h2>
-                      <div className="space-y-1 text-xs">
-                        {languages.map((l) => (
-                          <div key={l.id} className="flex justify-between text-[11px]">
-                            <span className="font-medium text-slate-800">{l.name}</span>
-                            <span className="text-slate-500">{l.level}</span>
+                      {personalInfo.summary && (
+                        <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-4">
+                          <p className="text-xs leading-relaxed text-slate-700">
+                            {personalInfo.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      <div>
+                        <h2 className="mb-3 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
+                          <Briefcase className="h-4 w-4 text-purple-600" /> Ish Tajribasi
+                        </h2>
+                        <div className="space-y-4">
+                          {experiences.map((exp) => (
+                            <div
+                              key={exp.id}
+                              className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm"
+                            >
+                              <div className="mb-1 flex items-baseline justify-between">
+                                <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                                <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-700">
+                                  {exp.period}
+                                </span>
+                              </div>
+                              <p className="mb-2 text-xs font-semibold text-slate-600">
+                                {exp.company}
+                              </p>
+                              <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                                {exp.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-2.5 flex items-center gap-2 text-xs font-black tracking-widest text-purple-900 uppercase">
+                          <Code2 className="h-4 w-4 text-purple-600" /> Ko&apos;nikmalar
+                        </h2>
+                        <div className="flex flex-wrap gap-1.5">
+                          {skills.map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-md border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-900"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <h3 className="mb-2 text-xs font-bold text-slate-900 uppercase">
+                            Ta&apos;lim
+                          </h3>
+                          {education.map((e) => (
+                            <div key={e.id} className="text-xs">
+                              <p className="font-bold text-slate-900">{e.school}</p>
+                              <p className="text-slate-600">{e.degree}</p>
+                              <p className="text-[11px] font-medium text-purple-600">{e.year}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <h3 className="mb-2 text-xs font-bold text-slate-900 uppercase">
+                            Tillar
+                          </h3>
+                          <div className="space-y-1 text-xs">
+                            {languages.map((l) => (
+                              <div key={l.id} className="flex justify-between">
+                                <span className="font-medium text-slate-800">{l.name}</span>
+                                <span className="text-[11px] text-slate-500">{l.level}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* GROUP E: CLASSIC ATS STANDARDS (corporate, harvard, oxford, stanford, swiss) */}
+                  {["corporate", "harvard", "oxford", "stanford", "swiss"].includes(
+                    activeTemplate
+                  ) && (
+                    <div className="space-y-6 p-10">
+                      <div className="border-b border-black pb-4 text-center">
+                        <h1 className="font-serif text-2xl font-bold tracking-wider text-black uppercase">
+                          {personalInfo.fullName}
+                        </h1>
+                        <p className="mt-1 font-serif text-sm text-gray-700 italic">
+                          {personalInfo.role}
+                        </p>
+                        <p className="mt-2 text-xs text-gray-600">
+                          {[
+                            personalInfo.location,
+                            personalInfo.phone,
+                            personalInfo.email,
+                            personalInfo.website,
+                          ]
+                            .filter(Boolean)
+                            .join("  •  ")}
+                        </p>
+                      </div>
+
+                      {personalInfo.summary && (
+                        <div>
+                          <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                            Professional Profile
+                          </h2>
+                          <p className="text-justify text-xs leading-relaxed text-gray-800">
+                            {personalInfo.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      <div>
+                        <h2 className="mb-3 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                          Professional Experience
+                        </h2>
+                        <div className="space-y-4">
+                          {experiences.map((exp) => (
+                            <div key={exp.id}>
+                              <div className="flex items-baseline justify-between text-xs font-bold text-black">
+                                <span>
+                                  {exp.company} —{" "}
+                                  <span className="font-normal italic">{exp.role}</span>
+                                </span>
+                                <span className="text-[11px] font-normal">{exp.period}</span>
+                              </div>
+                              <p className="mt-1 text-xs leading-relaxed whitespace-pre-line text-gray-700">
+                                {exp.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                          Key Competencies & Technical Skills
+                        </h2>
+                        <p className="text-xs leading-relaxed text-gray-800">
+                          {skills.join(" • ")}
+                        </p>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                          Education & Credentials
+                        </h2>
+                        {education.map((e) => (
+                          <div key={e.id} className="mb-1 flex justify-between text-xs text-black">
+                            <div>
+                              <span className="font-bold">{e.school}</span> —{" "}
+                              <span>{e.degree}</span>
+                            </div>
+                            <span className="text-[11px] text-gray-600">{e.year}</span>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* DEFAULT / MODERN SLATE */}
-            {activeTemplate === "modern" && (
-              <div className="space-y-7 p-10">
-                <div className="border-b-2 border-slate-900 pb-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                        {personalInfo.fullName || "To'liq Ismingiz"}
-                      </h1>
-                      <p className="mt-1 text-base font-semibold text-sky-600">
-                        {personalInfo.role || "Mutaxassisligingiz"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
-                    {personalInfo.email && (
-                      <span className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.email}
-                      </span>
-                    )}
-                    {personalInfo.phone && (
-                      <span className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.phone}
-                      </span>
-                    )}
-                    {personalInfo.location && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.location}
-                      </span>
-                    )}
-                    {personalInfo.website && (
-                      <span className="flex items-center gap-1.5">
-                        <Globe className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.website}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {personalInfo.summary && (
-                  <div>
-                    <h2 className="mb-2 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Professional Xulosa
-                    </h2>
-                    <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                      {personalInfo.summary}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Ish Tajribasi
-                  </h2>
-                  <div className="space-y-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id} className="relative border-l-2 border-slate-200 pl-3">
-                        <div className="flex items-baseline justify-between">
-                          <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                            {exp.period}
-                          </span>
-                        </div>
-                        <p className="mb-1.5 text-xs font-semibold text-sky-700">{exp.company}</p>
-                        <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
-                          {exp.description}
+                      <div>
+                        <h2 className="mb-2 border-b border-gray-300 pb-1 text-xs font-bold tracking-widest text-black uppercase">
+                          Languages
+                        </h2>
+                        <p className="text-xs text-gray-800">
+                          {languages.map((l) => `${l.name} (${l.level})`).join(" • ")}
                         </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                    <span className="h-2 w-2 rounded-full bg-sky-600" /> Texnik Ko&apos;nikmalar
-                  </h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6 pt-2">
-                  <div>
-                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Ta&apos;lim
-                    </h2>
-                    {education.map((edu) => (
-                      <div key={edu.id} className="text-xs">
-                        <h4 className="font-bold text-slate-900">{edu.school}</h4>
-                        <p className="text-slate-700">{edu.degree}</p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">{edu.year}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div>
-                    <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
-                      <span className="h-2 w-2 rounded-full bg-sky-600" /> Tillar
-                    </h2>
-                    <div className="space-y-1.5 text-xs">
-                      {languages.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span className="font-medium text-slate-800">{l.name}</span>
-                          <span className="text-[11px] text-slate-500">{l.level}</span>
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                  )}
+
+                  {/* GROUP F: COMPACT GRID & BURGUNDY LUXE (compact, burgundy) */}
+                  {["compact", "burgundy"].includes(activeTemplate) && (
+                    <div className="space-y-5 p-8">
+                      <div className="flex items-center justify-between border-b-2 border-amber-600 pb-3">
+                        <div>
+                          <h1 className="text-2xl font-black text-slate-900 uppercase">
+                            {personalInfo.fullName}
+                          </h1>
+                          <p className="text-xs font-bold text-amber-700">{personalInfo.role}</p>
+                        </div>
+                        <div className="text-right text-[11px] text-slate-600">
+                          <p>
+                            {personalInfo.email} • {personalInfo.phone}
+                          </p>
+                          <p>
+                            {personalInfo.location} • {personalInfo.website}
+                          </p>
+                        </div>
+                      </div>
+
+                      {personalInfo.summary && (
+                        <div>
+                          <h2 className="mb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
+                            Professional Xulosa
+                          </h2>
+                          <p className="text-xs leading-relaxed text-slate-700">
+                            {personalInfo.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-12 gap-5">
+                        <div className="col-span-7 space-y-4">
+                          <h2 className="border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
+                            Ish Tajribasi
+                          </h2>
+                          <div className="space-y-3">
+                            {experiences.map((exp) => (
+                              <div key={exp.id}>
+                                <div className="flex items-baseline justify-between">
+                                  <h3 className="text-xs font-bold text-slate-900">{exp.role}</h3>
+                                  <span className="text-[10px] font-semibold text-slate-500">
+                                    {exp.period}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] font-semibold text-amber-800">
+                                  {exp.company}
+                                </p>
+                                <p className="mt-1 text-[11px] leading-snug whitespace-pre-line text-slate-700">
+                                  {exp.description}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="col-span-5 space-y-4 border-l border-slate-200 pl-4">
+                          <div>
+                            <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
+                              Ko&apos;nikmalar
+                            </h2>
+                            <div className="flex flex-wrap gap-1">
+                              {skills.map((s) => (
+                                <span
+                                  key={s}
+                                  className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-800"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
+                              Ta&apos;lim
+                            </h2>
+                            {education.map((e) => (
+                              <div key={e.id} className="mb-1.5 text-xs">
+                                <p className="text-[11px] font-bold text-slate-900">{e.school}</p>
+                                <p className="text-[10px] text-slate-600">{e.degree}</p>
+                                <p className="text-[10px] text-amber-700">{e.year}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div>
+                            <h2 className="mb-2 border-b border-slate-300 pb-1 text-[11px] font-black tracking-wider text-slate-900 uppercase">
+                              Tillar
+                            </h2>
+                            <div className="space-y-1 text-xs">
+                              {languages.map((l) => (
+                                <div key={l.id} className="flex justify-between text-[11px]">
+                                  <span className="font-medium text-slate-800">{l.name}</span>
+                                  <span className="text-slate-500">{l.level}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DEFAULT / MODERN SLATE */}
+                  {activeTemplate === "modern" && (
+                    <div className="space-y-7 p-10">
+                      <div className="border-b-2 border-slate-900 pb-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                              {personalInfo.fullName || "To'liq Ismingiz"}
+                            </h1>
+                            <p className="mt-1 text-base font-semibold text-sky-600">
+                              {personalInfo.role || "Mutaxassisligingiz"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                          {personalInfo.email && (
+                            <span className="flex items-center gap-1.5">
+                              <Mail className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.email}
+                            </span>
+                          )}
+                          {personalInfo.phone && (
+                            <span className="flex items-center gap-1.5">
+                              <Phone className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.phone}
+                            </span>
+                          )}
+                          {personalInfo.location && (
+                            <span className="flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-sky-600" />{" "}
+                              {personalInfo.location}
+                            </span>
+                          )}
+                          {personalInfo.website && (
+                            <span className="flex items-center gap-1.5">
+                              <Globe className="h-3.5 w-3.5 text-sky-600" /> {personalInfo.website}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {personalInfo.summary && (
+                        <div>
+                          <h2 className="mb-2 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                            <span className="h-2 w-2 rounded-full bg-sky-600" /> Professional Xulosa
+                          </h2>
+                          <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                            {personalInfo.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      <div>
+                        <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                          <span className="h-2 w-2 rounded-full bg-sky-600" /> Ish Tajribasi
+                        </h2>
+                        <div className="space-y-4">
+                          {experiences.map((exp) => (
+                            <div key={exp.id} className="relative border-l-2 border-slate-200 pl-3">
+                              <div className="flex items-baseline justify-between">
+                                <h3 className="text-sm font-bold text-slate-900">{exp.role}</h3>
+                                <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                                  {exp.period}
+                                </span>
+                              </div>
+                              <p className="mb-1.5 text-xs font-semibold text-sky-700">
+                                {exp.company}
+                              </p>
+                              <p className="text-xs leading-relaxed whitespace-pre-line text-slate-700">
+                                {exp.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                          <span className="h-2 w-2 rounded-full bg-sky-600" /> Texnik
+                          Ko&apos;nikmalar
+                        </h2>
+                        <div className="flex flex-wrap gap-1.5">
+                          {skills.map((skill) => (
+                            <span
+                              key={skill}
+                              className="rounded border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 pt-2">
+                        <div>
+                          <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                            <span className="h-2 w-2 rounded-full bg-sky-600" /> Ta&apos;lim
+                          </h2>
+                          {education.map((edu) => (
+                            <div key={edu.id} className="text-xs">
+                              <h4 className="font-bold text-slate-900">{edu.school}</h4>
+                              <p className="text-slate-700">{edu.degree}</p>
+                              <p className="mt-0.5 text-[11px] text-slate-500">{edu.year}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <h2 className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-900 uppercase">
+                            <span className="h-2 w-2 rounded-full bg-sky-600" /> Tillar
+                          </h2>
+                          <div className="space-y-1.5 text-xs">
+                            {languages.map((l) => (
+                              <div key={l.id} className="flex justify-between">
+                                <span className="font-medium text-slate-800">{l.name}</span>
+                                <span className="text-[11px] text-slate-500">{l.level}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            }, [
+              deferredTemplate,
+              deferredPersonalInfo,
+              deferredExperiences,
+              deferredEducation,
+              deferredSkills,
+              deferredLanguages,
+            ])}
           </div>
         </div>
       </div>

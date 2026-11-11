@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { mainNavConfig } from "@/config/navigation";
 import { useLanguage } from "@/components/providers/language-provider";
-import { Home, LayoutGrid, GraduationCap, Gem, HelpCircle } from "lucide-react";
+import { Home, LayoutGrid, GraduationCap, Gem, HelpCircle, ImagePlus } from "lucide-react";
 
 interface NavLinksProps {
   className?: string;
@@ -18,6 +18,7 @@ const navIcons: Record<string, React.ElementType> = {
   home: Home,
   services: LayoutGrid,
   students: GraduationCap,
+  imageTopics: ImagePlus,
   pricing: Gem,
   help: HelpCircle,
 };

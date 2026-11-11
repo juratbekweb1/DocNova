@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -16,10 +16,14 @@ import {
   Presentation,
   Plus,
   Minus,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
+import { UrlImageModeSync } from "@/components/academic/creation-mode-selector";
+import { ImageTopicParser } from "@/components/academic/image-topic-parser";
+import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 
 export default function AcademicExamPrepPage() {
   const { toast } = useToast();
@@ -29,7 +33,44 @@ export default function AcademicExamPrepPage() {
     topic: "",
     prepType: "Bilet savollari va to'liq yechimlar",
     templateText: "",
+    length: "3-5 bet",
   });
+  const [showImageParser, setShowImageParser] = useState(false);
+  const imageParserRef = useRef<HTMLDivElement>(null);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openAndScroll = () => {
+      setShowImageParser(true);
+      window.setTimeout(() => {
+        imageParserRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+      }, 60);
+    };
+    const handleUrlModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: string | null }>;
+      const nextMode =
+        customEvent.detail && "mode" in customEvent.detail
+          ? customEvent.detail.mode
+          : new URLSearchParams(window.location.search).get("mode");
+      if (nextMode === "image") {
+        openAndScroll();
+      } else if (customEvent.detail?.mode === null) {
+        setShowImageParser(false);
+      }
+    };
+    const handlePopState = () => {
+      if (new URLSearchParams(window.location.search).get("mode") === "image") {
+        openAndScroll();
+      }
+    };
+    window.addEventListener("docnova:url-mode-change", handleUrlModeChange);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("docnova:url-mode-change", handleUrlModeChange);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -115,7 +156,12 @@ export default function AcademicExamPrepPage() {
 
   const handleDownloadDoc = () => {
     if (!result) return;
-    const cleanTopic = formData.topic.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_") || "Imtihon";
+    const cleanTopic =
+      formData.topic
+        .slice(0, 40)
+        .replace(/['`\u2018\u2019\u02BB\u02BC]/g, "")
+        .replace(/[^a-zA-Z0-9\u0400-\u04FF_-]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "Imtihon";
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head><meta charset='utf-8'><title>${formData.topic}</title>
     <style>
@@ -175,6 +221,92 @@ export default function AcademicExamPrepPage() {
             </h2>
 
             <form onSubmit={handleGenerate} className="space-y-4">
+              <div className="flex flex-col gap-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-0.5">
+                  <p className="text-foreground text-xs font-bold">
+                    Bilet yoki savollar rasmi bormi?
+                  </p>
+                  <p className="text-foreground-muted text-[11px]">
+                    Galereyadan rasm tashlang va har bir mavzuga nechta bet yozilishini tanlang.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImageParser(true);
+                    const inputEl = document.getElementById(
+                      "image-upload-input"
+                    ) as HTMLInputElement | null;
+                    inputEl?.click();
+                  }}
+                  className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-sky-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-sky-600"
+                >
+                  <FileImage className="h-3.5 w-3.5 shrink-0" />
+                  <span>Rasm tashlash</span>
+                </button>
+              </div>
+
+              <div ref={imageParserRef} className={showImageParser ? "block" : "hidden"}>
+                <Suspense fallback={null}>
+                  <UrlImageModeSync />
+                </Suspense>
+                <ImageTopicParser
+                  workType="general"
+                  accentColor="blue"
+                  defaultPagesPerTopic="3-4"
+                  subjectHint={formData.subject}
+                  onImageSelected={() => setShowImageParser(true)}
+                  onApplyTopicsToForm={(topics) => {
+                    if (topics.length === 0) return;
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic: topics[0].title || prev.topic,
+                      length: topics[0].pageCount ? `${topics[0].pageCount} bet` : prev.length,
+                      templateText: formatTopicsAsBlueprint(topics),
+                    }));
+                    toast({
+                      title: "Rasmdan savollar yuklandi!",
+                      description: `${topics.length} ta mavzu/savol shaklga joylashtirildi.`,
+                    });
+                  }}
+                  onWorksGenerated={(works) => {
+                    if (works.length === 0) return;
+                    const combined = works
+                      .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                      .join("\n\n---\n\n");
+                    const distinctPages = new Set(
+                      works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                    );
+                    const syncedLength =
+                      distinctPages.size === 1
+                        ? `${Array.from(distinctPages)[0]} bet`
+                        : works[0]?.pageCount
+                          ? `${works[0].pageCount} bet`
+                          : undefined;
+                    setResult(combined);
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic: works[0]?.title?.trim() || prev.topic,
+                      length: syncedLength || prev.length,
+                      templateText: formatTopicsAsBlueprint(works),
+                    }));
+                    toast({
+                      title: "Rasmdan bilet javoblari tayyorlandi!",
+                      description: `${works.length} ta mavzu bo'yicha materiallar ko'rish oynasida tayyor.`,
+                    });
+                    if (typeof window !== "undefined") {
+                      window.setTimeout(() => {
+                        resultPreviewRef.current?.scrollIntoView?.({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }, 80);
+                    }
+                  }}
+                  compact
+                />
+              </div>
+
               <div>
                 <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
                   Fan nomi *
@@ -225,6 +357,36 @@ export default function AcademicExamPrepPage() {
                     Tezkor shpargalka va qisqa konspekt
                   </option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                  Kutilayotgan hajm (Nechta bet yozilsin?)
+                </label>
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                  {["2-3 bet", "3-5 bet", "8 bet", "10 bet", "15 bet"].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, length: cnt }))}
+                      className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all ${
+                        formData.length === cnt
+                          ? "border-purple-500 bg-purple-600 text-white shadow-xs"
+                          : "border-border bg-background text-foreground-secondary hover:text-foreground"
+                      }`}
+                    >
+                      {cnt}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  name="length"
+                  value={formData.length}
+                  onChange={handleChange}
+                  placeholder="Masalan: 5 bet, 12 bet..."
+                  className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2 text-xs focus:border-purple-400 focus:outline-none sm:text-sm"
+                />
               </div>
 
               {/* Namuna Fayli Yuklash */}
@@ -335,10 +497,24 @@ export default function AcademicExamPrepPage() {
                 </Link>
               </div>
             </form>
+            {result && (
+              <button
+                type="button"
+                onClick={() =>
+                  resultPreviewRef.current?.scrollIntoView?.({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-500 lg:hidden"
+              >
+                <span>Tayyor natijaga o&apos;tish ↓</span>
+              </button>
+            )}
           </div>
 
           {/* Right Preview */}
-          <div className="flex flex-col lg:col-span-7">
+          <div ref={resultPreviewRef} className="flex flex-col lg:col-span-7">
             {result ? (
               <div className="space-y-4">
                 {/* Cross-Sell Slides Banner */}

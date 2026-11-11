@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifySharedSecret } from "@/lib/security/internal-secret";
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get("token");
+    const expectedSecret = process.env.BOT_SECRET?.trim();
+    if (!expectedSecret) {
+      return NextResponse.json({ error: "BOT_SECRET is not configured" }, { status: 503 });
+    }
 
-    if (token !== (process.env.BOT_SECRET || "MY_SECRET_BOT_TOKEN_123")) {
+    const { searchParams } = new URL(req.url);
+    const token = req.headers.get("x-bot-secret") || searchParams.get("token");
+
+    if (!verifySharedSecret(token, expectedSecret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -15,18 +21,18 @@ export async function GET(req: Request) {
 
     const [newUsers, newDocs, todayTransactions] = await Promise.all([
       prisma.user.count({
-        where: { createdAt: { gte: today } }
+        where: { createdAt: { gte: today } },
       }),
       prisma.document.count({
-        where: { createdAt: { gte: today } }
+        where: { createdAt: { gte: today } },
       }),
       prisma.transaction.aggregate({
-        where: { 
+        where: {
           createdAt: { gte: today },
-          status: "COMPLETED" 
+          status: "COMPLETED",
         },
-        _sum: { amount: true }
-      })
+        _sum: { amount: true },
+      }),
     ]);
 
     return NextResponse.json({

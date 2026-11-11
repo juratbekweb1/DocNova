@@ -283,7 +283,41 @@ export function getFeatureLabel(feature: string): string {
   return FEATURE_LABELS[feature] || feature.replace(/_/g, " ");
 }
 
-export async function getSuperAdminSiteReport(): Promise<SuperAdminSiteReport> {
+let cachedAdminReport: { data: SuperAdminSiteReport; expiresAt: number } | null = null;
+let inFlightAdminReport: Promise<SuperAdminSiteReport> | null = null;
+const ADMIN_REPORT_TTL_MS = 20_000;
+
+export async function getSuperAdminSiteReport(forceRefresh = false): Promise<SuperAdminSiteReport> {
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  if (!isTest && !forceRefresh) {
+    if (cachedAdminReport && cachedAdminReport.expiresAt > Date.now()) {
+      return cachedAdminReport.data;
+    }
+    if (inFlightAdminReport) {
+      return inFlightAdminReport;
+    }
+  }
+
+  const promise = buildSuperAdminSiteReport();
+  if (!isTest) {
+    inFlightAdminReport = promise;
+  }
+
+  try {
+    const report = await promise;
+    if (!isTest) {
+      cachedAdminReport = {
+        data: report,
+        expiresAt: Date.now() + ADMIN_REPORT_TTL_MS,
+      };
+    }
+    return report;
+  } finally {
+    inFlightAdminReport = null;
+  }
+}
+
+async function buildSuperAdminSiteReport(): Promise<SuperAdminSiteReport> {
   const safe = <T>(p: Promise<T>, fallback: T): Promise<T> =>
     p.catch((err) => {
       console.error("[SUPER_ADMIN_ANALYTICS_ERROR]", err instanceof Error ? err.message : err);
@@ -300,9 +334,7 @@ export async function getSuperAdminSiteReport(): Promise<SuperAdminSiteReport> {
     Date.UTC(uzTime.getUTCFullYear(), uzTime.getUTCMonth(), uzTime.getUTCDate()) - TZ_MS
   );
   const startOfWeek = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
-  const startOfMonth = new Date(
-    Date.UTC(uzTime.getUTCFullYear(), uzTime.getUTCMonth(), 1) - TZ_MS
-  );
+  const startOfMonth = new Date(Date.UTC(uzTime.getUTCFullYear(), uzTime.getUTCMonth(), 1) - TZ_MS);
 
   const usdToUzsRate = parseFloat(process.env.AI_COST_USD_TO_UZS || "12800");
   const dailyBudgetUsd = parseFloat(process.env.AI_DAILY_BUDGET_USD || "10.0");
@@ -972,7 +1004,9 @@ export async function getSuperAdminSiteReport(): Promise<SuperAdminSiteReport> {
       dailyBudgetUsd,
       emergencyBudgetUsd,
       dailyBudgetUsedPercent:
-        dailyBudgetUsd > 0 ? Math.min(100, Math.round((todayStats.costUsd / dailyBudgetUsd) * 1000) / 10) : 0,
+        dailyBudgetUsd > 0
+          ? Math.min(100, Math.round((todayStats.costUsd / dailyBudgetUsd) * 1000) / 10)
+          : 0,
       today: todayStats,
       week: {
         requests: weekBucket.requests,
@@ -1035,18 +1069,12 @@ export async function getSuperAdminSiteReport(): Promise<SuperAdminSiteReport> {
       eventBreakdown,
       envStatus: {
         database: true,
-        geminiAi: Boolean(
-          process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
-        ),
+        geminiAi: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY),
         telegramBot: Boolean(process.env.TELEGRAM_BOT_TOKEN),
         telegramAdminChat: Boolean(process.env.TELEGRAM_ADMIN_CHAT_ID),
-        googleOAuth: Boolean(
-          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-        ),
+        googleOAuth: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
         paymentGateways: Boolean(
-          process.env.PAYX_API_KEY ||
-            process.env.CLICK_MERCHANT_ID ||
-            process.env.PAYME_MERCHANT_ID
+          process.env.PAYX_API_KEY || process.env.CLICK_MERCHANT_ID || process.env.PAYME_MERCHANT_ID
         ),
       },
     },

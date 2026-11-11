@@ -35,6 +35,39 @@ interface MockTestRunnerProps {
   accentColor?: "blue" | "purple" | "emerald";
 }
 
+function LiveCountdownTimer({ active }: { active: boolean }) {
+  const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+  useEffect(() => {
+    if (!active) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [active]);
+
+  const mins = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const formatted = `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+
+  return (
+    <div
+      className={`border-border bg-surface-elevated/80 flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-xs font-bold ${
+        timeLeft < 180 ? "animate-pulse border-amber-500/50 text-amber-400" : "text-primary"
+      }`}
+    >
+      <Clock className="h-3.5 w-3.5" />
+      <span>{formatted}</span>
+    </div>
+  );
+}
+
 export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunnerProps) {
   const { toast } = useToast();
 
@@ -52,8 +85,8 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
     }
   }, [result]);
 
-  // 15 minutes timer per test
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
+  // Timer state isolated via resetKey so 1Hz tick doesn't re-render questions/essay input
+  const [timerResetKey, setTimerResetKey] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
 
   // Find the active level configuration
@@ -99,28 +132,6 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
 
   const theme = colorMap[accentColor] || colorMap.blue;
 
-  // Timer interval
-  useEffect(() => {
-    if (!timerActive || result) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setTimerActive(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timerActive, result]);
-
-  const formatTime = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
-
   const answeredCount = activeLevel.questions.filter((q) => answers[q.id]).length;
   const progressPercent = Math.round((answeredCount / activeLevel.questions.length) * 100);
 
@@ -143,7 +154,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
     setAnswers({});
     setWrittenText("");
     setResult(null);
-    setTimeLeft(15 * 60);
+    setTimerResetKey((k) => k + 1);
     setTimerActive(true);
 
     toast({
@@ -253,7 +264,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
     setAnswers({});
     setWrittenText("");
     setResult(null);
-    setTimeLeft(15 * 60);
+    setTimerResetKey((k) => k + 1);
     setTimerActive(true);
   };
 
@@ -269,7 +280,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
       </div>
 
       {/* Top Breadcrumb & Live Status Bar */}
-      <div className="border-border/70 bg-surface/95 sticky top-0 z-20 border-b px-4 py-3.5 shadow-sm sm:px-6 lg:px-8 print:hidden">
+      <div className="border-border/70 bg-surface/95 sticky top-16 z-20 border-b px-4 py-3.5 shadow-sm sm:px-6 md:top-20 lg:px-8 print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -301,14 +312,7 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
             </div>
 
             {/* Live Timer */}
-            <div
-              className={`border-border bg-surface-elevated/80 flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-xs font-bold ${
-                timeLeft < 180 ? "animate-pulse border-amber-500/50 text-amber-400" : "text-primary"
-              }`}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
+            <LiveCountdownTimer key={timerResetKey} active={timerActive && !result} />
 
             {/* Answered Counter */}
             <div className="text-foreground-secondary bg-surface-elevated/40 border-border hidden rounded-xl border px-3 py-1.5 text-xs font-medium sm:block">
@@ -470,127 +474,133 @@ export function MockTestRunner({ mockData, accentColor = "blue" }: MockTestRunne
         </div>
 
         {/* Questions Grid */}
-        <div className="space-y-6">
-          {activeLevel.questions.map((q: MockQuestion, idx: number) => {
-            const selectedKey = answers[q.id];
-            const isAnswered = Boolean(selectedKey);
-            const isCorrect = result && selectedKey === q.correctKey;
-            const _isWrong = result && selectedKey && selectedKey !== q.correctKey;
+        {useMemo(
+          () => (
+            <div className="space-y-6">
+              {activeLevel.questions.map((q: MockQuestion, idx: number) => {
+                const selectedKey = answers[q.id];
+                const isAnswered = Boolean(selectedKey);
+                const isCorrect = result && selectedKey === q.correctKey;
+                const _isWrong = result && selectedKey && selectedKey !== q.correctKey;
 
-            return (
-              <div
-                key={q.id}
-                className={`bg-surface rounded-2xl border p-5 transition-all sm:p-6 ${
-                  result
-                    ? isCorrect
-                      ? "border-emerald-500/40 bg-emerald-500/5 shadow-sm"
-                      : "border-red-500/40 bg-red-500/5 shadow-sm"
-                    : isAnswered
-                      ? `${theme.borderGlow} shadow-sm`
-                      : "border-border hover:border-border-hover"
-                }`}
-              >
-                {/* Question Header */}
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-foreground-muted flex items-center gap-2 text-xs font-bold">
-                    <span className="bg-surface-elevated text-primary flex h-6 w-6 items-center justify-center rounded-lg text-xs font-extrabold">
-                      {idx + 1}
-                    </span>
-                    <span className="text-foreground font-semibold">{q.category}</span>
-                  </div>
+                return (
+                  <div
+                    key={q.id}
+                    className={`bg-surface rounded-2xl border p-5 transition-all sm:p-6 ${
+                      result
+                        ? isCorrect
+                          ? "border-emerald-500/40 bg-emerald-500/5 shadow-sm"
+                          : "border-red-500/40 bg-red-500/5 shadow-sm"
+                        : isAnswered
+                          ? `${theme.borderGlow} shadow-sm`
+                          : "border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {/* Question Header */}
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-foreground-muted flex items-center gap-2 text-xs font-bold">
+                        <span className="bg-surface-elevated text-primary flex h-6 w-6 items-center justify-center rounded-lg text-xs font-extrabold">
+                          {idx + 1}
+                        </span>
+                        <span className="text-foreground font-semibold">{q.category}</span>
+                      </div>
 
-                  {result && (
-                    <div className="flex items-center gap-1.5">
-                      {isCorrect ? (
-                        <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>To&apos;g&apos;ri (✓)</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-400">
-                          <XCircle className="h-3.5 w-3.5" />
-                          <span>To&apos;g&apos;ri javob: variant {q.correctKey}</span>
-                        </span>
+                      {result && (
+                        <div className="flex items-center gap-1.5">
+                          {isCorrect ? (
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>To&apos;g&apos;ri (✓)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-400">
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>To&apos;g&apos;ri javob: variant {q.correctKey}</span>
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                {/* Question Text */}
-                <p className="text-foreground mb-4 text-sm leading-relaxed font-medium sm:text-base">
-                  {q.question}
-                </p>
+                    {/* Question Text */}
+                    <p className="text-foreground mb-4 text-sm leading-relaxed font-medium sm:text-base">
+                      {q.question}
+                    </p>
 
-                {/* Options Grid */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {q.options.map((opt) => {
-                    const isSelected = selectedKey === opt.key;
-                    const isOptionCorrect = result && opt.key === q.correctKey;
-                    const isOptionWrongSelected = result && isSelected && !isOptionCorrect;
+                    {/* Options Grid */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {q.options.map((opt) => {
+                        const isSelected = selectedKey === opt.key;
+                        const isOptionCorrect = result && opt.key === q.correctKey;
+                        const isOptionWrongSelected = result && isSelected && !isOptionCorrect;
 
-                    let optStyle =
-                      "border-border bg-background hover:bg-surface-elevated text-foreground-secondary hover:text-foreground";
+                        let optStyle =
+                          "border-border bg-background hover:bg-surface-elevated text-foreground-secondary hover:text-foreground";
 
-                    if (result) {
-                      if (isOptionCorrect) {
-                        optStyle =
-                          "border-emerald-500 bg-emerald-500/15 text-emerald-300 font-semibold shadow-sm";
-                      } else if (isOptionWrongSelected) {
-                        optStyle =
-                          "border-red-500/70 bg-red-500/10 text-red-300 line-through font-semibold";
-                      } else {
-                        optStyle =
-                          "border-border/60 bg-background/50 text-foreground-muted opacity-60";
-                      }
-                    } else if (isSelected) {
-                      optStyle = `border-primary bg-primary/10 text-foreground font-semibold shadow-sm`;
-                    }
+                        if (result) {
+                          if (isOptionCorrect) {
+                            optStyle =
+                              "border-emerald-500 bg-emerald-500/15 text-emerald-300 font-semibold shadow-sm";
+                          } else if (isOptionWrongSelected) {
+                            optStyle =
+                              "border-red-500/70 bg-red-500/10 text-red-300 line-through font-semibold";
+                          } else {
+                            optStyle =
+                              "border-border/60 bg-background/50 text-foreground-muted opacity-60";
+                          }
+                        } else if (isSelected) {
+                          optStyle = `border-primary bg-primary/10 text-foreground font-semibold shadow-sm`;
+                        }
 
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => handleSelectAnswer(q.id, opt.key)}
-                        disabled={Boolean(result)}
-                        className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 text-left text-xs transition-all sm:text-sm ${optStyle}`}
-                      >
-                        <span
-                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
-                            result
-                              ? isOptionCorrect
-                                ? "bg-emerald-500 text-white"
-                                : isOptionWrongSelected
-                                  ? "bg-red-500 text-white"
-                                  : "bg-surface-elevated text-foreground-muted"
-                              : isSelected
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-surface-elevated text-foreground-muted"
-                          }`}
-                        >
-                          {opt.key}
-                        </span>
-                        <span className="leading-snug">{opt.text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Explanation Box (Visible after submission) */}
-                {result && q.explanation && (
-                  <div className="border-border/80 bg-surface-elevated/70 mt-4 flex items-start gap-3 rounded-xl border p-3.5 text-xs">
-                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                    <div>
-                      <span className="text-foreground font-bold">Tushuntirish va qoida:</span>
-                      <p className="text-foreground-secondary mt-0.5 leading-relaxed">
-                        {q.explanation}
-                      </p>
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => handleSelectAnswer(q.id, opt.key)}
+                            disabled={Boolean(result)}
+                            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 text-left text-xs transition-all sm:text-sm ${optStyle}`}
+                          >
+                            <span
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                                result
+                                  ? isOptionCorrect
+                                    ? "bg-emerald-500 text-white"
+                                    : isOptionWrongSelected
+                                      ? "bg-red-500 text-white"
+                                      : "bg-surface-elevated text-foreground-muted"
+                                  : isSelected
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-surface-elevated text-foreground-muted"
+                              }`}
+                            >
+                              {opt.key}
+                            </span>
+                            <span className="leading-snug">{opt.text}</span>
+                          </button>
+                        );
+                      })}
                     </div>
+
+                    {/* Explanation Box (Visible after submission) */}
+                    {result && q.explanation && (
+                      <div className="border-border/80 bg-surface-elevated/70 mt-4 flex items-start gap-3 rounded-xl border p-3.5 text-xs">
+                        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <div>
+                          <span className="text-foreground font-bold">Tushuntirish va qoida:</span>
+                          <p className="text-foreground-secondary mt-0.5 leading-relaxed">
+                            {q.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          ),
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+          [activeLevel.questions, answers, result, theme.borderGlow]
+        )}
 
         {/* Section 2: Writing task */}
         <div className="border-border bg-surface mt-10 rounded-2xl border p-6 shadow-sm">

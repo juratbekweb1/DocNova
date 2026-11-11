@@ -11,6 +11,16 @@ export const mainNavConfig: NavItem[] = [
     key: "home",
   },
   {
+    title: "Talabalar uchun",
+    href: "/academic",
+    key: "students",
+  },
+  {
+    title: "Rasm tashlash",
+    href: "/academic/referat?mode=image",
+    key: "imageTopics",
+  },
+  {
     title: "Xizmatlar",
     href: "/tools",
     key: "services",

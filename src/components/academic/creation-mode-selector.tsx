@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sparkles, UploadCloud, Wand2, CheckCircle2 } from "lucide-react";
+import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
+import { Sparkles, UploadCloud, Wand2, CheckCircle2, FileImage } from "lucide-react";
 import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
+import { ImageTopicParser } from "@/components/academic/image-topic-parser";
+import type { ParsedTopic } from "@/lib/academic/topic-parser";
 import {
   SampleDocumentAnalysis,
   parseNaturalAcademicRequest,
@@ -11,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface CreationModeSelectorProps {
-  moduleType: "coursework" | "diplom-bmi" | "referat" | "independent";
+  moduleType: "coursework" | "diplom-bmi" | "referat" | "independent" | "amaliy-ish";
   onSampleBlueprintReady: (
     structuralBlueprint: string,
     fileName: string,
@@ -20,7 +23,70 @@ export interface CreationModeSelectorProps {
   onSampleCleared: () => void;
   onNaturalPromptParsed?: (parsed: ParsedNaturalAcademicPrompt) => void;
   onApplySampleStructureHint?: (hint: { subject?: string; pageCount?: string }) => void;
+  onApplyTopicsToForm?: (topics: ParsedTopic[]) => void;
+  autoGeneratePerTopicWorks?: boolean;
+  defaultPagesPerTopic?: string;
+  initialMode?: "scratch" | "sample" | "image";
+  subjectHint?: string;
+  onWorksGenerated?: (works: ParsedTopic[]) => void;
+  galleryInputId?: string;
   accentColor?: "blue" | "emerald" | "amber";
+}
+
+function subscribeToUrlMode(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("popstate", callback);
+  window.addEventListener("docnova:url-mode-change", callback);
+  return () => {
+    window.removeEventListener("popstate", callback);
+    window.removeEventListener("docnova:url-mode-change", callback);
+  };
+}
+
+export function clearImageModeFromUrl() {
+  if (typeof window === "undefined") return;
+  try {
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get("mode") === "image") {
+      currentUrl.searchParams.delete("mode");
+      window.history.replaceState(
+        null,
+        "",
+        `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
+      );
+    }
+  } catch {
+    // Ignore history mutation errors in restricted test environments
+  }
+}
+
+export function UrlImageModeSync() {
+  const searchParams = useSearchParams();
+  const modeParam = searchParams?.get("mode") ?? null;
+  const prevEffectiveModeRef = useRef<"image" | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const windowModeParam = new URLSearchParams(window.location.search).get("mode");
+    const effectiveMode: "image" | null =
+      modeParam === "image" || windowModeParam === "image" ? "image" : null;
+    const prevMode = prevEffectiveModeRef.current;
+    prevEffectiveModeRef.current = effectiveMode;
+    if (effectiveMode !== "image" && prevMode !== "image") return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        window.dispatchEvent(
+          new CustomEvent("docnova:url-mode-change", { detail: { mode: effectiveMode } })
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [modeParam]);
+
+  return null;
 }
 
 export function CreationModeSelector({
@@ -29,20 +95,104 @@ export function CreationModeSelector({
   onSampleCleared,
   onNaturalPromptParsed,
   onApplySampleStructureHint,
+  onApplyTopicsToForm,
+  autoGeneratePerTopicWorks = false,
+  defaultPagesPerTopic = "2-3",
+  initialMode = "scratch",
+  subjectHint,
+  onWorksGenerated,
+  galleryInputId = "image-upload-input",
   accentColor = "blue",
 }: CreationModeSelectorProps) {
-  const [mode, setMode] = useState<"scratch" | "sample">("scratch");
+  const imagePanelRef = useRef<HTMLDivElement>(null);
+  const isImageFromUrl = useSyncExternalStore(
+    subscribeToUrlMode,
+    () =>
+      initialMode === "image" ||
+      (typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("mode") === "image"),
+    () => initialMode === "image"
+  );
+  const [selectedMode, setSelectedMode] = useState<"scratch" | "sample" | "image" | null>(null);
+  const mode = selectedMode ?? (isImageFromUrl ? "image" : initialMode);
+  const setMode = (nextMode: "scratch" | "sample" | "image") => {
+    setSelectedMode(nextMode);
+    if (nextMode !== "image" && typeof window !== "undefined") {
+      try {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.get("mode") === "image") {
+          currentUrl.searchParams.delete("mode");
+          window.history.replaceState(
+            null,
+            "",
+            `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
+          );
+        }
+      } catch {
+        // Ignore history mutation errors in restricted test environments
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const scrollToImagePanel = () => {
+      window.setTimeout(() => {
+        imagePanelRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+      }, 40);
+    };
+    const handleOpenImageMode = (event: Event) => {
+      const customEvent = event as CustomEvent<{ inputId?: string }>;
+      if (!customEvent.detail?.inputId || customEvent.detail.inputId === galleryInputId) {
+        setSelectedMode("image");
+        scrollToImagePanel();
+      }
+    };
+    const handleUrlModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: string | null }>;
+      const nextUrlMode =
+        customEvent.detail && "mode" in customEvent.detail
+          ? customEvent.detail.mode
+          : new URLSearchParams(window.location.search).get("mode");
+      if (nextUrlMode === "image") {
+        setSelectedMode("image");
+        scrollToImagePanel();
+      } else {
+        setSelectedMode((prev) => (prev === "image" ? null : prev));
+      }
+    };
+    const handlePopState = () => {
+      if (new URLSearchParams(window.location.search).get("mode") === "image") {
+        setSelectedMode("image");
+        scrollToImagePanel();
+      } else {
+        setSelectedMode((prev) => (prev === "image" ? null : prev));
+      }
+    };
+    window.addEventListener("docnova:open-image-mode", handleOpenImageMode);
+    window.addEventListener("docnova:url-mode-change", handleUrlModeChange);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("docnova:open-image-mode", handleOpenImageMode);
+      window.removeEventListener("docnova:url-mode-change", handleUrlModeChange);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [galleryInputId]);
   const [naturalText, setNaturalText] = useState("");
   const [naturalFeedback, setNaturalFeedback] = useState<string | null>(null);
   const [sampleAnalysis, setSampleAnalysis] = useState<SampleDocumentAnalysis | null>(null);
 
   const placeholderByModule: Record<CreationModeSelectorProps["moduleType"], string> = {
-    coursework: "Masalan: Menga marketing fanidan raqamli marketing haqida 20 betlik kurs ishi kerak",
+    coursework:
+      "Masalan: Menga marketing fanidan raqamli marketing haqida 20 betlik kurs ishi kerak",
     "diplom-bmi":
       "Masalan: Menga bank ishi fanidan tijorat banklarida kredit risklari haqida 70 betlik diplom ishi kerak",
-    referat: "Masalan: Menga falsafa fanidan yashil energetika istiqbollari haqida 10 betlik referat kerak",
+    referat:
+      "Masalan: Menga falsafa fanidan yashil energetika istiqbollari haqida 10 betlik referat kerak",
     independent:
       "Masalan: Menga iqtisodiyot fanidan kichik biznesni rivojlantirish haqida 12 betlik mustaqil ish kerak",
+    "amaliy-ish":
+      "Masalan: Menga statistika fanidan korrelyatsiya tahlili bo'yicha 8 betlik amaliy ish kerak",
   };
 
   const handleApplyNaturalText = () => {
@@ -75,12 +225,15 @@ export function CreationModeSelector({
 
   return (
     <div className="space-y-3">
+      <Suspense fallback={null}>
+        <UrlImageModeSync />
+      </Suspense>
       {/* Ikki xil hujjat yaratish yo'li tanlovi (3-bo'lim talabi) */}
       <div>
         <label className="text-foreground-secondary mb-1.5 block text-xs font-bold">
           Yaratish usulini tanlang
         </label>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           <button
             type="button"
             onClick={() => setMode("scratch")}
@@ -104,6 +257,33 @@ export function CreationModeSelector({
 
           <button
             type="button"
+            onClick={() => {
+              setMode("image");
+              const galleryInput = document.getElementById(
+                galleryInputId
+              ) as HTMLInputElement | null;
+              galleryInput?.click();
+            }}
+            className={cn(
+              "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all",
+              mode === "image"
+                ? activeBorder
+                : "border-border bg-surface-elevated/40 text-foreground-secondary hover:text-foreground"
+            )}
+          >
+            <div className="bg-background/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-current/20">
+              <FileImage className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-foreground text-xs font-bold sm:text-sm">Rasm tashlash</div>
+              <div className="text-foreground-muted truncate text-[11px]">
+                Galereyadan rasm tashlash
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setMode("sample")}
             className={cn(
               "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all",
@@ -116,9 +296,11 @@ export function CreationModeSelector({
               <UploadCloud className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <div className="text-foreground text-xs font-bold sm:text-sm">Namuna faylim bor</div>
+              <div className="text-foreground text-xs font-bold sm:text-sm">
+                Namuna fayl (DOCX / PDF)
+              </div>
               <div className="text-foreground-muted truncate text-[11px]">
-                DOCX / PDF tuzilmasini o&apos;rganib yangi ish yozish
+                Word / PDF tuzilmasini o&apos;rganib yangi ish yozish
               </div>
             </div>
           </button>
@@ -131,7 +313,9 @@ export function CreationModeSelector({
           <div className="flex items-center justify-between gap-2">
             <span className="text-foreground-secondary flex items-center gap-1.5 text-[11px] font-semibold">
               <Wand2 className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>Oddiy tilda yozing (ixtiyoriy — tizim fan, mavzu va hajmni o&apos;zi ajratadi):</span>
+              <span>
+                Oddiy tilda yozing (ixtiyoriy — tizim fan, mavzu va hajmni o&apos;zi ajratadi):
+              </span>
             </span>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -215,6 +399,54 @@ export function CreationModeSelector({
             )}
         </div>
       )}
+
+      {/* Mobil va tez rasm tashlash tugmasi (.DOCX/.PDF/.TXT yoki noldan yaratish bo'limi ostida) */}
+      {mode !== "image" && (
+        <div className="flex flex-col gap-3 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5 text-left">
+            <p className="text-foreground text-xs font-bold sm:text-sm">
+              Mavzular rasm ko&apos;rinishida bormi?
+            </p>
+            <p className="text-foreground-muted text-[11px] leading-relaxed">
+              Telefon galereyasidan rasm tashlang — har bir mavzuga nechta bet yozishni
+              o&apos;zingiz tanlaysiz.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("image");
+              const galleryInput = document.getElementById(
+                galleryInputId
+              ) as HTMLInputElement | null;
+              galleryInput?.click();
+            }}
+            className="inline-flex min-h-[44px] w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-sky-600 active:scale-[0.99] sm:w-auto"
+          >
+            <FileImage className="h-4 w-4 shrink-0" />
+            <span>Rasm tashlash</span>
+          </button>
+        </div>
+      )}
+
+      {/* D. Rasm orqali avtomatik mavzular va sahifalar qo'shish (DOM da doim tayyor turadi) */}
+      <div ref={imagePanelRef} className={mode === "image" ? "block" : "hidden"}>
+        <ImageTopicParser
+          workType={moduleType === "independent" ? "independent" : moduleType}
+          accentColor={accentColor}
+          fileInputId={galleryInputId}
+          autoGeneratePerTopicWorks={autoGeneratePerTopicWorks}
+          defaultPagesPerTopic={defaultPagesPerTopic}
+          subjectHint={subjectHint}
+          onImageSelected={() => {
+            setMode("image");
+            imagePanelRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+          }}
+          onApplyTopicsToForm={onApplyTopicsToForm}
+          onWorksGenerated={onWorksGenerated}
+          compact
+        />
+      </div>
     </div>
   );
 }

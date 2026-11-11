@@ -30,6 +30,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
+import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
+import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 import {
   StaleBuildError,
   deliverPdf,
@@ -260,6 +262,14 @@ const markdownComponents = {
   hr: () => <hr className="my-3 border-t border-slate-300" />,
 };
 
+const MemoizedCourseworkMarkdown = React.memo(function MemoizedCourseworkMarkdown({
+  content,
+}: {
+  content: string;
+}) {
+  return <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>;
+});
+
 const GENERATION_STEPS = [
   "Mavzuning dolzarbligi va ilmiy apparati tahlil qilinmoqda...",
   "Titul varag'i va tasdiqlangan reja (mundarija) sahifalanmoqda...",
@@ -311,6 +321,7 @@ export default function CourseworkGenerator() {
   const [copied, setCopied] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeErrorMsg, setUpgradeErrorMsg] = useState("");
+  const resultSectionRef = useRef<HTMLDivElement>(null);
 
   const activeCategory = FACULTIES_AND_SUBJECTS[selectedCategoryIdx] || FACULTIES_AND_SUBJECTS[0];
 
@@ -455,7 +466,9 @@ export default function CourseworkGenerator() {
           });
           return;
         }
-        const errObj = new Error(data.error || "Kurs ishini yaratishda xatolik yuz berdi") as Error & {
+        const errObj = new Error(
+          data.error || "Kurs ishini yaratishda xatolik yuz berdi"
+        ) as Error & {
           creditRefunded?: boolean;
         };
         errObj.creditRefunded = Boolean(data.creditRefunded);
@@ -1103,6 +1116,8 @@ export default function CourseworkGenerator() {
                 <CreationModeSelector
                   moduleType="coursework"
                   accentColor="blue"
+                  defaultPagesPerTopic="15"
+                  subjectHint={formData.subject}
                   onSampleBlueprintReady={(blueprint) => {
                     // MUHIM: Namuna fayldagi eski mavzu va eski talaba F.I.Sh. yangi hujjatga avtomatik ko'chirilmaydi!
                     setFormData((prev) => ({
@@ -1132,16 +1147,60 @@ export default function CourseworkGenerator() {
                       pageCount: hint.pageCount || prev.pageCount,
                     }));
                   }}
+                  onApplyTopicsToForm={(topics) => {
+                    if (topics.length === 0) return;
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic: topics[0].title || prev.topic,
+                      pageCount: topics[0].pageCount || prev.pageCount,
+                      templateText: formatTopicsAsBlueprint(topics),
+                    }));
+                  }}
+                  onWorksGenerated={(works) => {
+                    if (works.length === 0) return;
+                    const combinedMarkdown = works
+                      .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                      .join("\n\n---\n\n");
+                    const distinctPages = new Set(
+                      works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                    );
+                    const syncedPage =
+                      distinctPages.size === 1 ? Array.from(distinctPages)[0] : works[0]?.pageCount;
+                    setResult(combinedMarkdown);
+                    setPages([]);
+                    setFormData((prev) => ({
+                      ...prev,
+                      topic: works[0]?.title?.trim() || prev.topic,
+                      pageCount: syncedPage || prev.pageCount,
+                      templateText: formatTopicsAsBlueprint(works),
+                    }));
+                    setCurrentStep(4);
+                    toast({
+                      title: "Rasmdan tanlangan betlarda ishlar tayyorlandi!",
+                      description: `${works.length} ta mavzu bo'yicha to'liq matnlar tayyor.`,
+                    });
+                    if (typeof window !== "undefined") {
+                      window.setTimeout(() => {
+                        resultSectionRef.current?.scrollIntoView?.({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }, 80);
+                    }
+                  }}
                 />
 
                 {/* 1. MAVZU (HERO INPUT) */}
                 <div>
-                  <label className="text-foreground mb-1.5 flex flex-wrap items-center justify-between gap-1 text-xs font-bold sm:text-sm">
-                    <span>Kurs ishi mavzusi *</span>
-                    <span className="text-foreground-muted text-[11px] font-normal">
-                      Aniq va to&apos;liq yozing
-                    </span>
-                  </label>
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
+                      <span>Kurs ishi mavzusi *</span>
+                      <span className="text-foreground-muted text-[11px] font-normal">
+                        Aniq va to&apos;liq yozing
+                      </span>
+                    </label>
+                    <GalleryTopicTriggerButton accentColor="blue" label="Rasm tashlash" />
+                  </div>
                   <textarea
                     rows={3}
                     name="topic"
@@ -1702,7 +1761,7 @@ export default function CourseworkGenerator() {
         {/* STEP 4: TAYYOR KURS ISHI VA EKSPORT DASHBOARD */}
         {/* ========================================================= */}
         {currentStep === 4 && (pages.length > 0 || cleanResult) && (
-          <div className="flex flex-col items-center">
+          <div ref={resultSectionRef} className="flex flex-col items-center">
             {/* Top Export Toolbar */}
             <div className="border-border bg-surface mb-6 flex w-full max-w-5xl flex-col gap-3 rounded-2xl border p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between print:hidden">
               <div className="flex min-w-0 items-center gap-3">
@@ -1878,9 +1937,7 @@ export default function CourseworkGenerator() {
                         }}
                       >
                         <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
-                          <ReactMarkdown components={markdownComponents}>
-                            {activePage.content}
-                          </ReactMarkdown>
+                          <MemoizedCourseworkMarkdown content={activePage.content} />
                         </div>
                         {activePage.pageNumber > 1 && (
                           <div className="coursework-page-footer mt-auto pt-3 text-center font-serif text-xs text-slate-700">
@@ -1910,9 +1967,7 @@ export default function CourseworkGenerator() {
                           }}
                         >
                           <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
-                            <ReactMarkdown components={markdownComponents}>
-                              {p.content}
-                            </ReactMarkdown>
+                            <MemoizedCourseworkMarkdown content={p.content} />
                           </div>
                           {p.pageNumber > 1 && (
                             <div className="coursework-page-footer mt-auto pt-3 text-center font-serif text-xs text-slate-700">
@@ -1940,7 +1995,7 @@ export default function CourseworkGenerator() {
                       }}
                     >
                       <div className="coursework-page-content prose prose-slate max-w-none flex-grow text-black">
-                        <ReactMarkdown components={markdownComponents}>{cleanResult}</ReactMarkdown>
+                        <MemoizedCourseworkMarkdown content={cleanResult} />
                       </div>
                     </div>
                   </div>

@@ -68,7 +68,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     <>
       {!isDashboard && <Navbar />}
       <main
-        className={`w-full max-w-full min-w-0 flex-1 overflow-x-hidden border-none outline-none ${
+        className={`w-full max-w-full min-w-0 flex-1 overflow-x-clip border-none outline-none ${
           !isDashboard ? "pt-16 md:pt-20" : ""
         }`}
       >

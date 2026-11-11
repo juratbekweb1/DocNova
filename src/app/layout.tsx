@@ -82,31 +82,37 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
-  let subscription = undefined;
-  if (session?.user?.id) {
-    subscription = await getUserSubscription(session.user.id);
-  }
+  const [session, cookieStore, headerStore] = await Promise.all([
+    getServerSession(authOptions),
+    cookies(),
+    headers(),
+  ]);
 
-  const cookieStore = await cookies();
+  const subscription = session?.user?.id
+    ? await getUserSubscription(session.user.id)
+    : { isPremium: false, features: {} };
+
   const initialLang = (cookieStore.get("NEXT_LOCALE")?.value as Lang) || "uz";
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const nonce = headerStore.get("x-nonce") ?? undefined;
 
   return (
     <html
       lang={initialLang}
       translate="no"
-      className={`${geistSans.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning
     >
       <head>
         <meta charSet="utf-8" />
         <meta name="google" content="notranslate" />
       </head>
-      <body className="flex min-h-full flex-col overflow-x-hidden bg-background text-foreground transition-colors duration-300" suppressHydrationWarning>
+      <body
+        className="bg-background text-foreground flex min-h-dvh flex-col overflow-x-clip"
+        suppressHydrationWarning
+      >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem nonce={nonce}>
           <ThemeEnforcer />
-          <AuthSessionProvider>
+          <AuthSessionProvider session={session}>
             <SubscriptionProvider initialData={subscription}>
               <LanguageProvider initialLang={initialLang}>
                 <AppLayoutWrapper>{children}</AppLayoutWrapper>

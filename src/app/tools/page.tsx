@@ -145,10 +145,20 @@ export default function ToolsHubPage() {
       tools: [
         {
           title: t.sidebarCoursework || "Kurs ishi uchun (AI Generator)",
-          description: t.toolCourseworkDesc || "OTM, fan va mavzu bo'yicha to'liq kurs ishi va referat yaratish.",
+          description:
+            t.toolCourseworkDesc ||
+            "OTM, fan va mavzu bo'yicha to'liq kurs ishi va referat yaratish.",
           icon: GraduationCap,
           href: "/coursework",
           badge: "HOT",
+        },
+        {
+          title: "Rasm tashlash (Mustaqil ish & Referat)",
+          description:
+            "Mavzular rasmini telefon galereyasidan yuklab, har biriga 1-100 bet mustaqil ish yaratish.",
+          icon: GraduationCap,
+          href: "/academic/referat?mode=image",
+          badge: "Rasm AI",
         },
         {
           title: "Universal Mock Test",
@@ -304,7 +314,7 @@ export default function ToolsHubPage() {
       {/* Hero & Search Section */}
       <div className="border-border bg-surface relative overflow-hidden border-b">
         <div className="pointer-events-none absolute inset-0 bg-[url(/grid.svg)] opacity-[0.03]" />
-        <div className="bg-primary/10 pointer-events-none absolute top-0 left-1/2 h-[400px] w-[800px] -translate-x-1/2 rounded-full blur-[120px]" />
+        <div className="bg-primary/10 pointer-events-none absolute top-0 left-1/2 hidden h-[400px] w-[800px] -translate-x-1/2 rounded-full blur-[120px] md:block" />
 
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-6 py-20 text-center">
           <h1 className="text-foreground mb-4 text-4xl font-extrabold tracking-tight md:text-5xl">
@@ -320,7 +330,7 @@ export default function ToolsHubPage() {
 
           {/* Universal Search Bar */}
           <div className="group relative w-full max-w-2xl">
-            <div className="bg-primary/20 absolute inset-0 rounded-2xl opacity-0 blur-xl transition-opacity group-focus-within:opacity-100" />
+            <div className="bg-primary/20 pointer-events-none absolute inset-0 hidden rounded-2xl opacity-0 blur-xl transition-opacity group-focus-within:opacity-100 md:block" />
             <div className="bg-surface-elevated border-border focus-within:border-primary/50 focus-within:ring-primary/50 relative flex w-full items-center rounded-2xl border p-2 shadow-lg transition-all focus-within:ring-1">
               <Search className="text-foreground-muted ml-3 h-5 w-5" />
               <Input

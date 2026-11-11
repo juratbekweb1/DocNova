@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "motion", "date-fns"],
+    proxyClientMaxBodySize: "15mb",
+  },
   images: {
     remotePatterns: [
       {

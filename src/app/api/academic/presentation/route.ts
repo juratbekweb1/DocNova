@@ -104,7 +104,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mavzu kiritilishi shart." }, { status: 400 });
     }
 
-    const count = Math.min(Math.max(Number(slidesCount) || 10, 1), 100);
+    const parsedCount = Math.round(Number(slidesCount));
+    const count = Math.min(
+      Math.max(Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 10, 1),
+      100
+    );
     const cleanTopic = topic.trim();
 
     const prompt = `

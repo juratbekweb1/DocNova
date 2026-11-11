@@ -3,6 +3,7 @@ import type { NextRequest, NextFetchEvent } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { getInternalSecret } from "@/lib/security/internal-secret";
 
 // Check if Upstash Redis is configured
 const hasUpstashConfig =
@@ -14,11 +15,11 @@ const _upstashAuthRateLimit = hasUpstashConfig
   : null;
 
 const upstashAiRateLimit = hasUpstashConfig
-  ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(10, "1 m") })
+  ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(60, "1 m") })
   : null;
 
 const upstashPublicRateLimit = hasUpstashConfig
-  ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(60, "1 m") })
+  ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(300, "1 m") })
   : null;
 
 // In-Memory Fallback
@@ -28,8 +29,23 @@ interface RateLimitInfo {
 }
 const memoryStore = new Map<string, RateLimitInfo>();
 
+function getClientRateLimitKey(request: NextRequest, ip: string): string {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const sessionMatch = cookieHeader.match(/(?:__Secure-)?next-auth\.session-token=([^;\s]+)/);
+  if (sessionMatch && sessionMatch[1]) {
+    // Isolate rate limit per logged-in user session so 100+ users on shared mobile CGNAT / Wi-Fi never block each other
+    return `usr_${sessionMatch[1].slice(-24)}`;
+  }
+  return `ip_${ip}`;
+}
+
 function memoryRateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();
+  if (memoryStore.size > 2000) {
+    for (const [k, v] of memoryStore.entries()) {
+      if (now > v.resetTime) memoryStore.delete(k);
+    }
+  }
   let record = memoryStore.get(key);
 
   if (!record || now > record.resetTime) {
@@ -51,27 +67,33 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // 1. Rate limiting for API routes
   if (path.startsWith("/api/")) {
-    const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const rawIp = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const ip = rawIp.split(",")[0].trim() || "127.0.0.1";
+    const clientKey = getClientRateLimitKey(request, ip);
     let success = true;
 
     try {
       if (path.startsWith("/api/auth/") || path.startsWith("/api/payments/")) {
         // Never block authentication / OAuth callbacks or payment webhooks
         success = true;
-      } else if (path.startsWith("/api/ai/")) {
+      } else if (
+        path.startsWith("/api/ai/") ||
+        path.startsWith("/api/academic/") ||
+        path === "/api/parse-topics"
+      ) {
         if (hasUpstashConfig) {
-          const result = await upstashAiRateLimit!.limit(`ai_${ip}`);
+          const result = await upstashAiRateLimit!.limit(`ai_${clientKey}`);
           success = result.success;
         } else {
-          const result = memoryRateLimit(`ai_${ip}`, 10, 60000);
+          const result = memoryRateLimit(`ai_${clientKey}`, 60, 60000);
           success = result.success;
         }
       } else {
         if (hasUpstashConfig) {
-          const result = await upstashPublicRateLimit!.limit(`public_${ip}`);
+          const result = await upstashPublicRateLimit!.limit(`public_${clientKey}`);
           success = result.success;
         } else {
-          const result = memoryRateLimit(`public_${ip}`, 60, 60000);
+          const result = memoryRateLimit(`public_${clientKey}`, 300, 60000);
           success = result.success;
         }
       }
@@ -80,22 +102,25 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
 
     if (!success) {
-      const logUrl = new URL("/api/security/log", request.url);
-      event.waitUntil(
-        fetch(logUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-internal-secret": process.env.INTERNAL_SECRET || "fallback-secret-for-dev",
-          },
-          body: JSON.stringify({
-            eventType: "RATE_LIMIT",
-            ipAddress: ip,
-            path: path,
-            userAgent: request.headers.get("user-agent") || "Unknown",
-          }),
-        }).catch((e) => console.error("Logging failed", e))
-      );
+      const internalSecret = getInternalSecret();
+      if (internalSecret) {
+        const logUrl = new URL("/api/security/log", request.url);
+        event.waitUntil(
+          fetch(logUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-internal-secret": internalSecret,
+            },
+            body: JSON.stringify({
+              eventType: "RATE_LIMIT",
+              ipAddress: ip,
+              path: path,
+              userAgent: request.headers.get("user-agent") || "Unknown",
+            }),
+          }).catch((e) => console.error("Logging failed", e))
+        );
+      }
 
       return new NextResponse(
         JSON.stringify({

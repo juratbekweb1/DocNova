@@ -32,7 +32,7 @@ export function MobileDrawer({
   // Focus trap and scroll lock
   useEffect(() => {
     if (isOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const previousInlineOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
 
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,12 +48,12 @@ export function MobileDrawer({
 
           if (e.shiftKey) {
             if (document.activeElement === firstElement) {
-              lastElement.focus();
+              lastElement?.focus();
               e.preventDefault();
             }
           } else {
             if (document.activeElement === lastElement) {
-              firstElement.focus();
+              firstElement?.focus();
               e.preventDefault();
             }
           }
@@ -62,7 +62,7 @@ export function MobileDrawer({
 
       document.addEventListener("keydown", handleKeyDown);
       return () => {
-        document.body.style.overflow = originalStyle;
+        document.body.style.overflow = previousInlineOverflow;
         document.removeEventListener("keydown", handleKeyDown);
       };
     }

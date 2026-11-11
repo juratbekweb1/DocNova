@@ -32,7 +32,7 @@ export default async function DashboardPage() {
     getUserSubscription(session.user.id),
     prisma.userApiLimit.findUnique({ where: { userId: session.user.id } }),
     getAllUserSectionLimits(session.user.id),
-    getDocuments(),
+    getDocuments(3),
   ]);
 
   const isSuperOrAdmin =

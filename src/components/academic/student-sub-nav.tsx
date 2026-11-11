@@ -13,6 +13,7 @@ import {
   Sparkles,
   Presentation,
   Calculator,
+  FileImage,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ interface StudentSubNavProps {
     | "referat"
     | "amaliy-ish"
     | "presentation"
+    | "image-topics"
     | "exam-prep"
     | "mock-test";
   className?: string;
@@ -35,6 +37,7 @@ export interface StudentSectionItem {
     | "referat"
     | "amaliy-ish"
     | "presentation"
+    | "image-topics"
     | "exam-prep"
     | "mock-test";
   title: string;
@@ -53,6 +56,14 @@ export const STUDENT_SECTIONS: StudentSectionItem[] = [
     href: "/academic/coursework",
     icon: GraduationCap,
     badge: "15-30 bet",
+  },
+  {
+    id: "image-topics",
+    title: "Rasm orqali mavzular",
+    shortTitle: "Rasm tashlash",
+    href: "/academic/image-topics",
+    icon: FileImage,
+    badge: "AI Vision",
   },
   {
     id: "diplom-bmi",
@@ -112,19 +123,22 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
     activeTab ||
     (pathname.includes("/academic/amaliy-ish")
       ? "amaliy-ish"
-      : pathname.includes("/academic/presentation")
-        ? "presentation"
-        : pathname.includes("/academic/mock-test")
-          ? "mock-test"
-          : pathname.includes("/academic/diplom-bmi")
-            ? "diplom-bmi"
-            : pathname.includes("/academic/referat") || pathname.includes("/academic/essay-builder")
-              ? "referat"
-              : pathname.includes("/academic/exam-prep")
-                ? "exam-prep"
-                : pathname.includes("/academic/coursework") || pathname === "/coursework"
-                  ? "coursework"
-                  : undefined);
+      : pathname.includes("/academic/image-topics")
+        ? "image-topics"
+        : pathname.includes("/academic/presentation")
+          ? "presentation"
+          : pathname.includes("/academic/mock-test")
+            ? "mock-test"
+            : pathname.includes("/academic/diplom-bmi")
+              ? "diplom-bmi"
+              : pathname.includes("/academic/referat") ||
+                  pathname.includes("/academic/essay-builder")
+                ? "referat"
+                : pathname.includes("/academic/exam-prep")
+                  ? "exam-prep"
+                  : pathname.includes("/academic/coursework") || pathname === "/coursework"
+                    ? "coursework"
+                    : undefined);
 
   return (
     <div

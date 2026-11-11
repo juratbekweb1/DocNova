@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -23,6 +23,7 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
+import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
 import {
   StaleBuildError,
   deliverPdf,
@@ -31,6 +32,7 @@ import {
   inAppHint,
 } from "@/lib/pdf-export";
 import { downloadAcademicDocx } from "@/lib/docx-download-client";
+import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
 
 const REFERAT_PROGRESS_STEPS = [
   "Mavzu va ilmiy reja shakllantirilmoqda...",
@@ -63,6 +65,12 @@ export default function AcademicReferatPage() {
   const [copied, setCopied] = useState(false);
   const [slidesCount, setSlidesCount] = useState<number>(8);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
+  const resultPreviewRef = useRef<HTMLDivElement>(null);
+
+  const renderedMarkdown = useMemo(
+    () => (result ? <ReactMarkdown>{result}</ReactMarkdown> : null),
+    [result]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -288,16 +296,22 @@ export default function AcademicReferatPage() {
         <div className="grid grid-cols-1 items-start gap-6 sm:gap-8 lg:grid-cols-12 print:block">
           {/* Left Form */}
           <div className="border-border bg-surface min-w-0 rounded-2xl border p-4 shadow-sm sm:p-6 lg:col-span-5 print:hidden">
-            <h2 className="text-foreground mb-4 flex items-center gap-2 text-lg font-bold break-words">
-              <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
-              <span>Ish ma&apos;lumotlari</span>
-            </h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-foreground flex items-center gap-2 text-lg font-bold break-words">
+                <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
+                <span>Ish ma&apos;lumotlari</span>
+              </h2>
+              <GalleryTopicTriggerButton accentColor="emerald" label="Rasm tashlash" />
+            </div>
 
             <form onSubmit={handleGenerate} className="space-y-4">
               {/* Ikki xil hujjat yaratish yo'li: Noldan yaratish / Namuna faylim bor */}
               <CreationModeSelector
                 moduleType={formData.workType === "Mustaqil ish" ? "independent" : "referat"}
                 accentColor="emerald"
+                autoGeneratePerTopicWorks={false}
+                defaultPagesPerTopic="2-3"
+                subjectHint={formData.subject}
                 onSampleBlueprintReady={(blueprint) => {
                   setFormData((prev) => ({
                     ...prev,
@@ -337,6 +351,53 @@ export default function AcademicReferatPage() {
                         : "Barcha asosiy parametrlar shaklga kiritildi!",
                   });
                 }}
+                onApplyTopicsToForm={(topics) => {
+                  if (topics.length === 0) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: topics[0].title || prev.topic,
+                    length: topics[0].pageCount ? `${topics[0].pageCount} bet` : prev.length,
+                    templateText: formatTopicsAsBlueprint(topics),
+                  }));
+                  toast({
+                    title: "Rasmdan olingan mavzular qo'llanildi!",
+                    description: `${topics.length} ta mavzu shaklga yuklandi.`,
+                  });
+                }}
+                onWorksGenerated={(works) => {
+                  if (works.length === 0) return;
+                  const combinedMarkdown = works
+                    .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
+                    .join("\n\n---\n\n");
+                  const distinctPages = new Set(
+                    works.map((w) => w.pageCount).filter((v): v is string => Boolean(v))
+                  );
+                  const syncedPage =
+                    distinctPages.size === 1 ? Array.from(distinctPages)[0] : works[0]?.pageCount;
+                  const pagesLabel =
+                    distinctPages.size === 1
+                      ? `${Array.from(distinctPages)[0]} bet`
+                      : "tanlangan betlarda";
+                  setResult(combinedMarkdown);
+                  setFormData((prev) => ({
+                    ...prev,
+                    topic: works[0]?.title?.trim() || prev.topic,
+                    length: syncedPage ? `${syncedPage} bet` : prev.length,
+                    templateText: formatTopicsAsBlueprint(works),
+                  }));
+                  toast({
+                    title: `Har bir mavzuga ${pagesLabel} mustaqil ish tayyor!`,
+                    description: `${works.length} ta mavzu bo'yicha to'liq ishlar ko'rish oynasida tayyor.`,
+                  });
+                  if (typeof window !== "undefined") {
+                    window.setTimeout(() => {
+                      resultPreviewRef.current?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }, 80);
+                  }
+                }}
               />
 
               <div>
@@ -372,9 +433,12 @@ export default function AcademicReferatPage() {
               </div>
 
               <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Mavzu *
-                </label>
+                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-foreground-secondary block text-xs font-semibold">
+                    Mavzu *
+                  </label>
+                  <GalleryTopicTriggerButton accentColor="emerald" label="Rasm tashlash" />
+                </div>
                 <input
                   type="text"
                   name="topic"
@@ -547,10 +611,24 @@ export default function AcademicReferatPage() {
                 </Link>
               </div>
             </form>
+            {result && (
+              <button
+                type="button"
+                onClick={() =>
+                  resultPreviewRef.current?.scrollIntoView?.({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-500 lg:hidden"
+              >
+                <span>Tayyor natijaga o&apos;tish ↓</span>
+              </button>
+            )}
           </div>
 
           {/* Right Preview */}
-          <div className="flex min-w-0 flex-col lg:col-span-7">
+          <div ref={resultPreviewRef} className="flex min-w-0 flex-col lg:col-span-7">
             {loading ? (
               <div className="border-border bg-surface animate-in fade-in space-y-5 rounded-2xl border p-5 shadow-lg sm:p-8 print:hidden">
                 <div className="flex items-center justify-between gap-2">
@@ -756,7 +834,7 @@ export default function AcademicReferatPage() {
                   className="border-border max-h-[800px] overflow-x-auto overflow-y-auto rounded-2xl border bg-white p-4 font-serif text-sm leading-relaxed break-words text-slate-900 shadow-xl sm:p-12 print:m-0 print:max-h-none print:overflow-visible print:border-0 print:p-0 print:text-black print:shadow-none"
                 >
                   <div className="prose prose-slate max-w-none break-words text-slate-900 print:text-black">
-                    <ReactMarkdown>{result}</ReactMarkdown>
+                    {renderedMarkdown}
                   </div>
                 </div>
               </div>

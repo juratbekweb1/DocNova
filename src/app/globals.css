@@ -86,8 +86,6 @@
 /* Base resets & typography scale */
 html {
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   border: none !important;
   outline: none !important;
@@ -95,11 +93,10 @@ html {
 
 body {
   width: 100%;
-  max-width: 100vw;
-  min-height: 100%;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
   background-color: var(--background);
   color: var(--foreground);
@@ -230,11 +227,28 @@ section {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Smooth touch deceleration */
+  /* Eliminate 300ms tap delay on mobile touch devices */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Prevent iOS Safari & Mobile WebView involuntary auto-zoom + full-page reflow when focusing inputs < 16px */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Preserve native vertical/horizontal panning without nested scroll traps */
   html,
   body {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y pinch-zoom;
   }
 
   /* Completely disable fixed body background pseudo-element on mobile (eliminates full-screen repaint) */
@@ -242,7 +256,7 @@ section {
     display: none !important;
   }
 
-  /* Strictly guarantee no UI container, header, card, or interactive element ever gets foreground or backdrop blur on mobile */
+  /* Strictly guarantee no UI container, header, card, SVG, or interactive element ever gets foreground or backdrop blur on mobile */
   header,
   nav,
   main,
@@ -252,6 +266,7 @@ section {
   footer,
   button,
   a,
+  svg,
   [class*="backdrop-blur"],
   .glass {
     filter: none !important;
@@ -275,7 +290,8 @@ section {
   /* Hide heavy decorative Gaussian blur orbs inside cards/sections on mobile to keep cards 100% crisp */
   .pointer-events-none.blur-3xl,
   .pointer-events-none.blur-2xl,
-  .pointer-events-none.blur-xl {
+  .pointer-events-none.blur-xl,
+  .pointer-events-none.blur-lg {
     display: none !important;
   }
 
@@ -289,7 +305,8 @@ section {
 
 /* Mobile responsive document paper */
 @media (max-width: 640px) {
-  .coursework-page {
+  .coursework-page,
+  .a4-document {
     width: 100% !important;
     min-height: auto !important;
     padding: 18px 16px !important;
@@ -301,7 +318,9 @@ section {
 
 /* Strict A4 standard during PDF export */
 .pdf-export-mode .coursework-page,
-.pdf-export-mode .coursework-document {
+.pdf-export-mode .coursework-document,
+.pdf-export-mode .a4-document,
+.pdf-export-mode.a4-document {
   width: 210mm !important;
   min-height: 297mm !important;
   padding-top: 20mm !important;

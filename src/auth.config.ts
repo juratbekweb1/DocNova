@@ -137,7 +137,7 @@ export const authConfig = {
         token.twoFactorEnabled = u.twoFactorEnabled;
       }
 
-      if (token.id && token.role !== "SUPER_ADMIN") {
+      if (token.id && (!token.role || trigger === "update")) {
         try {
           const { prisma } = await import("@/lib/prisma");
           const dbUser = await prisma.user.findUnique({
