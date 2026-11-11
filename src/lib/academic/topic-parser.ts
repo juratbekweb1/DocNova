@@ -5,6 +5,8 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
 ] as const;
 
 export type AllowedImageMimeType = (typeof ALLOWED_IMAGE_MIME_TYPES)[number];
@@ -137,8 +139,11 @@ export type ExtractedBase64ImageResult =
 function normalizeImageMimeType(rawMime?: string): AllowedImageMimeType | null {
   if (!rawMime) return null;
   const cleaned = rawMime.trim().toLowerCase().split(";")[0];
-  if (cleaned === "image/jpg") {
+  if (cleaned === "image/jpg" || cleaned === "image/pjpeg") {
     return "image/jpeg";
+  }
+  if (cleaned === "image/x-png") {
+    return "image/png";
   }
   return (ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(cleaned)
     ? (cleaned as AllowedImageMimeType)
@@ -192,10 +197,12 @@ export function extractBase64Image(
   }
 
   let resolvedMime: AllowedImageMimeType | null = null;
-  if (rawMimeFromDataUrl) {
-    resolvedMime = normalizeImageMimeType(rawMimeFromDataUrl);
+  const cleanedDataUrlMime = rawMimeFromDataUrl?.trim().toLowerCase().split(";")[0];
+  if (cleanedDataUrlMime && cleanedDataUrlMime !== "application/octet-stream") {
+    resolvedMime = normalizeImageMimeType(cleanedDataUrlMime);
   } else if (providedMimeType && providedMimeType.trim()) {
-    resolvedMime = normalizeImageMimeType(providedMimeType);
+    resolvedMime =
+      normalizeImageMimeType(providedMimeType) ?? sniffMimeFromBase64Prefix(cleanBase64);
   } else {
     resolvedMime = sniffMimeFromBase64Prefix(cleanBase64);
   }
@@ -203,7 +210,7 @@ export function extractBase64Image(
   if (!resolvedMime) {
     return {
       ok: false,
-      error: "Faqat JPEG, PNG, WEBP yoki GIF formatidagi rasmlar qo'llab-quvvatlanadi",
+      error: "Faqat JPEG, PNG, WEBP, GIF yoki HEIC formatidagi rasmlar qo'llab-quvvatlanadi",
       status: 400,
     };
   }

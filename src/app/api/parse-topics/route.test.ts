@@ -92,6 +92,14 @@ describe("Academic Image Topic Parser Helpers", () => {
     }
   });
 
+  it("sniffs image MIME for application/octet-stream Android content:// gallery photos", () => {
+    const result = extractBase64Image(`data:application/octet-stream;base64,${SAMPLE_PNG_BASE64}`);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.mimeType).toBe("image/png");
+    }
+  });
+
   it("parses Gemini JSON even if wrapped in markdown code fences", () => {
     const parsed = parseGeminiTopicsPayload(
       '```json\n{"topics":[{"title":"1. Kirish","content":"Asosiy matn"}]}\n```'

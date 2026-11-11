@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AlertCircle,
+  Camera,
   Check,
   CheckCircle2,
   Copy,
@@ -14,6 +15,7 @@ import {
   Eye,
   EyeOff,
   FileImage,
+  FolderOpen,
   Loader2,
   LogIn,
   Plus,
@@ -118,11 +120,21 @@ async function maybeCompressLargeImageDataUrl(
   fileSize: number,
   mimeType: string
 ): Promise<{ dataUrl: string; mimeType: string }> {
+  const cleanMime = mimeType.trim().toLowerCase();
+  const isDirectlySupported =
+    cleanMime === "image/jpeg" ||
+    cleanMime === "image/jpg" ||
+    cleanMime === "image/png" ||
+    cleanMime === "image/webp" ||
+    cleanMime === "image/gif" ||
+    cleanMime === "image/heic" ||
+    cleanMime === "image/heif";
+
   if (
-    fileSize <= COMPRESS_THRESHOLD_BYTES ||
+    (fileSize <= COMPRESS_THRESHOLD_BYTES && isDirectlySupported) ||
     typeof window === "undefined" ||
     typeof document === "undefined" ||
-    mimeType === "image/gif"
+    cleanMime === "image/gif"
   ) {
     return { dataUrl, mimeType };
   }
@@ -279,20 +291,29 @@ export function ImageTopicParser({
             focus: "focus:border-sky-500 focus:ring-sky-500/20",
           };
 
-  const processSelectedFile = async (file: File) => {
+  const processSelectedFile = async (file: File, inputEl?: HTMLInputElement | null) => {
     setErrorMessage(null);
     setRequiresLogin(false);
     setSaveSuccess(null);
 
+    const hasExplicitNonImageExt =
+      /\.[a-z0-9]{2,6}$/i.test(file.name) &&
+      !/\.(jpe?g|png|webp|gif|heic|heif|bmp|avif)$/i.test(file.name);
     const isImageFile =
-      file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name);
+      file.type.startsWith("image/") ||
+      /\.(jpe?g|png|webp|gif|heic|heif|bmp|avif)$/i.test(file.name) ||
+      ((!file.type || file.type === "application/octet-stream") && !hasExplicitNonImageExt);
     if (!isImageFile) {
-      setErrorMessage("Faqat galereyadan rasm fayllari (JPG, PNG, WEBP, GIF) tanlanishi mumkin.");
+      setErrorMessage(
+        "Faqat galereyadan rasm fayllari (JPG, PNG, WEBP, HEIC, GIF) tanlanishi mumkin."
+      );
+      if (inputEl) inputEl.value = "";
       return;
     }
 
     if (file.size > MAX_RAW_UPLOAD_BYTES) {
       setErrorMessage("Rasm hajmi 15 MB dan oshmasligi kerak.");
+      if (inputEl) inputEl.value = "";
       return;
     }
 
@@ -371,6 +392,10 @@ export function ImageTopicParser({
       );
     } finally {
       setIsAnalyzing(false);
+      // Reset input value after reading completes so mobile WebViews never lose the File handle
+      if (inputEl) {
+        inputEl.value = "";
+      }
     }
   };
 
@@ -485,12 +510,11 @@ export function ImageTopicParser({
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const targetInput = event.currentTarget;
+    const file = targetInput.files?.[0];
     if (file) {
-      void processSelectedFile(file);
+      void processSelectedFile(file, targetInput);
     }
-    // Reset input value so the same image can be re-selected from gallery if needed
-    event.target.value = "";
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -826,43 +850,76 @@ export function ImageTopicParser({
           onChange={handleImageUpload}
           disabled={isAnalyzing || isSaving || isWritingWorks}
           aria-label="Mavzular rasmini yuklash"
-          className="hidden"
+          className="sr-only"
           id={fileInputId}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          disabled={isAnalyzing || isSaving || isWritingWorks}
+          aria-label="Kamera orqali rasmga olish"
+          className="sr-only"
+          id={`${fileInputId}-camera`}
+        />
+        <input
+          type="file"
+          onChange={handleImageUpload}
+          disabled={isAnalyzing || isSaving || isWritingWorks}
+          aria-label="Barcha fayllardan rasm tanlash"
+          className="sr-only"
+          id={`${fileInputId}-all-files`}
         />
 
         <div className="flex flex-col items-center gap-4 sm:flex-row">
-          {previewUrl ? (
-            <div className="border-border bg-background relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewUrl}
-                alt={fileName || "Yuklangan rasm"}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="border-border bg-surface flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border text-sky-500 shadow-xs">
-              <Upload className="h-6 w-6" />
-            </div>
-          )}
+          <label
+            htmlFor={fileInputId}
+            onClick={(e) => e.stopPropagation()}
+            className="flex flex-1 cursor-pointer flex-col items-center gap-4 sm:flex-row"
+          >
+            {previewUrl ? (
+              <div className="border-border bg-background relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt={fileName || "Yuklangan rasm"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="border-border bg-surface flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border text-sky-500 shadow-xs">
+                <Upload className="h-6 w-6" />
+              </div>
+            )}
 
-          <div className="flex-1 space-y-1 text-center sm:text-left">
-            <p className="text-foreground text-sm font-semibold">
-              {fileName ? `Yuklangan rasm: ${fileName}` : "Telefon galereyasidan rasm tanlang"}
-            </p>
-            <p className="text-foreground-muted text-xs">
-              Faqat rasm (PNG, JPG, WEBP) tanlanadi — tanlanishi bilanoq Gemini AI tahlil qiladi.
-            </p>
-          </div>
+            <div className="flex-1 space-y-1 text-center sm:text-left">
+              <p className="text-foreground text-sm font-semibold">
+                {fileName ? `Yuklangan rasm: ${fileName}` : "Telefon galereyasidan rasm tanlang"}
+              </p>
+              <p className="text-foreground-muted text-xs">
+                Faqat rasm (PNG, JPG, WEBP, HEIC) tanlanadi — tanlanishi bilanoq Gemini AI tahlil
+                qiladi.
+              </p>
+            </div>
+          </label>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openGalleryPicker();
+          <label
+            htmlFor={fileInputId}
+            role="button"
+            tabIndex={0}
+            aria-disabled={isAnalyzing || isSaving || isWritingWorks}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                openGalleryPicker();
+              }
             }}
-            disabled={isAnalyzing || isSaving || isWritingWorks}
-            className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-xs transition disabled:pointer-events-none disabled:opacity-60 ${accentClasses.btn}`}
+            className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-xs transition ${
+              isAnalyzing || isSaving || isWritingWorks ? "pointer-events-none opacity-60" : ""
+            } ${accentClasses.btn}`}
           >
             {isAnalyzing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -870,7 +927,64 @@ export function ImageTopicParser({
               <FileImage className="h-4 w-4" />
             )}
             <span>{previewUrl ? "Boshqa rasm tashlash" : "Rasm tashlash"}</span>
-          </button>
+          </label>
+        </div>
+
+        {/* Mobil brauzerlarda galereya ko'rinmay qolgan holatlar uchun muqobil tugmalar */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="border-border/70 mt-4 flex flex-col gap-2 border-t pt-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <label
+              htmlFor={`${fileInputId}-all-files`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  (
+                    document.getElementById(`${fileInputId}-all-files`) as HTMLInputElement | null
+                  )?.click();
+                }
+              }}
+              className={`border-border bg-surface text-foreground hover:border-border-strong inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                isAnalyzing || isSaving || isWritingWorks ? "pointer-events-none opacity-60" : ""
+              }`}
+            >
+              <FolderOpen className="h-3.5 w-3.5 text-sky-500" />
+              <span>Barcha fayllardan tanlash</span>
+            </label>
+
+            <label
+              htmlFor={`${fileInputId}-camera`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  (
+                    document.getElementById(`${fileInputId}-camera`) as HTMLInputElement | null
+                  )?.click();
+                }
+              }}
+              className={`border-border bg-surface text-foreground hover:border-border-strong inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                isAnalyzing || isSaving || isWritingWorks ? "pointer-events-none opacity-60" : ""
+              }`}
+            >
+              <Camera className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Kamera bilan tushirish</span>
+            </label>
+          </div>
+          <p className="text-foreground-muted text-[11px] leading-relaxed">
+            Galereyadagi rasmlar chiqmasa: Android menyuda{" "}
+            <strong className="text-foreground-secondary">☰ → Galereya / Rasmlar</strong> ni oching
+            yoki yuqoridagi{" "}
+            <strong className="text-foreground-secondary">Barcha fayllardan tanlash</strong>{" "}
+            tugmasini bosing. Telegram ichida ochgan bo&apos;lsangiz, tepa o&apos;ngdan{" "}
+            <strong className="text-foreground-secondary">⋮ → Chrome&apos;da ochish</strong> ni
+            tanlang.
+          </p>
         </div>
       </div>
 
@@ -1542,20 +1656,32 @@ export function GalleryTopicTriggerButton({
         : "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20";
 
   return (
-    <button
-      type="button"
+    <label
+      htmlFor={inputId}
+      role="button"
+      tabIndex={0}
       onClick={() => {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("docnova:open-image-mode", { detail: { inputId } }));
         }
-        const inputEl = document.getElementById(inputId) as HTMLInputElement | null;
-        inputEl?.click();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("docnova:open-image-mode", { detail: { inputId } })
+            );
+          }
+          const inputEl = document.getElementById(inputId) as HTMLInputElement | null;
+          inputEl?.click();
+        }
       }}
       className={`inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition sm:text-xs ${colorClasses}`}
       title="Telefon galereyasidan mavzu rasmini tanlash"
     >
       <FileImage className="h-3.5 w-3.5 shrink-0" />
       <span>{label}</span>
-    </button>
+    </label>
   );
 }

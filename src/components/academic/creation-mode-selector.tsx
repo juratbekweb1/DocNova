@@ -255,14 +255,22 @@ export function CreationModeSelector({
             </div>
           </button>
 
-          <button
-            type="button"
+          <label
+            htmlFor={galleryInputId}
+            role="button"
+            tabIndex={0}
             onClick={() => {
               setMode("image");
-              const galleryInput = document.getElementById(
-                galleryInputId
-              ) as HTMLInputElement | null;
-              galleryInput?.click();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setMode("image");
+                const galleryInput = document.getElementById(
+                  galleryInputId
+                ) as HTMLInputElement | null;
+                galleryInput?.click();
+              }
             }}
             className={cn(
               "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all",
@@ -280,7 +288,7 @@ export function CreationModeSelector({
                 Galereyadan rasm tashlash
               </div>
             </div>
-          </button>
+          </label>
 
           <button
             type="button"
@@ -412,25 +420,37 @@ export function CreationModeSelector({
               o&apos;zingiz tanlaysiz.
             </p>
           </div>
-          <button
-            type="button"
+          <label
+            htmlFor={galleryInputId}
+            role="button"
+            tabIndex={0}
             onClick={() => {
               setMode("image");
-              const galleryInput = document.getElementById(
-                galleryInputId
-              ) as HTMLInputElement | null;
-              galleryInput?.click();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setMode("image");
+                const galleryInput = document.getElementById(
+                  galleryInputId
+                ) as HTMLInputElement | null;
+                galleryInput?.click();
+              }
             }}
             className="inline-flex min-h-[44px] w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-sky-600 active:scale-[0.99] sm:w-auto"
           >
             <FileImage className="h-4 w-4 shrink-0" />
             <span>Rasm tashlash</span>
-          </button>
+          </label>
         </div>
       )}
 
-      {/* D. Rasm orqali avtomatik mavzular va sahifalar qo'shish (DOM da doim tayyor turadi) */}
-      <div ref={imagePanelRef} className={mode === "image" ? "block" : "hidden"}>
+      {/* D. Rasm orqali avtomatik mavzular va sahifalar qo'shish (sr-only display:none siz DOM da doim tayyor turadi) */}
+      <div
+        ref={imagePanelRef}
+        className={mode === "image" ? "block" : "sr-only"}
+        aria-hidden={mode !== "image"}
+      >
         <ImageTopicParser
           workType={moduleType === "independent" ? "independent" : moduleType}
           accentColor={accentColor}

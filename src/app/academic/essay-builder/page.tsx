@@ -185,23 +185,35 @@ Quyidagi tuzilmani qat'iy saqla:
                 yozilishini so&apos;raydi.
               </p>
             </div>
-            <button
-              type="button"
+            <label
+              htmlFor="image-upload-input"
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 setShowImageParser(true);
-                const inputEl = document.getElementById(
-                  "image-upload-input"
-                ) as HTMLInputElement | null;
-                inputEl?.click();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowImageParser(true);
+                  const inputEl = document.getElementById(
+                    "image-upload-input"
+                  ) as HTMLInputElement | null;
+                  inputEl?.click();
+                }
               }}
               className="inline-flex min-h-[42px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-sky-600 sm:text-sm"
             >
               <FileImage className="h-4 w-4 shrink-0" />
               <span>Rasm tashlash</span>
-            </button>
+            </label>
           </div>
 
-          <div ref={imageParserRef} className={showImageParser ? "block" : "hidden"}>
+          <div
+            ref={imageParserRef}
+            className={showImageParser ? "block" : "sr-only"}
+            aria-hidden={!showImageParser}
+          >
             <Suspense fallback={null}>
               <UrlImageModeSync />
             </Suspense>

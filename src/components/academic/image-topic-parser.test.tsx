@@ -231,7 +231,7 @@ describe("<ImageTopicParser />", () => {
     expect(screen.getByDisplayValue("Matn")).toBeInTheDocument();
   });
 
-  it("configures #image-upload-input for mobile gallery (accept='image/*', no capture, className='hidden') and triggers it on 'Rasm tashlash'", async () => {
+  it("configures #image-upload-input for mobile gallery (accept='image/*', no capture, sr-only without display:none) and triggers it on 'Rasm tashlash'", async () => {
     mockFetch.mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -256,7 +256,9 @@ describe("<ImageTopicParser />", () => {
     expect(inputEl).not.toBeNull();
     expect(inputEl).toHaveAttribute("type", "file");
     expect(inputEl).toHaveAttribute("accept", "image/*");
-    expect(inputEl).toHaveClass("hidden");
+    expect(inputEl).toHaveClass("sr-only");
+    expect(inputEl).not.toHaveClass("hidden");
+    expect(inputEl?.closest(".hidden")).toBeNull();
     expect(inputEl).not.toHaveAttribute("capture");
 
     const clickSpy = vi.spyOn(inputEl!, "click").mockImplementation(() => {});
@@ -847,9 +849,12 @@ describe("<ImageTopicParser />", () => {
       expect(container.querySelector(".block #image-upload-input")).not.toBeNull();
     });
 
-    // Switching back to "Noldan yaratish" leaves image panel closed
+    // Switching back to "Noldan yaratish" leaves image panel visually collapsed via sr-only (not display:none)
     fireEvent.click(screen.getByRole("button", { name: /Noldan yaratish/i }));
-    expect(container.querySelector(".hidden #image-upload-input")).not.toBeNull();
+    expect(
+      container.querySelector(".sr-only[aria-hidden='true'] #image-upload-input")
+    ).not.toBeNull();
+    expect(container.querySelector(".hidden #image-upload-input")).toBeNull();
   });
 
   it("provides instant preview, clipboard copy, and direct Word (.docx) download on /academic/image-topics without login or DB save", async () => {
@@ -1446,5 +1451,52 @@ describe("<ImageTopicParser />", () => {
       name: /Rasm tashlash \(Mustaqil ish & Referat\)/i,
     });
     expect(toolsLink).toHaveAttribute("href", "/academic/referat?mode=image");
+  });
+
+  it("exposes Android all-files and camera fallbacks and parses extensionless Android content:// photos", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          topics: [{ title: "Galereya muqobil mavzusi", content: "Matn mazmuni" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    const { container } = render(<ImageTopicParser workType="independent" />);
+
+    const primaryInput = container.querySelector("#image-upload-input") as HTMLInputElement;
+    const allFilesInput = container.querySelector(
+      "#image-upload-input-all-files"
+    ) as HTMLInputElement;
+    const cameraInput = container.querySelector("#image-upload-input-camera") as HTMLInputElement;
+
+    expect(primaryInput).toHaveAttribute("accept", "image/*");
+    expect(primaryInput).not.toHaveAttribute("capture");
+    expect(allFilesInput).not.toHaveAttribute("accept");
+    expect(cameraInput).toHaveAttribute("capture", "environment");
+    expect(primaryInput).toHaveClass("sr-only");
+    expect(allFilesInput).toHaveClass("sr-only");
+    expect(cameraInput).toHaveClass("sr-only");
+
+    // Helper controls for Android browsers where Photo Picker shows empty Downloads/Recent
+    expect(screen.getByRole("button", { name: /Barcha fayllardan tanlash/i })).toHaveAttribute(
+      "for",
+      "image-upload-input-all-files"
+    );
+    expect(screen.getByRole("button", { name: /Kamera bilan tushirish/i })).toHaveAttribute(
+      "for",
+      "image-upload-input-camera"
+    );
+
+    // Extensionless file with empty MIME type (common from Android content:// picker) still parses cleanly
+    const androidContentFile = new File(["img-bytes"], "1000048291", { type: "" });
+    fireEvent.change(allFilesInput, { target: { files: [androidContentFile] } });
+
+    expect(await screen.findByDisplayValue("Matn mazmuni")).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/parse-topics",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 });
