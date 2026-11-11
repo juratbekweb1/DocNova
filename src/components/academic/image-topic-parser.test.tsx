@@ -1499,4 +1499,31 @@ describe("<ImageTopicParser />", () => {
       expect.objectContaining({ method: "POST" })
     );
   });
+
+  it("omits accept='image/*' on Android clients to bypass the blank Android Photo Picker modal (Suratlar | Termalar)", () => {
+    const uaSpy = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue(
+        "Mozilla/5.0 (Linux; Android 14; 2312DRA50G Build/UKQ1.231003.002) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+      );
+
+    try {
+      const { container } = render(
+        <CreationModeSelector
+          moduleType="referat"
+          onSampleBlueprintReady={vi.fn()}
+          onSampleCleared={vi.fn()}
+        />
+      );
+
+      const primaryInput = container.querySelector(
+        "#image-upload-input"
+      ) as HTMLInputElement | null;
+      expect(primaryInput).not.toBeNull();
+      expect(primaryInput).not.toHaveAttribute("accept");
+      expect(primaryInput).not.toHaveAttribute("capture");
+    } finally {
+      uaSpy.mockRestore();
+    }
+  });
 });

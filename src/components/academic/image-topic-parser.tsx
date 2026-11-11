@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -182,6 +182,11 @@ async function maybeCompressLargeImageDataUrl(
   });
 }
 
+const emptySubscribe = () => () => {};
+const getIsAndroidClient = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+const getIsAndroidServer = () => false;
+
 export function ImageTopicParser({
   workType = "general",
   accentColor = "blue",
@@ -195,6 +200,11 @@ export function ImageTopicParser({
   compact = false,
 }: ImageTopicParserProps) {
   const inputId = useId();
+  const isAndroidClient = useSyncExternalStore(
+    emptySubscribe,
+    getIsAndroidClient,
+    getIsAndroidServer
+  );
   const pathname = usePathname() || "/academic/image-topics";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewSectionRef = useRef<HTMLDivElement>(null);
@@ -846,7 +856,7 @@ export function ImageTopicParser({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept={isAndroidClient ? undefined : "image/*"}
           onChange={handleImageUpload}
           disabled={isAnalyzing || isSaving || isWritingWorks}
           aria-label="Mavzular rasmini yuklash"
@@ -977,11 +987,13 @@ export function ImageTopicParser({
             </label>
           </div>
           <p className="text-foreground-muted text-[11px] leading-relaxed">
-            Galereyadagi rasmlar chiqmasa: Android menyuda{" "}
-            <strong className="text-foreground-secondary">☰ → Galereya / Rasmlar</strong> ni oching
+            Agar ekranda bo&apos;sh oq{" "}
+            <strong className="text-foreground-secondary">«Suratlar | Termalar»</strong> oynasi
+            chiqsa: o&apos;sha oynaning tepa o&apos;ngidagi{" "}
+            <strong className="text-foreground-secondary">⋮ → Ko&apos;rib chiqish</strong> ni bosing
             yoki yuqoridagi{" "}
             <strong className="text-foreground-secondary">Barcha fayllardan tanlash</strong>{" "}
-            tugmasini bosing. Telegram ichida ochgan bo&apos;lsangiz, tepa o&apos;ngdan{" "}
+            tugmasini ishlating. Telegram ichida ochgan bo&apos;lsangiz,{" "}
             <strong className="text-foreground-secondary">⋮ → Chrome&apos;da ochish</strong> ni
             tanlang.
           </p>
