@@ -6,6 +6,7 @@ import { Sparkles, UploadCloud, Wand2, CheckCircle2, FileImage } from "lucide-re
 import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 import { ImageTopicParser } from "@/components/academic/image-topic-parser";
 import type { ParsedTopic } from "@/lib/academic/topic-parser";
+import type { AcademicLanguage } from "@/lib/academic/topic-fidelity";
 import {
   SampleDocumentAnalysis,
   parseNaturalAcademicRequest,
@@ -24,6 +25,7 @@ export interface CreationModeSelectorProps {
   onNaturalPromptParsed?: (parsed: ParsedNaturalAcademicPrompt) => void;
   onApplySampleStructureHint?: (hint: { subject?: string; pageCount?: string }) => void;
   onApplyTopicsToForm?: (topics: ParsedTopic[]) => void;
+  onImageMetadataDetected?: (meta: { subject?: string; language?: AcademicLanguage }) => void;
   autoGeneratePerTopicWorks?: boolean;
   defaultPagesPerTopic?: string;
   initialMode?: "scratch" | "sample" | "image";
@@ -96,6 +98,7 @@ export function CreationModeSelector({
   onNaturalPromptParsed,
   onApplySampleStructureHint,
   onApplyTopicsToForm,
+  onImageMetadataDetected,
   autoGeneratePerTopicWorks = false,
   defaultPagesPerTopic = "2-3",
   initialMode = "scratch",
@@ -463,6 +466,7 @@ export function CreationModeSelector({
             imagePanelRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
           }}
           onApplyTopicsToForm={onApplyTopicsToForm}
+          onImageMetadataDetected={onImageMetadataDetected}
           onWorksGenerated={onWorksGenerated}
           compact
         />

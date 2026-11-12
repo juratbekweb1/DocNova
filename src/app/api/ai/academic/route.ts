@@ -16,6 +16,10 @@ import {
   CourseworkData,
 } from "@/app/api/generate-coursework/route";
 import { analyzeSampleDocument } from "@/lib/academic-sample-intelligence";
+import {
+  evaluateGeneratedWorkFidelity,
+  IMAGE_TOPICS_CONTEXT_MARKER,
+} from "@/lib/academic/topic-fidelity";
 
 export async function POST(req: Request) {
   const startTime = Date.now();
@@ -68,9 +72,13 @@ export async function POST(req: Request) {
     const { action, part, length, language = "uz", templateText = "" } = body;
     const rawTemplateStr =
       typeof templateText === "string" ? templateText.trim().slice(0, 12000) : "";
+    const isStructuredSampleBlueprint = rawTemplateStr.startsWith(
+      "[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI"
+    );
+    const isImageTopicsContext = rawTemplateStr.startsWith(IMAGE_TOPICS_CONTEXT_MARKER);
     const sanitizedTemplate = rawTemplateStr
-      ? rawTemplateStr.startsWith("[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI")
-        ? rawTemplateStr.slice(0, 4000)
+      ? isStructuredSampleBlueprint || isImageTopicsContext
+        ? rawTemplateStr.slice(0, isImageTopicsContext ? 8000 : 4000)
         : analyzeSampleDocument({
             rawText: rawTemplateStr,
             fileName: "namuna.docx",
@@ -127,6 +135,7 @@ export async function POST(req: Request) {
 - Тип работы: "${workType || "Выпускная квалификационная работа (ВКР / BMI)"}"
 - Формируемая часть: "${selectedPart}"
 - Целевой объем работы (в оглавлении и структуре): ${bmiPages} страниц
+${sanitizedTemplate ? `\n${isImageTopicsContext ? "ТЕМЫ И ТРЕБОВАНИЯ С ИЗОБРАЖЕНИЯ ПОЛЬЗОВАТЕЛЯ (ОБЯЗАТЕЛЬНО СОХРАНИТЬ И РАСКРЫТЬ):" : "ОБРАЗЕЦ СТРУКТУРЫ (Только для последовательности глав):"}\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 ТРЕБОВАНИЯ К СОДЕРЖАНИЮ (По стандартам вузов Узбекистана и ГОСТ):
 1. ТИТУЛЬНЫЙ ЛИСТ: Министерство высшего образования, науки и инноваций РУз, ВУЗ, кафедра, тема, исполнитель, научный руководитель, Ташкент - ${currentYear}.
@@ -157,7 +166,7 @@ Quyidagi parametrlar bo'yicha eng yuqori akademik darajadagi Bitiruv Malakaviy I
 - Ish turi: "${workType || "Bakalavr Bitiruv Malakaviy Ishi (BMI)"}"
 - Shakllantiriladigan qism: "${selectedPart}"
 - Kutilayotgan hajm (sahifalar soni): ${bmiPages} bet
-${sanitizedTemplate ? `\nNAMUNA TUZILMA QOLIPI (Faqat maket va boblar ketma-ketligi uchun, eski ma'lumotlar ko'chirilmasin):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
+${sanitizedTemplate ? `\n${isImageTopicsContext ? "RASMDAN OLINGAN MAVZULAR VA TALABLAR (Barchasi saqlansin va chuqur yoritilsin):" : "NAMUNA TUZILMA QOLIPI (Faqat maket va boblar ketma-ketligi uchun, eski ma'lumotlar ko'chirilmasin):"}\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY TALABLAR (O'zbekiston OTM standartlari va GOST bo'yicha):
 1. TITUL VARAG'I: O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi, OTM, Kafedra, Ish turi, Mavzu, Bajaruvchi, Ilmiy rahbar, Toshkent - ${currentYear}.
@@ -662,7 +671,7 @@ Quyidagi parametrlar bo'yicha "${wTypeTitle}" uchun Kirish, 3 ta bobning barcha 
 - Mavzu: "${topic}"
 - Kutilayotgan hajm: ${targetPageNum} bet
 - Til: "${isRu ? "ru" : "uz"}"
-${sanitizedTemplate ? `\n- FOYDALANUVCHI TAQDIM ETGAN NAMUNA / TAYYOR MATN (Ushbu namunadagi talablar, uslub va mazmunga to'liq amal qiling):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
+${sanitizedTemplate ? `\n- ${isImageTopicsContext ? "RASMDAN OLINGAN MAVZULAR, REJA BANDLARI VA TALABLAR (Har biri saqlanib to'liq yoritilsin):" : "FOYDALANUVCHI TAQDIM ETGAN NAMUNA / TAYYOR MATN (Ushbu namunadagi talablar, uslub va mazmunga to'liq amal qiling):"}\n"""\n${sanitizedTemplate}\n"""\n` : ""}
 
 QAT'IY TALABLAR:
 1. Barcha bo'limlar FAQAT VA FAQAT «${topic}» mavzusiga 100% bog'langan bo'lsin.
@@ -697,7 +706,8 @@ QAT'IY TALABLAR:
       let errorCode: string | undefined;
 
       try {
-        const geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
+        const expectedReferatLang = isRu ? "ru" : "uz";
+        let geminiRes = await generateGeminiJson<CourseworkAiChapters>(chapterPrompt, {
           systemInstruction: isRu
             ? "Вы — ведущий профессор вузов Узбекистана. Строго соблюдайте научный стиль и возвращайте только валидный JSON."
             : "Siz O'zbekiston oliy ta'lim tizimi professori, mustaqil ish va referatlar bo'yicha yetakchi ekspertsiz. Faqat kiritilgan mavzuga bag'ishlangan to'liq JSON qaytaring.",
@@ -705,6 +715,54 @@ QAT'IY TALABLAR:
           maxOutputTokens: 8192,
           timeoutMs: 22_000,
         });
+
+        const extractPreviewText = (chapters?: CourseworkAiChapters) =>
+          chapters
+            ? [
+                chapters.kirishContent,
+                chapters.sub1_1,
+                chapters.sub1_2,
+                chapters.sub2_1,
+                chapters.xulosaContent,
+              ]
+                .filter(Boolean)
+                .join("\n\n")
+            : "";
+
+        if (geminiRes.data) {
+          const previewEval = evaluateGeneratedWorkFidelity({
+            topicTitle: topic,
+            subject: subjName,
+            notes: isImageTopicsContext ? sanitizedTemplate : undefined,
+            generatedText: extractPreviewText(geminiRes.data),
+            expectedLanguage: expectedReferatLang,
+            expectedMinWords: 60,
+          });
+          if (!previewEval.isOnTopic && Date.now() - startTime < 34_000) {
+            const correctivePrompt = `${chapterPrompt}\n\nDIQQAT — OLDINGI JAVOBDA QUYIDAGI KAMCHILIK ANIQILANDI: ${previewEval.issues.join("; ")}. Iltimos FAQAT "${topic}" mavzusi va "${subjName}" fani doirasida aniq atamalar bilan qayta tayyorlang.`;
+            const retryRes = await generateGeminiJson<CourseworkAiChapters>(correctivePrompt, {
+              systemInstruction: isRu
+                ? "Строго придерживайтесь указанной темы. Возвращайте только валидный JSON."
+                : "Faqat kiritilgan aniq mavzuga sodiq qoling. Boshqa mavzuga chalg'imang.",
+              temperature: 0.12,
+              maxOutputTokens: 8192,
+              timeoutMs: 18_000,
+            }).catch(() => null);
+            if (retryRes?.data) {
+              const retryEval = evaluateGeneratedWorkFidelity({
+                topicTitle: topic,
+                subject: subjName,
+                notes: isImageTopicsContext ? sanitizedTemplate : undefined,
+                generatedText: extractPreviewText(retryRes.data),
+                expectedLanguage: expectedReferatLang,
+                expectedMinWords: 60,
+              });
+              if (retryEval.isOnTopic || retryEval.relevanceScore > previewEval.relevanceScore) {
+                geminiRes = retryRes;
+              }
+            }
+          }
+        }
 
         if (
           geminiRes.data &&
@@ -770,20 +828,42 @@ QAT'IY TALABLAR:
 
     // 3. IMTIHON VA TESTLARGA TAYYORGARLIK
     if (action === "generate-exam-prep") {
-      const prompt = `Fan: "${subject || "Umumta'lim"}"
+      const expectedExamLang = isRu ? "ru" : "uz";
+      const buildExamPrompt = (correctionHint?: string) => `Fan: "${subject || "Umumta'lim"}"
 Mavzu: "${topic}"
-${sanitizedTemplate ? `\nFoydalanuvchi yuklagan namuna / savollar bazasi (bunga asoslanib test va biletlar tuzilsin):\n"""\n${sanitizedTemplate}\n"""\n` : ""}
-QAT'IY TALAB: Barcha 10 ta test va 3 ta bilet savollari FAQAT VA FAQAT «${topic}» mavzusiga tegishli bo'lishi shart!
+${sanitizedTemplate ? `\n${isImageTopicsContext ? "Foydalanuvchi rasmdan yuklagan aniq savollar va mavzular ro'yxati (HAR BIRINI saqla va javobini yorit):" : "Foydalanuvchi yuklagan namuna / savollar bazasi (bunga asoslanib test va biletlar tuzilsin):"}\n"""\n${sanitizedTemplate}\n"""\n` : ""}${correctionHint ? `\nTUZATISH TALABI: ${correctionHint}\n` : ""}
+QAT'IY TALAB: Barcha 10 ta test va bilet savollari FAQAT VA FAQAT «${topic}»${isImageTopicsContext ? " hamda yuqorida rasmdan olingan barcha mavzu/savollarga" : ""} tegishli bo'lishi shart!
 Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test (har birida 4 ta variant A, B, C, D va to'g'ri javob izohi) hamda 3 ta asosiy imtihon bilet savolining mukammal yozma javobini tuzib ber.`;
 
+      const examPrompt = buildExamPrompt();
       try {
-        const geminiRes = await generateGeminiContent(prompt, {
+        let geminiRes = await generateGeminiContent(examPrompt, {
           systemInstruction:
             "Siz oliy ta'lim imtihonlari va test sinovlari tuzuvchi tajribali professiz. Savollarni faqat ko'rsatilgan mavzuga mos ravishda tuzing.",
           temperature: 0.2,
           maxOutputTokens: 6144,
           timeoutMs: 25_000,
         });
+
+        const examEval = evaluateGeneratedWorkFidelity({
+          topicTitle: topic,
+          subject,
+          notes: isImageTopicsContext ? sanitizedTemplate : undefined,
+          generatedText: geminiRes.text,
+          expectedLanguage: expectedExamLang,
+          expectedMinWords: 80,
+        });
+
+        if (!examEval.isOnTopic && Date.now() - startTime < 35_000) {
+          const retryHint = examEval.issues.join("; ");
+          geminiRes = await generateGeminiContent(buildExamPrompt(retryHint), {
+            systemInstruction:
+              "Siz oliy ta'lim professisiz. Faqat aniq ko'rsatilgan mavzu va rasmdan yuklangan savollar asosida imtihon materiallari yozing.",
+            temperature: 0.1,
+            maxOutputTokens: 6144,
+            timeoutMs: 18_000,
+          }).catch(() => geminiRes);
+        }
 
         if (userId) {
           await deductUserAiCredit(userId);
@@ -860,7 +940,7 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
           provider: "gemini",
           model: "academic-fallback",
           status: "SUCCESS",
-          inputTokens: Math.ceil(prompt.length / 4),
+          inputTokens: Math.ceil(examPrompt.length / 4),
           outputTokens: Math.ceil(fallbackExam.length / 4),
           requestDurationMs: Date.now() - startTime,
           errorCode: "AI_FALLBACK",

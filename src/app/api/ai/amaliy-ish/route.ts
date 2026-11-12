@@ -118,22 +118,20 @@ export async function POST(req: NextRequest) {
               ? "ingliz tilida (in English)"
               : "o'zbek tilida";
 
-        const prompt = `Siz O‘zbekiston Respublikasi Oliy ta’lim, fan va innovatsiyalar vazirligi davlat ta’lim standartlari (Toshkent davlat iqtisodiyot universiteti — TDIU, Toshkent to‘qimachilik va yengil sanoat instituti — TTESI, O‘zbekiston Milliy universiteti — O‘zMU) bo‘yicha ekonometrika va iqtisodiy-statistik modellashtirish kafedrasi bosh professori hamda akademik muharririsiz.
+        const combinedContext = `${cleanInput.subject || ""} ${cleanInput.topic || ""} ${cleanInput.situation || ""} ${cleanInput.customProblemText || ""}`;
+        const isAnovaDomain =
+          /dispersion|anova|fisher|smena|smene|lsd|ekonometrika|statistika/i.test(combinedContext);
 
-Vazifangiz: Talabaning "Ekonometrika / Ma'lumotlar tahlili / Statistika" fani bo‘yicha amaliy ishini haqiqiy oliy bahoga (A/90-100 ball) loyiq, OTM kafedrasi talablariga to'liq javob beruvchi professional akademik tahlillar bilan ${langName} boyitish.
+        const promptRoleHeader = isAnovaDomain
+          ? `Siz O‘zbekiston Respublikasi Oliy ta’lim, fan va innovatsiyalar vazirligi davlat ta’lim standartlari (Toshkent davlat iqtisodiyot universiteti — TDIU, Toshkent to‘qimachilik va yengil sanoat instituti — TTESI, O‘zbekiston Milliy universiteti — O‘zMU) bo‘yicha ekonometrika va iqtisodiy-statistik modellashtirish kafedrasi bosh professori hamda akademik muharririsiz.
 
-AMALIY ISH PARAMETRLARI:
-- OTM: "${cleanInput.university}"
-- Kafedra: "${cleanInput.department}"
-- Fan: "${cleanInput.subject}"
-- Mavzu: "${cleanInput.topic}"
-- Vaziyat / keys: "${cleanInput.situation}"
-- Variant: "${cleanInput.variant}"
-- Masalalar soni: ${problemCount}
-- Til: "${cleanInput.language || "uz"}"
-${cleanInput.customProblemText ? `- Talaba kiritgan masala sharti: "${cleanInput.customProblemText}"` : ""}
+Vazifangiz: Talabaning "Ekonometrika / Ma'lumotlar tahlili / Statistika" fani bo‘yicha amaliy ishini haqiqiy oliy bahoga (A/90-100 ball) loyiq, OTM kafedrasi talablariga to'liq javob beruvchi professional akademik tahlillar bilan ${langName} boyitish.`
+          : `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi davlat ta'lim standartlari bo'yicha "${cleanInput.subject}" fani yetakchi professori hamda akademik muharririsiz.
 
-QAT'IY AKADEMIK TALABLAR:
+Vazifangiz: Barcha matnlar, ${problemCount} ta amaliy masala sharti, tahliliy talqinlar, xulosalar va adabiyotlarni FAQAT VA FAQAT "${cleanInput.topic}" mavzusi va "${cleanInput.subject}" fani doirasida ${langName} professional tarzda tayyorlab bering (dispersion tahlil yoki begona fan atamalarini aralashtirmang!).`;
+
+        const domainRequirements = isAnovaDomain
+          ? `QAT'IY AKADEMIK TALABLAR:
 1. Akademik ilmiy uslub: Matn rasmiy-ilmiy tilda, O'zbekiston Respublikasining me'yoriy-huquqiy bazasi (PF-6079 "Raqamli O'zbekiston – 2030" strategiyasi) va real ishlab chiqarish/iqtisodiyot korxonalari (to'qimachilik va yengil sanoat klasterlari, mashinasozlik, agrologistika, farmatsevtika, tijorat banklari) amaliyotiga tayansin.
 2. Kirish qismi (Introduction):
    - Mavzuning dolzarbligi (O'zbekiston korxonalarida mahsulot sifatini boshqarish va mehnat unumdorligini oshirishda statistik modellashtirishning ahamiyati, 3-4 jumla);
@@ -177,7 +175,66 @@ Faqat quyidagi toza JSON formatida javob bering (hech qanday qo'shimcha matnsiz)
     "4. Darslik / Manba 4",
     "5. Darslik / Manba 5"
   ]
+}`
+          : `QAT'IY AKADEMIK TALABLAR:
+1. Akademik ilmiy uslub: Barcha matnlar FAQAT "${cleanInput.subject}" fani va "${cleanInput.topic}" mavzusiga bag'ishlangan rasmiy-ilmiy uslubda yozilsin (boshqa begona fan yoki dispersion/ANOVA shablonlariga chalg'ish taqiqlanadi).
+2. Kirish qismi (Introduction):
+   - Mavzuning dolzarbligi ("${cleanInput.topic}" mavzusining "${cleanInput.subject}" fanidagi nazariy va amaliy ahamiyati, 3-4 jumla);
+   - Amaliy ishning aniq maqsadi;
+   - 5 ta mantiqiy ketma-ket vazifa;
+   - Tadqiqot obyekti va predmeti (aynan "${cleanInput.topic}" bo'yicha);
+   - Sohaga xos qo'llanilgan ilmiy metodlar va tahlil vositalari.
+3. Nazariy-uslubiy asoslar: "${cleanInput.topic}" mavzusining asosiy qonuniyatlari, formulalari, tushunchalari va hisoblash/tahlil algoritmini ilmiy asoslab bering.
+4. Masalalar sharti va amaliy talqini: Har bir (${problemCount} tagacha) masala uchun "${cleanInput.topic}" mavzusiga xos real topshiriq sharti, yechim mantiqining chuqur talqini va 2 tadan amaliy tavsiya bering.
+5. Yakuniy xulosalar va adabiyotlar: "${cleanInput.subject}" fani bo'yicha nufuzli darsliklar, ilmiy maqolalar va me'yoriy manbalardan 5-6 ta aniq adabiyot keltiring.
+
+Faqat quyidagi toza JSON formatida javob bering (hech qanday qo'shimcha matnsiz):
+{
+  "introduction": {
+    "relevance": "Mavzuning dolzarbligi matni",
+    "purpose": "Amaliy ishning aniq maqsadi",
+    "tasks": ["1-vazifa", "2-vazifa", "3-vazifa", "4-vazifa", "5-vazifa"],
+    "objectAndSubject": "Tadqiqot obyekti: ...; Tadqiqot predmeti: ...",
+    "methods": ["1-ilmiy metod", "2-tahlil usuli", "3-amaliy vosita"]
+  },
+  "theoreticalSummary": "${cleanInput.topic} mavzusining nazariy va uslubiy asoslari (1-2 abzas)",
+  "problem1Condition": "1-masala/topshiriq sharti (${cleanInput.topic} bo'yicha)",
+  "problem1Interpretation": "1-masala yechimi va tahliliy talqini",
+  "problem1Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem2Condition": "2-masala/topshiriq sharti",
+  "problem2Interpretation": "2-masala yechimi va tahliliy talqini",
+  "problem2Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem3Condition": "3-masala/topshiriq sharti",
+  "problem3Interpretation": "3-masala yechimi va tahliliy talqini",
+  "problem3Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "problem4Condition": "4-masala/topshiriq sharti",
+  "problem4Interpretation": "4-masala yechimi va tahliliy talqini",
+  "problem4Recommendations": ["1-tavsiya", "2-tavsiya"],
+  "conclusions": ["1-ilmiy xulosa", "2-ilmiy xulosa", "3-ilmiy xulosa", "4-ilmiy xulosa"],
+  "practicalRecommendations": ["1-amaliy tavsiya", "2-amaliy tavsiya", "3-amaliy tavsiya"],
+  "references": [
+    "1. Darslik / Manba 1",
+    "2. Darslik / Manba 2",
+    "3. Darslik / Manba 3",
+    "4. Darslik / Manba 4",
+    "5. Darslik / Manba 5"
+  ]
 }`;
+
+        const prompt = `${promptRoleHeader}
+
+AMALIY ISH PARAMETRLARI:
+- OTM: "${cleanInput.university}"
+- Kafedra: "${cleanInput.department}"
+- Fan: "${cleanInput.subject}"
+- Mavzu: "${cleanInput.topic}"
+- Vaziyat / keys: "${cleanInput.situation}"
+- Variant: "${cleanInput.variant}"
+- Masalalar soni: ${problemCount}
+- Til: "${cleanInput.language || "uz"}"
+${cleanInput.customProblemText ? `- Talaba kiritgan / rasmdan yuklangan masala va talablar (HAMMASINI SAQLA VA YORIT):\n"""\n${cleanInput.customProblemText}\n"""` : ""}
+
+${domainRequirements}`;
 
         const aiRes = await generateGeminiJson<AiAmaliyEnrichment>(prompt, {
           temperature: 0.3,

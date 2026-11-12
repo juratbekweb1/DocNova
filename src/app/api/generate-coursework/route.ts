@@ -15,6 +15,7 @@ import {
   buildControlledAcademicPrompt,
 } from "@/lib/academic-content-architect";
 import { analyzeSampleDocument } from "@/lib/academic-sample-intelligence";
+import { IMAGE_TOPICS_CONTEXT_MARKER } from "@/lib/academic/topic-fidelity";
 
 export interface CourseworkOutlineChapter {
   number: number;
@@ -1632,9 +1633,13 @@ export async function POST(req: Request) {
     } = body;
     const rawTemplateStr =
       typeof templateText === "string" ? templateText.trim().slice(0, 12000) : "";
+    const isStructuredSampleBlueprint = rawTemplateStr.startsWith(
+      "[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI"
+    );
+    const isImageTopicsContext = rawTemplateStr.startsWith(IMAGE_TOPICS_CONTEXT_MARKER);
     const sanitizedTemplate = rawTemplateStr
-      ? rawTemplateStr.startsWith("[NAMUNA HUJJATNING TUZILMA VA FORMAT QOLIPI")
-        ? rawTemplateStr.slice(0, 4000)
+      ? isStructuredSampleBlueprint || isImageTopicsContext
+        ? rawTemplateStr.slice(0, isImageTopicsContext ? 8000 : 4000)
         : analyzeSampleDocument({
             rawText: rawTemplateStr,
             fileName: "namuna.docx",

@@ -9,10 +9,14 @@ import {
   parseGeminiTopicsPayload,
   parseTopicsRequestSchema,
 } from "@/lib/academic/topic-parser";
+import { detectAcademicLanguage } from "@/lib/academic/topic-fidelity";
 
 export const maxDuration = 60;
 
-const GEMINI_VISION_MODEL = "gemini-2.5-flash";
+const GEMINI_VISION_MODEL =
+  process.env.GEMINI_VISION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
+const GEMINI_VISION_FALLBACK_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_VISION_EMERGENCY_MODEL = "gemini-flash-latest";
 const PARSE_TIMEOUT_MS = 40_000;
 
 function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -20,7 +24,7 @@ function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: strin
     const timer = setTimeout(() => {
       reject(new Error(`${label}_TIMEOUT`));
     }, timeoutMs);
-    promise.then(
+    Promise.resolve(promise).then(
       (val) => {
         clearTimeout(timer);
         resolve(val);
@@ -33,17 +37,21 @@ function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: strin
   });
 }
 
-const TOPIC_EXTRACTION_PROMPT = `Sen talabalar va akademik materiallar bo'yicha mutaxassis OCR hamda tuzilmalashtiruvchi AI yordamchisisan.
-Yuklangan rasmni diqqat bilan tahlil qil (bu darslik sahifasi, daftar/konspekt rasmi, mavzular ro'yxati, slaydda berilgan reja, syllabus yoki imtihon savollari bo'lishi mumkin).
+const TOPIC_EXTRACTION_PROMPT = `Sen talabalar va akademik materiallar bo'yicha o'ta aniq OCR (rasmdan matn o'qish) va tuzilmalashtiruvchi AI yordamchisisan.
+Yuklangan rasmni diqqat bilan tahlil qil (bu darslik sahifasi, daftar/konspekt rasmi, jadval, syllabus, mustaqil ish mavzulari ro'yxati, laboratoriya/amaliy topshiriq yoki imtihon bilet savollari bo'lishi mumkin).
 
-VAZIFA:
-1. Rasm ichidagi BARCHA mavzular, bo'limlar yoki bandlarni tartib bilan o'qib chiq (1 ta bo'lsa 1 ta, 10 ta yoki undan ko'p bo'lsa hammasini alohida ajrat).
-2. Matn qaysi tilda yozilgan bo'lsa (o'zbek, rus, ingliz va h.k.), o'sha asl tilini va atamalarini saqlagan holda tozalab yoz.
-3. Har bir topilgan mavzuni quyidagi JSON tuzilmasida qaytar:
-   - "title": Mavzu sarlavhasi (raqami bilan bo'lsa tartibini saqlash mumkin, aniq va tushunarli sarlavha).
-   - "content": Ushbu mavzuga tegishli rasmdagi barcha matn, izoh, formulalar, asosiy fikrlar yoki reja bandlari. Agar rasmda faqat mavzular ro'yxati (izohsiz sarlavhalar) berilgan bo'lsa, "content" maydoniga shu mavzuni yoritish uchun qisqa akademik reja/tavsif yozib ber.
-4. Agar rasmda o'qib bo'ladigan birorta ham mavzu yoki matn topilmasa, bo'sh massiv qaytar: {"topics": []}.
-5. Faqat toza JSON qaytar, boshqa izoh qo'shma.`;
+MUTLAQ QOIDALAR (O'ZINGDAN TO'QIMA):
+1. Rasmda yozilgan BARCHA mavzular, savollar, topshiriqlar yoki bandlarni yuqoridan pastga (ikki ustun bo'lsa chapdan o'ngga) qat'iy asl tartibda ANIQ va SO'ZMA-SO'Z o'qib chiq.
+2. Mavzuning ASL TILI va ALIFBOSINI 100% saqla: O'zbek lotin -> lotinda ("uz"), Ўзбек кирилл -> кириллда ("uz-cyrl"), Русский -> русчада ("ru"), English -> inglizchada ("en"). Hech qachon tilni o'zgartirma yoki tarjima qilib yuborma.
+3. Ilmiy atamalar, formulalar (masalan: E=mc², H₂SO₄, O(n log n)), yillar, PF/O'RQ hujjat raqamlari va shaxs/joy nomlarini o'zgartirmasdan aniq ko'chir.
+4. QISQARUVCHISIZ SARLAVHA / JADVAL FILTRI:
+   - Jadval sarlavhalari ("№", "T/r", "№ п/п", "Mavzu nomi", "Soat", "Sana", "Ball", "Izoh", "Imzo") yoki hujjat shapkasidagi texnik ma'lumotlarni ("Fakultet:", "Guruh:", "Talaba F.I.Sh.") alohida mavzu sifatida "topics" massiviga QO'SHMA!
+   - Agar rasm tepasida fan nomi yozilgan bo'lsa (masalan: "Fan: Oliy matematika" yoki "Предмет: Физика"), uni alohida "subject" maydoniga yoz.
+5. Har bir topilgan mavzu uchun:
+   - "title": Mavzu sarlavhasi (raqami bilan bo'lsa raqamini saqla, masalan: "1. Kvant mexanikasi asoslari").
+   - "content": FAQAT rasmda shu mavzu ostida yoki yonida ko'rsatilgan qo'shimcha matn, reja bandlari, shartlar, formulalar yoki soat/izohlar. AGAR rasmda faqat mavzular ro'yxati (qo'shimcha izohsiz sarlavhalar) berilgan bo'lsa, "content" maydonini BO'SH SATR ("") qoldir — o'zingdan reja yoki matn o'ylab topib to'ldirma!
+6. Agar rasmda o'qib bo'ladigan birorta ham mavzu topilmasa, {"topics": []} qaytar.
+7. Faqat toza JSON qaytar, boshqa izoh qo'shma.`;
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
@@ -100,70 +108,118 @@ export async function POST(request: NextRequest) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    const response = await raceWithTimeout(
-      ai.models.generateContent({
-        model: GEMINI_VISION_MODEL,
-        contents: [
-          {
-            inlineData: {
-              mimeType: imageResult.mimeType,
-              data: imageResult.data,
-            },
-          },
-          {
-            text: TOPIC_EXTRACTION_PROMPT,
-          },
-        ],
-        config: {
-          temperature: 0.1,
-          maxOutputTokens: 8192,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              topics: {
-                type: Type.ARRAY,
-                description: "Rasmdan ajratib olingan barcha mavzular ro'yxati",
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: {
-                      type: Type.STRING,
-                      description: "Mavzu sarlavhasi",
-                    },
-                    content: {
-                      type: Type.STRING,
-                      description: "Mavzuga oid to'liq matn yoki qisqa reja/tavsif",
-                    },
-                  },
-                  required: ["title", "content"],
-                },
+    const callVisionModel = (model: string, timeoutMs: number) =>
+      raceWithTimeout(
+        ai.models.generateContent({
+          model,
+          contents: [
+            {
+              inlineData: {
+                mimeType: imageResult.mimeType,
+                data: imageResult.data,
               },
             },
-            required: ["topics"],
+            {
+              text: TOPIC_EXTRACTION_PROMPT,
+            },
+          ],
+          config: {
+            temperature: 0.05,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                subject: {
+                  type: Type.STRING,
+                  description: "Rasmda ko'rsatilgan fan nomi (agar mavjud bo'lsa)",
+                },
+                language: {
+                  type: Type.STRING,
+                  description: "Asosiy hujjat tili: uz, uz-cyrl, ru yoki en",
+                },
+                topics: {
+                  type: Type.ARRAY,
+                  description: "Rasmdan ajratib olingan barcha mavzular ro'yxati",
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: {
+                        type: Type.STRING,
+                        description: "Rasmdagi aniq mavzu sarlavhasi",
+                      },
+                      content: {
+                        type: Type.STRING,
+                        description:
+                          "Rasmda shu mavzu ostidagi matn/reja/formula (agar bo'lmasa bo'sh satr)",
+                      },
+                    },
+                    required: ["title", "content"],
+                  },
+                },
+              },
+              required: ["topics"],
+            },
           },
-        },
-      }),
-      PARSE_TIMEOUT_MS,
-      "PARSE_TOPICS"
-    );
+        }),
+        timeoutMs,
+        "PARSE_TOPICS"
+      );
+
+    let modelUsed = GEMINI_VISION_MODEL;
+    let response;
+    try {
+      response = await callVisionModel(GEMINI_VISION_MODEL, PARSE_TIMEOUT_MS);
+    } catch (primaryErr) {
+      const msg = primaryErr instanceof Error ? primaryErr.message : "";
+      const remainingMs = PARSE_TIMEOUT_MS - (Date.now() - startedAt);
+      if (msg.includes("PARSE_TOPICS_TIMEOUT") || remainingMs < 6_000) {
+        throw primaryErr;
+      }
+      modelUsed = GEMINI_VISION_FALLBACK_MODEL;
+      try {
+        response = await callVisionModel(GEMINI_VISION_FALLBACK_MODEL, remainingMs);
+      } catch (secondaryErr) {
+        const secondaryMsg = secondaryErr instanceof Error ? secondaryErr.message : "";
+        const secondRemainingMs = PARSE_TIMEOUT_MS - (Date.now() - startedAt);
+        if (secondaryMsg.includes("PARSE_TOPICS_TIMEOUT") || secondRemainingMs < 6_000) {
+          throw secondaryErr;
+        }
+        modelUsed = GEMINI_VISION_EMERGENCY_MODEL;
+        response = await callVisionModel(GEMINI_VISION_EMERGENCY_MODEL, secondRemainingMs);
+      }
+    }
 
     const rawText = response.text ?? "";
     const parsedTopics = parseGeminiTopicsPayload(rawText);
+    const sampleCombined = parsedTopics.topics
+      .slice(0, 5)
+      .map((t) => `${t.title} ${t.content}`.trim())
+      .join("\n");
+    const resolvedLanguage =
+      parsedTopics.language ??
+      (sampleCombined ? detectAcademicLanguage(sampleCombined) : undefined);
 
     await trackAIUsage({
       userId,
       plan: userPlan,
       feature: "ACADEMIC_GENERATION",
       provider: "gemini",
-      model: GEMINI_VISION_MODEL,
+      model: modelUsed,
       status: "SUCCESS",
       inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
       requestDurationMs: Date.now() - startedAt,
     });
 
-    return NextResponse.json({ topics: parsedTopics.topics }, { status: 200 });
+    return NextResponse.json(
+      {
+        topics: parsedTopics.topics,
+        ...(parsedTopics.subject ? { subject: parsedTopics.subject } : {}),
+        ...(resolvedLanguage ? { language: resolvedLanguage } : {}),
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("[PARSE_TOPICS_ERROR]", error);
     const errorMessage = error instanceof Error ? error.message : "Noma'lum xatolik";

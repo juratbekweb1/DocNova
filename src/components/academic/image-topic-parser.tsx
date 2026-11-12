@@ -27,9 +27,13 @@ import {
 import ReactMarkdown from "react-markdown";
 import { downloadAcademicDocx } from "@/lib/docx-download-client";
 import { normalizePageCountInput, type ParsedTopic } from "@/lib/academic/topic-parser";
+import type { AcademicLanguage } from "@/lib/academic/topic-fidelity";
 
 export interface EditableTopicBlock extends ParsedTopic {
   id: string;
+  originalNotes?: string;
+  hasGeneratedWork?: boolean;
+  usedFallback?: boolean;
 }
 
 const DEFAULT_PAGE_PRESETS = ["2-3", "3-4", "5", "8", "10", "15", "20", "30"] as const;
@@ -72,6 +76,7 @@ export interface ImageTopicParserProps {
   accentColor?: "blue" | "emerald" | "amber";
   onApplyTopicsToForm?: (topics: ParsedTopic[]) => void;
   onWorksGenerated?: (works: ParsedTopic[]) => void;
+  onImageMetadataDetected?: (meta: { subject?: string; language?: AcademicLanguage }) => void;
   onImageSelected?: () => void;
   autoGeneratePerTopicWorks?: boolean;
   defaultPagesPerTopic?: string;
@@ -90,6 +95,7 @@ interface SaveResultState {
 const DRAFT_STORAGE_KEY = "docnova_academic_image_topics_draft_v1";
 const MAX_RAW_UPLOAD_BYTES = 15 * 1024 * 1024;
 const COMPRESS_THRESHOLD_BYTES = 2 * 1024 * 1024;
+const WORK_CHUNK_SIZE = 4;
 
 function createBlockId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -143,7 +149,7 @@ async function maybeCompressLargeImageDataUrl(
     const img = new window.Image();
     img.onload = () => {
       try {
-        const maxSide = 2000;
+        const maxSide = 3072;
         let { width, height } = img;
         if (width <= 0 || height <= 0) {
           resolve({ dataUrl, mimeType });
@@ -167,7 +173,7 @@ async function maybeCompressLargeImageDataUrl(
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL("image/jpeg", 0.86);
+        const compressed = canvas.toDataURL("image/jpeg", 0.92);
         resolve(
           compressed.startsWith("data:image/")
             ? { dataUrl: compressed, mimeType: "image/jpeg" }
@@ -192,6 +198,7 @@ export function ImageTopicParser({
   accentColor = "blue",
   onApplyTopicsToForm,
   onWorksGenerated,
+  onImageMetadataDetected,
   onImageSelected,
   autoGeneratePerTopicWorks = false,
   defaultPagesPerTopic = "2-3",
@@ -230,6 +237,14 @@ export function ImageTopicParser({
   const [customPageTopics, setCustomPageTopics] = useState<Record<string, boolean>>({});
   const [worksReadyCount, setWorksReadyCount] = useState<number | null>(null);
   const [worksReadyPagesLabel, setWorksReadyPagesLabel] = useState<string | null>(null);
+  const [detectedSubject, setDetectedSubject] = useState<string>("");
+  const [detectedLanguage, setDetectedLanguage] = useState<AcademicLanguage | undefined>(undefined);
+  const [generationProgress, setGenerationProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [fallbackWarningCount, setFallbackWarningCount] = useState<number>(0);
+  const [retryingTopicId, setRetryingTopicId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requiresLogin, setRequiresLogin] = useState<boolean>(false);
   const [loginCallbackUrl, setLoginCallbackUrl] = useState<string>(pathname);
@@ -354,6 +369,8 @@ export function ImageTopicParser({
 
       const data = (await response.json().catch(() => ({}))) as {
         topics?: ParsedTopic[];
+        subject?: string;
+        language?: AcademicLanguage;
         error?: string;
       };
 
@@ -370,10 +387,24 @@ export function ImageTopicParser({
         return;
       }
 
+      const cleanSubject = typeof data.subject === "string" ? data.subject.trim() : "";
+      const cleanLang = data.language;
+      setDetectedSubject(cleanSubject);
+      setDetectedLanguage(cleanLang);
+      if (cleanSubject || cleanLang) {
+        onImageMetadataDetected?.({
+          ...(cleanSubject ? { subject: cleanSubject } : {}),
+          ...(cleanLang ? { language: cleanLang } : {}),
+        });
+      }
+
       const mappedBlocks: EditableTopicBlock[] = extracted.map((item) => ({
         id: createBlockId(),
         title: item.title ?? "",
         content: item.content ?? "",
+        originalNotes: item.content ?? "",
+        hasGeneratedWork: false,
+        usedFallback: false,
       }));
 
       setTopics(mappedBlocks);
@@ -384,6 +415,8 @@ export function ImageTopicParser({
       setCopiedWorks(false);
       setWorksReadyCount(null);
       setWorksReadyPagesLabel(null);
+      setFallbackWarningCount(0);
+      setGenerationProgress(null);
       setDocumentTitle(
         mappedBlocks.length === 1
           ? mappedBlocks[0].title
@@ -421,12 +454,21 @@ export function ImageTopicParser({
 
   const generateWorksForTopics = async (sourceBlocks: EditableTopicBlock[]) => {
     const validBlocks = sourceBlocks
-      .map((block) => ({
-        ...block,
-        title: block.title.trim(),
-        content: block.content.trim(),
-        pageCount: block.pageCount ? normalizePageCountInput(block.pageCount) : undefined,
-      }))
+      .map((block) => {
+        // Use preserved originalNotes during regeneration so prior generated prose does not pollute prompts
+        const promptNotes = block.hasGeneratedWork
+          ? (block.originalNotes ?? "").trim()
+          : block.content.trim();
+        return {
+          ...block,
+          title: block.title.trim(),
+          content: promptNotes,
+          originalNotes: block.hasGeneratedWork
+            ? (block.originalNotes ?? "")
+            : block.content.trim(),
+          pageCount: block.pageCount ? normalizePageCountInput(block.pageCount) : undefined,
+        };
+      })
       .filter((block) => block.title.length > 0);
 
     if (validBlocks.length === 0) {
@@ -439,52 +481,82 @@ export function ImageTopicParser({
     setErrorMessage(null);
     setWorksReadyCount(null);
     setWorksReadyPagesLabel(null);
+    setFallbackWarningCount(0);
+    setGenerationProgress({ done: 0, total: validBlocks.length });
     setIsWritingWorks(true);
 
     const normalizedGlobalPages = normalizePageCountInput(pagesPerTopic) ?? "2-3";
     const resolvedUniformPages = getEffectivePagesLabel(validBlocks);
+    const resolvedSubject = subjectHint?.trim() || detectedSubject || undefined;
+    const resolvedLanguage = detectedLanguage || "auto";
 
     try {
-      const response = await fetch("/api/academic/topics/generate-works", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topics: validBlocks.map(({ title, content, pageCount }) => ({
-            title,
-            content,
-            ...(pageCount ? { pageCount } : {}),
-          })),
-          workType: workLabels.apiLabel,
-          subject: subjectHint?.trim() || undefined,
-          pagesPerTopic: normalizedGlobalPages,
-          language: "uz",
-        }),
-      });
+      const updatedBlocks: EditableTopicBlock[] = [];
+      let totalFallbackCount = 0;
 
-      const data = (await response.json().catch(() => ({}))) as {
-        works?: ParsedTopic[];
-        pageCounts?: string[];
-        error?: string;
-      };
+      for (let start = 0; start < validBlocks.length; start += WORK_CHUNK_SIZE) {
+        const chunk = validBlocks.slice(start, start + WORK_CHUNK_SIZE);
+        const response = await fetch("/api/academic/topics/generate-works", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            topics: chunk.map(({ title, content, pageCount }) => ({
+              title,
+              content,
+              ...(pageCount ? { pageCount } : {}),
+            })),
+            workType: workLabels.apiLabel,
+            ...(resolvedSubject ? { subject: resolvedSubject } : {}),
+            pagesPerTopic: normalizedGlobalPages,
+            language: resolvedLanguage,
+          }),
+        });
 
-      if (!response.ok || !Array.isArray(data.works)) {
-        throw new Error(
-          data.error || `Har bir mavzuga ${workLabels.lower} yozishda xatolik yuz berdi.`
+        const data = (await response.json().catch(() => ({}))) as {
+          works?: ParsedTopic[];
+          pageCounts?: string[];
+          fallbackIndices?: number[];
+          usedFallbackCount?: number;
+          error?: string;
+        };
+
+        if (!response.ok || !Array.isArray(data.works)) {
+          throw new Error(
+            data.error || `Har bir mavzuga ${workLabels.lower} yozishda xatolik yuz berdi.`
+          );
+        }
+
+        const chunkFallbacks = new Set<number>(
+          Array.isArray(data.fallbackIndices) ? data.fallbackIndices : []
         );
-      }
 
-      const updatedBlocks: EditableTopicBlock[] = data.works.map((work, index) => ({
-        id: validBlocks[index]?.id || createBlockId(),
-        title: work.title,
-        content: work.content,
-        pageCount: validBlocks[index]?.pageCount || data.pageCounts?.[index],
-      }));
+        data.works.forEach((work, chunkIdx) => {
+          const src = chunk[chunkIdx];
+          const usedFallback = chunkFallbacks.has(chunkIdx);
+          if (usedFallback) totalFallbackCount += 1;
+          updatedBlocks.push({
+            id: src?.id || createBlockId(),
+            title: work.title,
+            content: work.content,
+            originalNotes: src?.originalNotes ?? "",
+            hasGeneratedWork: true,
+            usedFallback,
+            pageCount: src?.pageCount || data.pageCounts?.[chunkIdx],
+          });
+        });
+
+        setGenerationProgress({
+          done: Math.min(validBlocks.length, start + chunk.length),
+          total: validBlocks.length,
+        });
+      }
 
       setTopics(updatedBlocks);
       setWorksReadyCount(updatedBlocks.length);
       setWorksReadyPagesLabel(resolvedUniformPages);
+      setFallbackWarningCount(totalFallbackCount);
       setCopiedWorks(false);
       if (!onWorksGenerated) {
         setShowInlinePreview(true);
@@ -509,6 +581,80 @@ export function ImageTopicParser({
       );
     } finally {
       setIsWritingWorks(false);
+      setGenerationProgress(null);
+    }
+  };
+
+  const handleRetrySingleTopic = async (blockId: string) => {
+    const targetIndex = topics.findIndex((t) => t.id === blockId);
+    if (targetIndex === -1 || isWritingWorks || isAnalyzing || retryingTopicId) return;
+    const targetBlock = topics[targetIndex];
+    const cleanTitle = targetBlock.title.trim();
+    if (!cleanTitle) return;
+
+    setErrorMessage(null);
+    setRetryingTopicId(blockId);
+    const normalizedGlobalPages = normalizePageCountInput(pagesPerTopic) ?? "2-3";
+    const resolvedSubject = subjectHint?.trim() || detectedSubject || undefined;
+    const promptNotes = targetBlock.hasGeneratedWork
+      ? (targetBlock.originalNotes ?? "").trim()
+      : targetBlock.content.trim();
+
+    try {
+      const response = await fetch("/api/academic/topics/generate-works", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topics: [
+            {
+              title: cleanTitle,
+              content: promptNotes,
+              ...(targetBlock.pageCount ? { pageCount: targetBlock.pageCount } : {}),
+            },
+          ],
+          workType: workLabels.apiLabel,
+          ...(resolvedSubject ? { subject: resolvedSubject } : {}),
+          pagesPerTopic: targetBlock.pageCount || normalizedGlobalPages,
+          language: detectedLanguage || "auto",
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        works?: ParsedTopic[];
+        fallbackIndices?: number[];
+        error?: string;
+      };
+      if (!response.ok || !Array.isArray(data.works) || data.works.length === 0) {
+        throw new Error(data.error || "Mavzuni qayta yozishda xatolik yuz berdi.");
+      }
+
+      const regenerated = data.works[0];
+      const stillFallback = Array.isArray(data.fallbackIndices) && data.fallbackIndices.includes(0);
+      const nextTopics = topics.map((b) =>
+        b.id === blockId
+          ? {
+              ...b,
+              title: regenerated.title,
+              content: regenerated.content,
+              hasGeneratedWork: true,
+              usedFallback: stillFallback,
+            }
+          : b
+      );
+      setTopics(nextTopics);
+      setFallbackWarningCount(nextTopics.filter((b) => b.usedFallback).length);
+      onWorksGenerated?.(
+        nextTopics.map(({ title, content, pageCount }) => ({
+          title: title.trim(),
+          content: content.trim(),
+          ...(pageCount ? { pageCount } : {}),
+        }))
+      );
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Mavzuni qayta yozishda xatolik yuz berdi."
+      );
+    } finally {
+      setRetryingTopicId(null);
     }
   };
 
@@ -540,7 +686,13 @@ export function ImageTopicParser({
     setSaveSuccess(null);
     setAppliedToForm(false);
     setTopics((prev) =>
-      prev.map((block) => (block.id === id ? { ...block, [field]: value } : block))
+      prev.map((block) => {
+        if (block.id !== id) return block;
+        if (field === "content" && !block.hasGeneratedWork) {
+          return { ...block, content: value, originalNotes: value };
+        }
+        return { ...block, [field]: value };
+      })
     );
   };
 
@@ -619,6 +771,11 @@ export function ImageTopicParser({
     setAppliedToForm(false);
     setWorksReadyCount(null);
     setWorksReadyPagesLabel(null);
+    setDetectedSubject("");
+    setDetectedLanguage(undefined);
+    setGenerationProgress(null);
+    setFallbackWarningCount(0);
+    setRetryingTopicId(null);
     setShowInlinePreview(false);
     setCopiedWorks(false);
     setTopicPageDrafts({});
@@ -789,8 +946,8 @@ export function ImageTopicParser({
         topic: exportTitle,
         markdownContent: combined,
         workType: workLabels.apiLabel,
-        subject: subjectHint?.trim() || undefined,
-        language: "uz",
+        subject: subjectHint?.trim() || detectedSubject || undefined,
+        language: detectedLanguage || "uz",
       });
     } catch (error) {
       setErrorMessage(
@@ -1113,60 +1270,79 @@ export function ImageTopicParser({
             <p className="font-semibold">
               Har bir mavzuga {getEffectivePagesLabel(topics) || pagesPerTopic} bet{" "}
               {workLabels.lower} yozilmoqda...
+              {generationProgress && generationProgress.total > WORK_CHUNK_SIZE
+                ? ` (${generationProgress.done}/${generationProgress.total})`
+                : ""}
             </p>
             <p className="text-xs opacity-80">
-              {topics.length} ta mavzuning har biri uchun reja, kirish, asosiy qism va xulosa
-              tayyorlanmoqda.
+              {topics.length} ta mavzuning har biri uchun mavzuga qat&apos;iy mos reja, kirish,
+              asosiy qism va xulosa tayyorlanmoqda.
             </p>
           </div>
         </div>
       )}
 
       {worksReadyCount !== null && !isWritingWorks && (
-        <div
-          role="status"
-          className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-700 sm:text-sm dark:text-emerald-300"
-        >
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-            <span>
-              {worksReadyPagesLabel
-                ? `${worksReadyCount} ta mavzuning har biri uchun ${worksReadyPagesLabel} betlik ${workLabels.lower} tayyorlandi!`
-                : `${worksReadyCount} ta mavzu uchun tanlangan betlarda ${workLabels.lower} tayyorlandi!`}
-            </span>
+        <div className="space-y-2">
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-700 sm:text-sm dark:text-emerald-300"
+          >
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+              <span>
+                {worksReadyPagesLabel
+                  ? `${worksReadyCount} ta mavzuning har biri uchun ${worksReadyPagesLabel} betlik ${workLabels.lower} tayyorlandi!`
+                  : `${worksReadyCount} ta mavzu uchun tanlangan betlarda ${workLabels.lower} tayyorlandi!`}
+              </span>
+            </div>
+            {!onWorksGenerated && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInlinePreview((prev) => !prev)}
+                  className="bg-background/80 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-200"
+                >
+                  {showInlinePreview ? (
+                    <>
+                      <EyeOff className="h-3.5 w-3.5" />
+                      <span>Previewni yopish</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Ko&apos;rib chiqish</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadWorksDocx()}
+                  disabled={isExportingDocx}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+                >
+                  {isExportingDocx ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>Word (.docx)</span>
+                </button>
+              </div>
+            )}
           </div>
-          {!onWorksGenerated && (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowInlinePreview((prev) => !prev)}
-                className="bg-background/80 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-200"
-              >
-                {showInlinePreview ? (
-                  <>
-                    <EyeOff className="h-3.5 w-3.5" />
-                    <span>Previewni yopish</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>Ko&apos;rib chiqish</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDownloadWorksDocx()}
-                disabled={isExportingDocx}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60"
-              >
-                {isExportingDocx ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
-                )}
-                <span>Word (.docx)</span>
-              </button>
+
+          {fallbackWarningCount > 0 && (
+            <div
+              role="alert"
+              className="flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>
+                {fallbackWarningCount} ta mavzu uchun AI vaqtinchalik qisqa qolip qaytardi. Pastda
+                o&apos;sha mavzudagi &ldquo;Qayta yozish&rdquo; tugmasi orqali chuqurroq matn
+                olishingiz mumkin.
+              </span>
             </div>
           )}
         </div>
@@ -1365,6 +1541,22 @@ export function ImageTopicParser({
                         </>
                       );
                     })()}
+                    {topic.usedFallback && (
+                      <button
+                        type="button"
+                        onClick={() => void handleRetrySingleTopic(topic.id)}
+                        disabled={Boolean(retryingTopicId) || isWritingWorks}
+                        aria-label={`${index + 1}-mavzuni qayta yozish`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-500/20 disabled:opacity-50 dark:text-amber-300"
+                      >
+                        {retryingTopicId === topic.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        )}
+                        Qayta yozish
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleRemoveTopic(topic.id)}
@@ -1454,13 +1646,16 @@ export function ImageTopicParser({
                   onClick={() => {
                     onApplyTopicsToForm(
                       topics
-                        .map(({ title, content, pageCount }) => {
+                        .map(({ title, content, originalNotes, hasGeneratedWork, pageCount }) => {
                           const resolvedPageCount =
                             pageCount ||
                             (pagesPerTopic !== normalizedInitialPages ? pagesPerTopic : undefined);
+                          const resolvedContent = hasGeneratedWork
+                            ? (originalNotes ?? "").trim()
+                            : content.trim();
                           return {
                             title: title.trim(),
-                            content: content.trim(),
+                            content: resolvedContent,
                             ...(resolvedPageCount ? { pageCount: resolvedPageCount } : {}),
                           };
                         })

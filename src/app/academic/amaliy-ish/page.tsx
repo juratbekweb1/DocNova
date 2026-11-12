@@ -20,7 +20,7 @@ import {
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
 import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
-import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
+import { formatImageTopicsTemplateContext } from "@/lib/academic/topic-fidelity";
 import { useToast } from "@/hooks/use-toast";
 import {
   StaleBuildError,
@@ -1000,13 +1000,29 @@ export default function AmaliyIshPage() {
                     customProblemText: "",
                   }))
                 }
+                onImageMetadataDetected={(meta) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    subject:
+                      prev.subject === "Iqtisodiyotda ma'lumotlar tahlili" && meta.subject
+                        ? meta.subject
+                        : prev.subject,
+                    language:
+                      meta.language === "ru" || meta.language === "en" || meta.language === "uz"
+                        ? meta.language
+                        : prev.language,
+                  }));
+                }}
                 onApplyTopicsToForm={(topics) => {
                   if (topics.length === 0) return;
                   setFormData((prev) => ({
                     ...prev,
                     topic: topics[0].title || prev.topic,
                     pageCount: topics[0].pageCount || prev.pageCount,
-                    customProblemText: formatTopicsAsBlueprint(topics),
+                    customProblemText: formatImageTopicsTemplateContext(topics, {
+                      subject: prev.subject,
+                      language: prev.language,
+                    }),
                   }));
                   toast({
                     title: "Rasmdan olingan mavzular qo'llanildi!",
@@ -1043,7 +1059,14 @@ export default function AmaliyIshPage() {
                     ...prev,
                     topic: works[0]?.title?.trim() || prev.topic,
                     pageCount: syncedPage || prev.pageCount,
-                    customProblemText: formatTopicsAsBlueprint(works),
+                    customProblemText: formatImageTopicsTemplateContext(
+                      works.map((w) => ({
+                        title: w.title,
+                        content: "",
+                        pageCount: w.pageCount,
+                      })),
+                      { subject: prev.subject, language: prev.language }
+                    ),
                   }));
                   toast({
                     title: `Har bir mavzuga ${pagesLabel} amaliy ish tayyor!`,

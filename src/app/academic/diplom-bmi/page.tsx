@@ -30,7 +30,7 @@ import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
 import { CreationModeSelector } from "@/components/academic/creation-mode-selector";
 import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
-import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
+import { formatImageTopicsTemplateContext } from "@/lib/academic/topic-fidelity";
 import {
   StaleBuildError,
   deliverPdf,
@@ -596,13 +596,28 @@ export default function DiplomBmiPage() {
                         : "Mavzu va hajm shaklga kiritildi!",
                   });
                 }}
+                onImageMetadataDetected={(meta) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    specialty: prev.specialty.trim()
+                      ? prev.specialty
+                      : meta.subject || prev.specialty,
+                    language:
+                      meta.language === "ru" || meta.language === "uz"
+                        ? meta.language
+                        : prev.language,
+                  }));
+                }}
                 onApplyTopicsToForm={(topics) => {
                   if (topics.length === 0) return;
                   setFormData((prev) => ({
                     ...prev,
                     topic: topics[0].title || prev.topic,
                     pageCount: topics[0].pageCount || prev.pageCount,
-                    templateText: formatTopicsAsBlueprint(topics),
+                    templateText: formatImageTopicsTemplateContext(topics, {
+                      subject: prev.specialty,
+                      language: prev.language,
+                    }),
                   }));
                   toast({
                     title: "Rasmdan olingan mavzular qo'llanildi!",
@@ -624,7 +639,14 @@ export default function DiplomBmiPage() {
                     ...prev,
                     topic: works[0]?.title?.trim() || prev.topic,
                     pageCount: syncedPage || prev.pageCount,
-                    templateText: formatTopicsAsBlueprint(works),
+                    templateText: formatImageTopicsTemplateContext(
+                      works.map((w) => ({
+                        title: w.title,
+                        content: "",
+                        pageCount: w.pageCount,
+                      })),
+                      { subject: prev.specialty, language: prev.language }
+                    ),
                   }));
                   toast({
                     title: "Rasmdan tanlangan betlarda ilmiy matn tayyor!",

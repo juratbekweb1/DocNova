@@ -180,10 +180,18 @@ export function calculateAcademicVolumeBudget(
     sections.sub1_3 = buildSpec("sub1_3", "1.3-fasl (Xorijiy tajriba qiyosiy tahlili)", ch1Sub);
     sections.sub2_1 = buildSpec("sub2_1", "2.1-fasl (O'zbekistondagi joriy amaliy holat)", ch2Sub);
     sections.sub2_2 = buildSpec("sub2_2", "2.2-fasl (Tizimli muammolar diagnostikasi)", ch2Sub);
-    sections.sub2_3 = buildSpec("sub2_3", "2.3-fasl (Samaradorlik ko'rsatkichlari tahlili)", ch2Sub);
+    sections.sub2_3 = buildSpec(
+      "sub2_3",
+      "2.3-fasl (Samaradorlik ko'rsatkichlari tahlili)",
+      ch2Sub
+    );
     sections.sub3_1 = buildSpec("sub3_1", "3.1-fasl (Istiqbolli mexanizmlar)", ch3Sub);
     sections.sub3_2 = buildSpec("sub3_2", "3.2-fasl (Tatbiq etish «Yo'l xaritasi»)", ch3Sub);
-    sections.sub3_3 = buildSpec("sub3_3", "3.3-fasl (Kutilayotgan ijtimoiy-iqtisodiy samara)", ch3Sub);
+    sections.sub3_3 = buildSpec(
+      "sub3_3",
+      "3.3-fasl (Kutilayotgan ijtimoiy-iqtisodiy samara)",
+      ch3Sub
+    );
     sections.xulosaContent = buildSpec("xulosaContent", "XULOSA VA TAKLIFLAR", conclusionPages);
   }
 
@@ -196,11 +204,7 @@ export function calculateAcademicVolumeBudget(
   );
 
   const requiredReferencesCount =
-    moduleType === "DIPLOMA_BMI"
-      ? 25
-      : moduleType === "COURSEWORK"
-        ? 16
-        : 8;
+    moduleType === "DIPLOMA_BMI" ? 25 : moduleType === "COURSEWORK" ? 16 : 8;
 
   const recommendedGeminiMaxTokens = Math.min(
     16384,
@@ -277,7 +281,7 @@ QAT'IY GENERATSIYA QOIDALARI:
 - Tadqiqot mavzusi: "${params.topic}"
 - Tanlangan umumiy hajm: ${budget.targetTotalPages} bet A4 (Asosiy matn: ${budget.netContentPages} bet, jami ~${budget.totalTargetWords} so'z / ~${budget.totalTargetChars} belgi)
 - Til: "${lang}"
-${params.templateText ? `- Foydalanuvchi yuklagan namuna matni:\n"""\n${params.templateText.slice(0, 5000)}\n"""\n` : ""}
+${params.templateText ? `${params.templateText.startsWith("[RASMDAN OLINGAN MAVZU VA TALABLAR]") ? "- Rasmdan olingan foydalanuvchi mavzulari, reja bandlari va qat'iy talablar (HAR BIRINI to'liq saqlang va chuqur yoriting):" : "- Foydalanuvchi yuklagan namuna matni:"}\n"""\n${params.templateText.slice(0, 8000)}\n"""\n` : ""}
 
 BO'LIMLAR BO'YICHA QAT'IY HAJM ME'YORI (1 bet A4 = 250-300 so'z hisobida):
 ${sectionConstraintsList}
@@ -373,9 +377,7 @@ export function auditAndSanitizeAcademicContent(
   const totalChars = cleanedText.length;
   const estimatedPages = Math.max(
     1,
-    Math.round(
-      totalWords / GOST_PAGE_METRICS.WORDS_PER_PAGE_AVG + budget.fixedStructuralPages
-    )
+    Math.round(totalWords / GOST_PAGE_METRICS.WORDS_PER_PAGE_AVG + budget.fixedStructuralPages)
   );
 
   const volumeFulfillmentPercent = Math.min(
@@ -398,15 +400,11 @@ export function auditAndSanitizeAcademicContent(
       : 100;
 
   if (topicRelevanceScore < 60) {
-    issues.push(
-      `Mavzu kalit so'zlarining matnda uchrash darajasi past (${topicRelevanceScore}%).`
-    );
+    issues.push(`Mavzu kalit so'zlarining matnda uchrash darajasi past (${topicRelevanceScore}%).`);
   }
 
   if (duplicateSentencesFound > 0) {
-    issues.push(
-      `${duplicateSentencesFound} ta takroriy jumla aniqlandi va avtomatik tozalandi.`
-    );
+    issues.push(`${duplicateSentencesFound} ta takroriy jumla aniqlandi va avtomatik tozalandi.`);
   }
 
   return {

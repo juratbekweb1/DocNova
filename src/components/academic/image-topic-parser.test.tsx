@@ -1526,4 +1526,263 @@ describe("<ImageTopicParser />", () => {
       uaSpy.mockRestore();
     }
   });
+
+  it("preserves originalNotes on regeneration after changing page counts and when applying to form", async () => {
+    const generateCalls: Array<{
+      topics: Array<{ title: string; content: string; pageCount?: string }>;
+      pagesPerTopic?: string;
+    }> = [];
+
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "/api/parse-topics") {
+        return new Response(
+          JSON.stringify({
+            subject: "Kiberxavfsizlik",
+            language: "uz",
+            topics: [
+              {
+                title: "1. Kriptografiya va ochiq kalit tizimlari",
+                content: "RSA algoritmi va Eyler funksiyasi asosida",
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (url === "/api/academic/topics/generate-works") {
+        const parsedBody = JSON.parse(String(init?.body || "{}"));
+        generateCalls.push(parsedBody);
+        const callIndex = generateCalls.length;
+        return new Response(
+          JSON.stringify({
+            works: [
+              {
+                title: "1. Kriptografiya va ochiq kalit tizimlari",
+                content:
+                  callIndex === 1
+                    ? "## Reja\n### Kirish\nBirinchi generatsiya matni (eski qoralama) bo'lib, ko'p abzasdan iborat."
+                    : "## Reja\n### Kirish\nIkkinchi 8 betlik kengaytirilgan RSA shifrlash ishi.",
+              },
+            ],
+            usedFallbackCount: 0,
+            fallbackIndices: [],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response("Not Found", { status: 404 });
+    });
+
+    const onApplyTopicsToForm = vi.fn();
+    const { container } = render(
+      <ImageTopicParser workType="independent" onApplyTopicsToForm={onApplyTopicsToForm} />
+    );
+
+    const inputEl = container.querySelector("#image-upload-input") as HTMLInputElement;
+    fireEvent.change(inputEl, {
+      target: { files: [new File(["img"], "crypto.png", { type: "image/png" })] },
+    });
+
+    await screen.findByDisplayValue("RSA algoritmi va Eyler funksiyasi asosida");
+
+    // 1. First generation at default 2-3 pages
+    fireEvent.click(screen.getByRole("button", { name: /2-3 bet Mustaqil ish yozish/i }));
+    await screen.findByDisplayValue(/Birinchi generatsiya matni/i);
+
+    // 2. Switch global page count to 8 pages and regenerate
+    const globalCustomInput = screen.getByLabelText("Har bir mavzuga nechta bet");
+    fireEvent.change(globalCustomInput, { target: { value: "8" } });
+    fireEvent.click(screen.getByRole("button", { name: /8 bet Mustaqil ish yozish/i }));
+    await screen.findByDisplayValue(/Ikkinchi 8 betlik kengaytirilgan RSA shifrlash ishi/i);
+
+    expect(generateCalls).toHaveLength(2);
+    // Critical regression check: 2nd generation MUST still receive clean originalNotes, NOT stale 1st essay prose!
+    expect(generateCalls[1].pagesPerTopic).toBe("8");
+    expect(generateCalls[1].topics[0].content).toBe("RSA algoritmi va Eyler funksiyasi asosida");
+    expect(generateCalls[1].topics[0].content).not.toContain("Birinchi generatsiya matni");
+
+    // 3. Apply to main form -> passes clean originalNotes, not full essay prose
+    fireEvent.click(screen.getByRole("button", { name: /Formaga qo'llash/i }));
+    expect(onApplyTopicsToForm).toHaveBeenCalledTimes(1);
+    expect(onApplyTopicsToForm).toHaveBeenCalledWith([
+      expect.objectContaining({
+        title: "1. Kriptografiya va ochiq kalit tizimlari",
+        content: "RSA algoritmi va Eyler funksiyasi asosida",
+      }),
+    ]);
+  });
+
+  it("chunks >4 topics cleanly into parallel-safe batches and forwards detected subject & Russian language", async () => {
+    const chunkCalls: Array<{
+      topics: Array<{ title: string; content: string }>;
+      subject?: string;
+      language?: string;
+    }> = [];
+
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "/api/parse-topics") {
+        return new Response(
+          JSON.stringify({
+            subject: "Высшая математика",
+            language: "ru",
+            topics: [
+              { title: "1. Матрицы и определители", content: "Метод Гаусса" },
+              { title: "2. Системы линейных уравнений", content: "Теорема Крамера" },
+              { title: "3. Пределы и непрерывность", content: "Первый замечательный предел" },
+              { title: "4. Производная и дифференциал", content: "Правило Лопиталя" },
+              { title: "5. Неопределённый интеграл", content: "Замена переменной" },
+              { title: "6. Дифференциальные уравнения", content: "Задача Коши" },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (url === "/api/academic/topics/generate-works") {
+        const body = JSON.parse(String(init?.body || "{}"));
+        chunkCalls.push(body);
+        return new Response(
+          JSON.stringify({
+            works: body.topics.map((t: { title: string }) => ({
+              title: t.title,
+              content: `Готовая академическая работа по теме: ${t.title}. Подробный анализ и выводы.`,
+            })),
+            usedFallbackCount: 0,
+            fallbackIndices: [],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response("Not Found", { status: 404 });
+    });
+
+    const onImageMetadataDetected = vi.fn();
+    const { container } = render(
+      <ImageTopicParser workType="independent" onImageMetadataDetected={onImageMetadataDetected} />
+    );
+
+    const inputEl = container.querySelector("#image-upload-input") as HTMLInputElement;
+    fireEvent.change(inputEl, {
+      target: { files: [new File(["img"], "math-ru.png", { type: "image/png" })] },
+    });
+
+    await screen.findByDisplayValue("Метод Гаусса");
+
+    expect(onImageMetadataDetected).toHaveBeenCalledWith({
+      subject: "Высшая математика",
+      language: "ru",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /2-3 bet Mustaqil ish yozish/i }));
+
+    await screen.findByText(/6 ta mavzuning har biri uchun 2-3 betlik mustaqil ish tayyorlandi!/i);
+
+    // 6 topics must split cleanly into 2 chunks: 4 + 2, preserving subject & detected Russian language
+    expect(chunkCalls).toHaveLength(2);
+    expect(chunkCalls[0].topics).toHaveLength(4);
+    expect(chunkCalls[1].topics).toHaveLength(2);
+    expect(chunkCalls[0].subject).toBe("Высшая математика");
+    expect(chunkCalls[0].language).toBe("ru");
+    expect(chunkCalls[1].language).toBe("ru");
+  });
+
+  it("displays fallback warning alert and retries only the flagged topic via 1-click 'Qayta yozish'", async () => {
+    const generatePayloads: Array<{ topics: Array<{ title: string; content: string }> }> = [];
+
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "/api/parse-topics") {
+        return new Response(
+          JSON.stringify({
+            subject: "Fizika",
+            language: "uz",
+            topics: [
+              { title: "1. Termodinamika qonunlari", content: "Entropiya va Karno sikli" },
+              { title: "2. Elektromagnit induksiya", content: "Faradey qonuni" },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (url === "/api/academic/topics/generate-works") {
+        const body = JSON.parse(String(init?.body || "{}"));
+        generatePayloads.push(body);
+        if (generatePayloads.length === 1) {
+          return new Response(
+            JSON.stringify({
+              works: [
+                {
+                  title: "1. Termodinamika qonunlari",
+                  content: "Vaqtinchalik qisqa qolip matni.",
+                },
+                {
+                  title: "2. Elektromagnit induksiya",
+                  content: "Faradey elektromagnit induksiya qonuni batafsil yoritilgan matn.",
+                },
+              ],
+              fallbackIndices: [0],
+              usedFallbackCount: 1,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // Single-topic retry call for topic index 0
+        return new Response(
+          JSON.stringify({
+            works: [
+              {
+                title: "1. Termodinamika qonunlari",
+                content:
+                  "## Reja\n### Kirish\nTermodinamika qonunlari, entropiya va Karno sikli to'liq yoritilgan mukammal ilmiy ish.",
+              },
+            ],
+            fallbackIndices: [],
+            usedFallbackCount: 0,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response("Not Found", { status: 404 });
+    });
+
+    const { container } = render(<ImageTopicParser workType="independent" />);
+    const inputEl = container.querySelector("#image-upload-input") as HTMLInputElement;
+    fireEvent.change(inputEl, {
+      target: { files: [new File(["img"], "physics.png", { type: "image/png" })] },
+    });
+
+    await screen.findByDisplayValue("Entropiya va Karno sikli");
+
+    fireEvent.click(screen.getByRole("button", { name: /2-3 bet Mustaqil ish yozish/i }));
+
+    // Amber fallback warning must appear with retry button only for flagged topic
+    const alertBanner = await screen.findByRole("alert");
+    expect(alertBanner).toHaveTextContent(/1 ta mavzu uchun AI vaqtinchalik qisqa qolip qaytardi/i);
+
+    const retryBtn = screen.getByRole("button", { name: "1-mavzuni qayta yozish" });
+    expect(
+      screen.queryByRole("button", { name: "2-mavzuni qayta yozish" })
+    ).not.toBeInTheDocument();
+
+    // Retry ONLY the first flagged topic
+    fireEvent.click(retryBtn);
+
+    await screen.findByDisplayValue(/Karno sikli to'liq yoritilgan mukammal ilmiy ish/i);
+
+    expect(generatePayloads).toHaveLength(2);
+    expect(generatePayloads[1].topics).toEqual([
+      { title: "1. Termodinamika qonunlari", content: "Entropiya va Karno sikli" },
+    ]);
+    // Warning clears once all works succeed
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/ta mavzu uchun AI vaqtinchalik qisqa qolip qaytardi/i)
+      ).not.toBeInTheDocument();
+    });
+  });
 });

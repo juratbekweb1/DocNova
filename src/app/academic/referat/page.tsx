@@ -32,7 +32,7 @@ import {
   inAppHint,
 } from "@/lib/pdf-export";
 import { downloadAcademicDocx } from "@/lib/docx-download-client";
-import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
+import { formatImageTopicsTemplateContext } from "@/lib/academic/topic-fidelity";
 
 const REFERAT_PROGRESS_STEPS = [
   "Mavzu va ilmiy reja shakllantirilmoqda...",
@@ -351,13 +351,21 @@ export default function AcademicReferatPage() {
                         : "Barcha asosiy parametrlar shaklga kiritildi!",
                   });
                 }}
+                onImageMetadataDetected={(meta) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    subject: prev.subject.trim() ? prev.subject : meta.subject || prev.subject,
+                  }));
+                }}
                 onApplyTopicsToForm={(topics) => {
                   if (topics.length === 0) return;
                   setFormData((prev) => ({
                     ...prev,
                     topic: topics[0].title || prev.topic,
                     length: topics[0].pageCount ? `${topics[0].pageCount} bet` : prev.length,
-                    templateText: formatTopicsAsBlueprint(topics),
+                    templateText: formatImageTopicsTemplateContext(topics, {
+                      subject: prev.subject,
+                    }),
                   }));
                   toast({
                     title: "Rasmdan olingan mavzular qo'llanildi!",
@@ -383,7 +391,14 @@ export default function AcademicReferatPage() {
                     ...prev,
                     topic: works[0]?.title?.trim() || prev.topic,
                     length: syncedPage ? `${syncedPage} bet` : prev.length,
-                    templateText: formatTopicsAsBlueprint(works),
+                    templateText: formatImageTopicsTemplateContext(
+                      works.map((w) => ({
+                        title: w.title,
+                        content: "",
+                        pageCount: w.pageCount,
+                      })),
+                      { subject: prev.subject }
+                    ),
                   }));
                   toast({
                     title: `Har bir mavzuga ${pagesLabel} mustaqil ish tayyor!`,

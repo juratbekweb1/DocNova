@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 import { UrlImageModeSync } from "@/components/academic/creation-mode-selector";
 import { ImageTopicParser } from "@/components/academic/image-topic-parser";
-import { formatTopicsAsBlueprint } from "@/lib/academic/topic-parser";
+import { formatImageTopicsTemplateContext } from "@/lib/academic/topic-fidelity";
 
 export default function AcademicExamPrepPage() {
   const { toast } = useToast();
@@ -268,13 +268,21 @@ export default function AcademicExamPrepPage() {
                   defaultPagesPerTopic="3-4"
                   subjectHint={formData.subject}
                   onImageSelected={() => setShowImageParser(true)}
+                  onImageMetadataDetected={(meta) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      subject: prev.subject.trim() ? prev.subject : meta.subject || prev.subject,
+                    }));
+                  }}
                   onApplyTopicsToForm={(topics) => {
                     if (topics.length === 0) return;
                     setFormData((prev) => ({
                       ...prev,
                       topic: topics[0].title || prev.topic,
                       length: topics[0].pageCount ? `${topics[0].pageCount} bet` : prev.length,
-                      templateText: formatTopicsAsBlueprint(topics),
+                      templateText: formatImageTopicsTemplateContext(topics, {
+                        subject: prev.subject,
+                      }),
                     }));
                     toast({
                       title: "Rasmdan savollar yuklandi!",
@@ -300,7 +308,14 @@ export default function AcademicExamPrepPage() {
                       ...prev,
                       topic: works[0]?.title?.trim() || prev.topic,
                       length: syncedLength || prev.length,
-                      templateText: formatTopicsAsBlueprint(works),
+                      templateText: formatImageTopicsTemplateContext(
+                        works.map((w) => ({
+                          title: w.title,
+                          content: "",
+                          pageCount: w.pageCount,
+                        })),
+                        { subject: prev.subject }
+                      ),
                     }));
                     toast({
                       title: "Rasmdan bilet javoblari tayyorlandi!",

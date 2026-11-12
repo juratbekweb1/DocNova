@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeAcademicLanguageValue, type AcademicLanguage } from "./topic-fidelity";
 
 export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
@@ -80,8 +81,12 @@ export const parseTopicsRequestSchema = z
     message: "Rasm base64 ma'lumoti yuborilishi shart",
   });
 
+export const academicLanguageSchema = z.enum(["uz", "uz-cyrl", "ru", "en"]);
+
 export const parseTopicsResponseSchema = z.object({
   topics: z.array(parsedTopicSchema).max(MAX_TOPICS_PER_IMAGE),
+  subject: z.string().trim().max(200).optional(),
+  language: academicLanguageSchema.optional(),
 });
 
 export const saveAcademicTopicsSchema = z.object({
@@ -118,7 +123,7 @@ export const generateWorksRequestSchema = z.object({
   workType: z.string().trim().max(100).optional(),
   subject: z.string().trim().max(200).optional(),
   pagesPerTopic: pageCountValueSchema.optional().transform((val) => val ?? "2-3"),
-  language: z.enum(["uz", "ru", "en"]).default("uz"),
+  language: z.enum(["uz", "uz-cyrl", "ru", "en", "auto"]).default("auto"),
 });
 
 export type GenerateWorksRequestInput = z.infer<typeof generateWorksRequestSchema>;
@@ -238,10 +243,26 @@ export function extractBase64Image(
   };
 }
 
+const METADATA_HEADER_ONLY_REGEX =
+  /^(?:t\/r|№(?:\s*п\/п)?|tartib\s+raqami|mavzu(?:\s+nomi)?|mavzular(?:\s+ro['‘ʻ]?yxati)?|savollar(?:\s+ro['‘ʻ]?yxati)?|reja|fan(?:\s+nomi)?|guruh|kurs|talaba(?:\s+f\.?i\.?sh\.?)?|o['‘ʻ]?qituvchi|sana|soat(?:i)?|ball|imzo|изоҳ|мавзу\s+номи|предмет|тема|группа|курс|студент|преподаватель|дата|часы|подпись|topic|subject|date|hours|grade)$/i;
+
+function isTableHeaderOnlyText(raw: string): boolean {
+  const parts = raw
+    .split(/[|\t,;]+/)
+    .map((part) => part.replace(/[:.-]+$/g, "").trim())
+    .filter(Boolean);
+  if (parts.length === 0) return false;
+  return parts.every((part) => METADATA_HEADER_ONLY_REGEX.test(part));
+}
+
 /**
  * Cleans markdown code fences (if any) and validates Gemini's structured topic payload.
  */
-export function parseGeminiTopicsPayload(rawText: string): { topics: ParsedTopic[] } {
+export function parseGeminiTopicsPayload(rawText: string): {
+  topics: ParsedTopic[];
+  subject?: string;
+  language?: AcademicLanguage;
+} {
   const cleaned = rawText
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -262,6 +283,17 @@ export function parseGeminiTopicsPayload(rawText: string): { topics: ParsedTopic
       ? (parsed as { topics: unknown[] }).topics
       : [];
 
+  let detectedSubject: string | undefined;
+  let detectedLanguage: AcademicLanguage | undefined;
+
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    const obj = parsed as { subject?: unknown; language?: unknown };
+    if (typeof obj.subject === "string" && obj.subject.trim().length >= 2) {
+      detectedSubject = obj.subject.trim().slice(0, 200);
+    }
+    detectedLanguage = normalizeAcademicLanguageValue(obj.language);
+  }
+
   const normalized: ParsedTopic[] = [];
 
   for (const item of rawList) {
@@ -272,15 +304,26 @@ export function parseGeminiTopicsPayload(rawText: string): { topics: ParsedTopic
 
     if (!title && !contentRaw) continue;
 
+    // Skip spurious table column headers / metadata rows mistakenly emitted as topics
+    const isHeaderTitle = Boolean(title) && isTableHeaderOnlyText(title);
+    const isEmptyOrHeaderContent = !contentRaw || isTableHeaderOnlyText(contentRaw);
+    if (isHeaderTitle && isEmptyOrHeaderContent) {
+      continue;
+    }
+
     normalized.push({
       title: (title || contentRaw.slice(0, 80)).slice(0, 300),
-      content: (contentRaw || title).slice(0, 25000),
+      content: contentRaw.slice(0, 25000),
     });
 
     if (normalized.length >= MAX_TOPICS_PER_IMAGE) break;
   }
 
-  return parseTopicsResponseSchema.parse({ topics: normalized });
+  return parseTopicsResponseSchema.parse({
+    topics: normalized,
+    ...(detectedSubject ? { subject: detectedSubject } : {}),
+    ...(detectedLanguage ? { language: detectedLanguage } : {}),
+  });
 }
 
 export function buildDocumentSlug(title: string): string {
