@@ -1785,4 +1785,29 @@ describe("<ImageTopicParser />", () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  it("shows clear Uzbek messages on HTTP 413 payload limit and mobile network interruption", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response("Request Entity Too Large", { status: 413 }))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    const { container } = render(<ImageTopicParser workType="independent" />);
+    const inputEl = container.querySelector("#image-upload-input") as HTMLInputElement;
+
+    fireEvent.change(inputEl, {
+      target: { files: [new File(["img"], "huge-photo.jpg", { type: "image/jpeg" })] },
+    });
+
+    expect(
+      await screen.findByText(/Rasm hajmi juda katta \(4\.5 MB chegarasidan oshdi\)/i)
+    ).toBeInTheDocument();
+
+    fireEvent.change(inputEl, {
+      target: { files: [new File(["img"], "mobile-photo.jpg", { type: "image/jpeg" })] },
+    });
+
+    expect(
+      await screen.findByText(/Server bilan aloqa uzildi yoki internet sekinlashdi/i)
+    ).toBeInTheDocument();
+  });
 });

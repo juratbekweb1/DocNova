@@ -18,11 +18,11 @@ import {
 
 export const maxDuration = 60;
 
-const GEMINI_TEXT_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
-const GEMINI_FALLBACK_TEXT_MODEL = "gemini-3.1-flash-lite";
-const GEMINI_EMERGENCY_TEXT_MODEL = "gemini-flash-latest";
+const GEMINI_TEXT_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.1-flash-lite";
+const GEMINI_FALLBACK_TEXT_MODEL = "gemini-3.1-flash-lite-preview";
+const GEMINI_EMERGENCY_TEXT_MODEL = "gemini-3.5-flash";
 const MAX_CONCURRENT_TOPIC_GENERATIONS = 4;
-const WORK_TIMEOUT_MS = 45_000;
+const WORK_TIMEOUT_MS = 25_000;
 const ROUTE_DEADLINE_BUFFER_MS = 53_000;
 
 function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {

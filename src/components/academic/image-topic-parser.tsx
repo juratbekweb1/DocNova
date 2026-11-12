@@ -94,7 +94,9 @@ interface SaveResultState {
 
 const DRAFT_STORAGE_KEY = "docnova_academic_image_topics_draft_v1";
 const MAX_RAW_UPLOAD_BYTES = 15 * 1024 * 1024;
-const COMPRESS_THRESHOLD_BYTES = 2 * 1024 * 1024;
+const COMPRESS_THRESHOLD_BYTES = 1 * 1024 * 1024;
+const SAFE_BASE64_DATAURL_MAX_CHARS = 2_800_000;
+const HARD_VERCEL_BASE64_MAX_CHARS = 4_100_000;
 const WORK_CHUNK_SIZE = 4;
 
 function createBlockId(): string {
@@ -149,34 +151,60 @@ async function maybeCompressLargeImageDataUrl(
     const img = new window.Image();
     img.onload = () => {
       try {
-        const maxSide = 3072;
-        let { width, height } = img;
-        if (width <= 0 || height <= 0) {
+        const srcWidth = img.width;
+        const srcHeight = img.height;
+        if (srcWidth <= 0 || srcHeight <= 0) {
           resolve({ dataUrl, mimeType });
           return;
         }
-        if (width > maxSide || height > maxSide) {
-          if (width >= height) {
-            height = Math.round((height * maxSide) / width);
-            width = maxSide;
-          } else {
-            width = Math.round((width * maxSide) / height);
-            height = maxSide;
-          }
-        }
+
+        const encodeSteps: Array<{ maxSide: number; quality: number }> = [
+          { maxSide: 2048, quality: 0.86 },
+          { maxSide: 1800, quality: 0.74 },
+          { maxSide: 1440, quality: 0.62 },
+          { maxSide: 1080, quality: 0.52 },
+        ];
+
         const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
           resolve({ dataUrl, mimeType });
           return;
         }
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL("image/jpeg", 0.92);
+
+        let bestEncoded = dataUrl;
+        for (const step of encodeSteps) {
+          let width = srcWidth;
+          let height = srcHeight;
+          if (width > step.maxSide || height > step.maxSide) {
+            if (width >= height) {
+              height = Math.round((height * step.maxSide) / width);
+              width = step.maxSide;
+            } else {
+              width = Math.round((width * step.maxSide) / height);
+              height = step.maxSide;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const candidate = canvas.toDataURL("image/jpeg", step.quality);
+          if (candidate.startsWith("data:image/")) {
+            bestEncoded = candidate;
+            if (candidate.length <= SAFE_BASE64_DATAURL_MAX_CHARS) {
+              resolve({ dataUrl: candidate, mimeType: "image/jpeg" });
+              return;
+            }
+          }
+        }
+
         resolve(
-          compressed.startsWith("data:image/")
-            ? { dataUrl: compressed, mimeType: "image/jpeg" }
+          bestEncoded.startsWith("data:image/") && bestEncoded !== dataUrl
+            ? { dataUrl: bestEncoded, mimeType: "image/jpeg" }
             : { dataUrl, mimeType }
         );
       } catch {
@@ -353,19 +381,41 @@ export function ImageTopicParser({
         file.size,
         file.type || "image/jpeg"
       );
+      if (optimized.dataUrl.length > HARD_VERCEL_BASE64_MAX_CHARS) {
+        throw new Error(
+          "Tanlangan rasm hajmi juda katta (4.5 MB chegarasidan oshdi). Iltimos rasmni skrinshot qilib yoki kichikroq JPEG/PNG ko'rinishida yuklang."
+        );
+      }
       setPreviewUrl(optimized.dataUrl);
 
-      const response = await fetch("/api/parse-topics", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image: optimized.dataUrl,
-          mimeType: optimized.mimeType,
-          fileName: file.name,
-        }),
-      });
+      const controller = new AbortController();
+      const abortTimer = window.setTimeout(() => controller.abort(), 52_000);
+      let response: Response;
+      try {
+        response = await fetch("/api/parse-topics", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            image: optimized.dataUrl,
+            mimeType: optimized.mimeType,
+            fileName: file.name,
+          }),
+        });
+      } catch (networkErr) {
+        if (networkErr instanceof DOMException && networkErr.name === "AbortError") {
+          throw new Error(
+            "Rasmni tahlil qilish vaqti tugadi. Iltimos internet aloqasini tekshirib, qayta urinib ko'ring."
+          );
+        }
+        throw new Error(
+          "Server bilan aloqa uzildi yoki internet sekinlashdi. Iltimos qayta urinib ko'ring."
+        );
+      } finally {
+        window.clearTimeout(abortTimer);
+      }
 
       const data = (await response.json().catch(() => ({}))) as {
         topics?: ParsedTopic[];
@@ -375,6 +425,11 @@ export function ImageTopicParser({
       };
 
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error(
+            "Rasm hajmi juda katta (4.5 MB chegarasidan oshdi). Iltimos kichikroq rasm yuklang."
+          );
+        }
         throw new Error(data.error || "Rasmni tahlil qilishda xatolik yuz berdi.");
       }
 

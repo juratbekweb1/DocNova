@@ -14,10 +14,13 @@ import { detectAcademicLanguage } from "@/lib/academic/topic-fidelity";
 export const maxDuration = 60;
 
 const GEMINI_VISION_MODEL =
-  process.env.GEMINI_VISION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
+  process.env.GEMINI_VISION_MODEL?.trim() ||
+  process.env.GEMINI_MODEL?.trim() ||
+  "gemini-3.1-flash-lite-preview";
 const GEMINI_VISION_FALLBACK_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_VISION_TERTIARY_MODEL = "gemini-3.5-flash";
 const GEMINI_VISION_EMERGENCY_MODEL = "gemini-flash-latest";
-const PARSE_TIMEOUT_MS = 40_000;
+const PARSE_TIMEOUT_MS = 38_000;
 
 function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -166,28 +169,49 @@ export async function POST(request: NextRequest) {
         "PARSE_TOPICS"
       );
 
+    const candidateModels = Array.from(
+      new Set([
+        GEMINI_VISION_MODEL,
+        GEMINI_VISION_FALLBACK_MODEL,
+        GEMINI_VISION_TERTIARY_MODEL,
+        GEMINI_VISION_EMERGENCY_MODEL,
+      ])
+    );
+
     let modelUsed = GEMINI_VISION_MODEL;
     let response;
-    try {
-      response = await callVisionModel(GEMINI_VISION_MODEL, PARSE_TIMEOUT_MS);
-    } catch (primaryErr) {
-      const msg = primaryErr instanceof Error ? primaryErr.message : "";
-      const remainingMs = PARSE_TIMEOUT_MS - (Date.now() - startedAt);
-      if (msg.includes("PARSE_TOPICS_TIMEOUT") || remainingMs < 6_000) {
-        throw primaryErr;
+    let lastError: unknown;
+
+    for (let idx = 0; idx < candidateModels.length; idx++) {
+      const candidate = candidateModels[idx];
+      const elapsedMs = Date.now() - startedAt;
+      const remainingMs = PARSE_TIMEOUT_MS - elapsedMs;
+      if (remainingMs < 3_000) {
+        break;
       }
-      modelUsed = GEMINI_VISION_FALLBACK_MODEL;
+
+      const isLast = idx === candidateModels.length - 1;
+      // Leave enough budget for fast failover if a single Gemini model stalls or throws 503
+      const perAttemptMs = isLast
+        ? remainingMs
+        : Math.min(idx === 0 ? 16_000 : 12_000, remainingMs);
+
       try {
-        response = await callVisionModel(GEMINI_VISION_FALLBACK_MODEL, remainingMs);
-      } catch (secondaryErr) {
-        const secondaryMsg = secondaryErr instanceof Error ? secondaryErr.message : "";
-        const secondRemainingMs = PARSE_TIMEOUT_MS - (Date.now() - startedAt);
-        if (secondaryMsg.includes("PARSE_TOPICS_TIMEOUT") || secondRemainingMs < 6_000) {
-          throw secondaryErr;
+        modelUsed = candidate;
+        response = await callVisionModel(candidate, perAttemptMs);
+        break;
+      } catch (attemptErr) {
+        lastError = attemptErr;
+        console.warn(`[PARSE_TOPICS_MODEL_ERR] ${candidate}:`, attemptErr);
+        const afterErrRemaining = PARSE_TIMEOUT_MS - (Date.now() - startedAt);
+        if (afterErrRemaining < 4_000) {
+          break;
         }
-        modelUsed = GEMINI_VISION_EMERGENCY_MODEL;
-        response = await callVisionModel(GEMINI_VISION_EMERGENCY_MODEL, secondRemainingMs);
       }
+    }
+
+    if (!response) {
+      throw lastError instanceof Error ? lastError : new Error("PARSE_TOPICS_TIMEOUT");
     }
 
     const rawText = response.text ?? "";
@@ -228,6 +252,11 @@ export async function POST(request: NextRequest) {
       errorMessage.includes("429") ||
       errorMessage.toLowerCase().includes("quota") ||
       errorMessage.toLowerCase().includes("rate limit");
+    const isUpstreamBusy =
+      errorMessage.includes("503") ||
+      errorMessage.toLowerCase().includes("unavailable") ||
+      errorMessage.toLowerCase().includes("high demand") ||
+      errorMessage.toLowerCase().includes("overloaded");
 
     await trackAIUsage({
       userId,
@@ -241,7 +270,9 @@ export async function POST(request: NextRequest) {
         ? "PARSE_TOPICS_TIMEOUT"
         : isQuotaError
           ? "GEMINI_RATE_LIMIT"
-          : "PARSE_TOPICS_ERROR",
+          : isUpstreamBusy
+            ? "GEMINI_UNAVAILABLE"
+            : "PARSE_TOPICS_ERROR",
     });
 
     return NextResponse.json(
@@ -250,9 +281,11 @@ export async function POST(request: NextRequest) {
           ? "Rasmni tahlil qilish vaqti tugadi. Iltimos, aniqroq yoki kichikroq rasm bilan qayta urinib ko'ring."
           : isQuotaError
             ? "AI xizmati vaqtincha band (limit oshdi). Bir necha soniyadan so'ng qayta urinib ko'ring."
-            : "Rasmni tahlil qilishda xatolik yuz berdi. Iltimos qayta urinib ko'ring.",
+            : isUpstreamBusy
+              ? "AI xizmati hozir yuklama ostida band. Iltimos 5-10 soniyadan so'ng qayta urinib ko'ring."
+              : "Rasmni tahlil qilishda xatolik yuz berdi. Iltimos qayta urinib ko'ring.",
       },
-      { status: isTimeoutError ? 504 : isQuotaError ? 429 : 500 }
+      { status: isTimeoutError ? 504 : isQuotaError ? 429 : isUpstreamBusy ? 503 : 500 }
     );
   }
 }

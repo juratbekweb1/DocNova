@@ -273,7 +273,22 @@ export function parseGeminiTopicsPayload(rawText: string): {
     return { topics: [] };
   }
 
-  const parsed: unknown = JSON.parse(cleaned);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    const objStart = cleaned.indexOf("{");
+    const objEnd = cleaned.lastIndexOf("}");
+    const arrStart = cleaned.indexOf("[");
+    const arrEnd = cleaned.lastIndexOf("]");
+    const candidateJson =
+      objStart !== -1 && objEnd > objStart && (arrStart === -1 || objStart < arrStart)
+        ? cleaned.slice(objStart, objEnd + 1)
+        : arrStart !== -1 && arrEnd > arrStart
+          ? cleaned.slice(arrStart, arrEnd + 1)
+          : cleaned;
+    parsed = JSON.parse(candidateJson);
+  }
   const rawList: unknown[] = Array.isArray(parsed)
     ? parsed
     : typeof parsed === "object" &&

@@ -107,6 +107,14 @@ describe("Academic Image Topic Parser Helpers", () => {
     expect(parsed.topics).toEqual([{ title: "1. Kirish", content: "Asosiy matn" }]);
   });
 
+  it("recovers valid JSON even when Gemini adds conversational text before/after the object", () => {
+    const parsed = parseGeminiTopicsPayload(
+      'Mana rasmdan olingan natija:\n{"subject":"Tarix","topics":[{"title":"1. Xorazmshohlar","content":""}]}\nOmad!'
+    );
+    expect(parsed.subject).toBe("Tarix");
+    expect(parsed.topics).toEqual([{ title: "1. Xorazmshohlar", content: "" }]);
+  });
+
   it("formats topics into an academic blueprint string", () => {
     const blueprint = formatTopicsAsBlueprint([
       { title: "Mavzu A", content: "Izoh A" },
@@ -169,7 +177,7 @@ describe("POST /api/parse-topics", () => {
 
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     const callArg = mockGenerateContent.mock.calls[0][0];
-    expect(callArg.model).toBe("gemini-3.5-flash");
+    expect(callArg.model).toBe("gemini-3.1-flash-lite-preview");
     expect(callArg.contents[0]).toEqual({
       inlineData: {
         mimeType: "image/png",
@@ -179,7 +187,7 @@ describe("POST /api/parse-topics", () => {
     expect(callArg.config.responseMimeType).toBe("application/json");
     expect(mockTrackAIUsage).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite-preview",
         status: "SUCCESS",
         inputTokens: 256,
         outputTokens: 512,
@@ -331,11 +339,48 @@ describe("POST /api/parse-topics", () => {
 
     expect(res.status).toBe(200);
     expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-    expect(mockGenerateContent.mock.calls[0][0].model).toBe("gemini-3.5-flash");
+    expect(mockGenerateContent.mock.calls[0][0].model).toBe("gemini-3.1-flash-lite-preview");
     expect(mockGenerateContent.mock.calls[1][0].model).toBe("gemini-3.1-flash-lite");
     expect(json.topics).toEqual([
       { title: "1. Termodinamikaning birinchi qonuni", content: "Q = dU + A" },
     ]);
+  });
+
+  it("fails over automatically to fast secondary model if Attempt 1 hangs past perAttemptMs", async () => {
+    vi.useFakeTimers();
+    try {
+      mockGenerateContent
+        .mockImplementationOnce(() => new Promise(() => {}))
+        .mockResolvedValueOnce({
+          text: JSON.stringify({
+            subject: "Biologiya",
+            language: "uz",
+            topics: [{ title: "1. DNK replikatsiyasi", content: "" }],
+          }),
+        });
+
+      const req = new NextRequest("http://localhost:3000/api/parse-topics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: `data:image/png;base64,${SAMPLE_PNG_BASE64}`,
+          mimeType: "image/png",
+        }),
+      });
+
+      const resPromise = parseTopicsPost(req);
+      await vi.advanceTimersByTimeAsync(16_500);
+      const res = await resPromise;
+      const json = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      expect(mockGenerateContent.mock.calls[0][0].model).toBe("gemini-3.1-flash-lite-preview");
+      expect(mockGenerateContent.mock.calls[1][0].model).toBe("gemini-3.1-flash-lite");
+      expect(json.topics).toEqual([{ title: "1. DNK replikatsiyasi", content: "" }]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -562,11 +607,11 @@ Bozor tahlili shuni ko'rsatadiki, elektron tijorat rivoji milliy iqtisodiyotning
       },
     ]);
     expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-    expect(mockGenerateContent.mock.calls[0][0].model).toBe("gemini-3.5-flash");
+    expect(mockGenerateContent.mock.calls[0][0].model).toBe("gemini-3.1-flash-lite");
     expect(mockTrackAIUsage).toHaveBeenCalledWith(
       expect.objectContaining({
         feature: "ACADEMIC_GENERATION",
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite",
         status: "SUCCESS",
         inputTokens: 310,
         outputTokens: 1850,
