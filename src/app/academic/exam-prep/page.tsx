@@ -35,6 +35,24 @@ export default function AcademicExamPrepPage() {
     templateText: "",
     length: "3-5 bet",
   });
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string>("");
+
+  const handleImageSelect = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(reader.result as string);
+      setImageFileName(file.name);
+      setFormData((prev) => ({ ...prev, topic: "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setImage(null);
+    setImageFileName("");
+  };
   const [showImageParser, setShowImageParser] = useState(false);
   const imageParserRef = useRef<HTMLDivElement>(null);
   const resultPreviewRef = useRef<HTMLDivElement>(null);
@@ -83,10 +101,10 @@ export default function AcademicExamPrepPage() {
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.subject.trim() || !formData.topic.trim()) {
+    if (!formData.subject.trim() || (!image && !formData.topic.trim())) {
       toast({
         title: "Maydonlarni to'ldiring",
-        description: "Fan nomi va mavzuni kiritishingiz kerak.",
+        description: "Fan nomi va mavzu (yoki rasm) kiritilishi kerak.",
         variant: "destructive",
       });
       return;
@@ -102,6 +120,9 @@ export default function AcademicExamPrepPage() {
         body: JSON.stringify({
           action: "generate-exam-prep",
           ...formData,
+          topic: image ? "" : formData.topic,
+          image: image || undefined,
+          pageCount: formData.length,
         }),
       });
 
@@ -156,14 +177,15 @@ export default function AcademicExamPrepPage() {
 
   const handleDownloadDoc = () => {
     if (!result) return;
+    const cleanImageTitle = imageFileName ? imageFileName.replace(/\.[^/.]+$/, "") : "";
     const cleanTopic =
-      formData.topic
+      (formData.topic || cleanImageTitle || "Imtihon")
         .slice(0, 40)
         .replace(/['`\u2018\u2019\u02BB\u02BC]/g, "")
         .replace(/[^a-zA-Z0-9\u0400-\u04FF_-]+/g, "_")
         .replace(/^_+|_+$/g, "") || "Imtihon";
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>${formData.topic}</title>
+    <head><meta charset='utf-8'><title>${formData.topic || cleanImageTitle || "Imtihon"}</title>
     <style>
       body { font-family: 'Calibri', sans-serif; font-size: 12pt; line-height: 1.4; margin: 20mm; }
       h1 { font-size: 16pt; color: #1e293b; font-weight: bold; border-bottom: 2px solid #0ea5e9; padding-bottom: 6px; }
@@ -274,8 +296,14 @@ export default function AcademicExamPrepPage() {
                       subject: prev.subject.trim() ? prev.subject : meta.subject || prev.subject,
                     }));
                   }}
+                  onImageFileSelected={(dataUrl, name) => {
+                    setImage(dataUrl);
+                    if (name) setImageFileName(name);
+                  }}
+                  onImageCleared={handleClearImage}
                   onApplyTopicsToForm={(topics) => {
                     if (topics.length === 0) return;
+                    handleClearImage();
                     setFormData((prev) => ({
                       ...prev,
                       topic: topics[0].title || prev.topic,
@@ -291,6 +319,7 @@ export default function AcademicExamPrepPage() {
                   }}
                   onWorksGenerated={(works) => {
                     if (works.length === 0) return;
+                    handleClearImage();
                     const combined = works
                       .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
                       .join("\n\n---\n\n");
@@ -349,20 +378,86 @@ export default function AcademicExamPrepPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Mavzu yoki savollar ro&apos;yxati *
-                </label>
-                <input
-                  type="text"
-                  name="topic"
-                  required
-                  value={formData.topic}
-                  onChange={handleChange}
-                  placeholder="Masalan: Kriptografiya asoslari va RSA algoritmi..."
-                  className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-purple-400 focus:outline-none sm:text-sm"
-                />
+              {/* Rasm biriktirish maydoni */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-foreground-secondary block text-xs font-semibold">
+                    Savollar rasmi (Ixtiyoriy — biletlar, konspekt yoki savollar ro&apos;yxati)
+                  </label>
+                  {image && (
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="text-xs font-semibold text-rose-400 transition hover:text-rose-300"
+                    >
+                      Rasmni tozalash
+                    </button>
+                  )}
+                </div>
+                {image ? (
+                  <div className="flex items-center justify-between rounded-xl border border-purple-500/40 bg-purple-500/10 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileImage className="h-5 w-5 shrink-0 text-purple-400" />
+                      <div className="text-xs">
+                        <p className="text-foreground max-w-[200px] truncate font-semibold sm:max-w-xs">
+                          {imageFileName || "Mavzular rasmi biriktirildi"}
+                        </p>
+                        <p className="text-[11px] font-medium text-purple-400">
+                          Rasmdagi har bir mavzu va savol avtomatik o&apos;qiladi va yoritiladi
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="border-border/80 bg-background/80 text-foreground-secondary rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:bg-rose-500/10 hover:text-rose-400"
+                    >
+                      O&apos;chirish
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-border bg-surface-elevated/40 flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-3.5 py-2.5 transition hover:border-purple-500/60 hover:bg-purple-500/5">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageSelect(file);
+                      }}
+                      className="sr-only"
+                      id="exam-image-upload-input"
+                    />
+                    <div className="flex items-center gap-2">
+                      <FileImage className="h-4 w-4 shrink-0 text-purple-400" />
+                      <span className="text-foreground-secondary text-xs">
+                        Galereyadan savollar rasmini yuklash
+                      </span>
+                    </div>
+                    <span className="rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-400">
+                      Rasm tanlash
+                    </span>
+                  </label>
+                )}
               </div>
+
+              {/* Case A: No Image Uploaded -> Show Topic input */}
+              {/* Case B: Image IS Uploaded -> Hide Topic input */}
+              {!image && (
+                <div>
+                  <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
+                    Mavzu yoki savollar ro&apos;yxati *
+                  </label>
+                  <input
+                    type="text"
+                    name="topic"
+                    required
+                    value={formData.topic}
+                    onChange={handleChange}
+                    placeholder="Masalan: Kriptografiya asoslari va RSA algoritmi..."
+                    className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-purple-400 focus:outline-none sm:text-sm"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
@@ -388,7 +483,9 @@ export default function AcademicExamPrepPage() {
 
               <div>
                 <label className="text-foreground-secondary mb-1 block text-xs font-semibold">
-                  Kutilayotgan hajm (Nechta bet yozilsin?)
+                  {image
+                    ? "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+                    : "Kutilayotgan hajm (Nechta bet yozilsin?)"}
                 </label>
                 <div className="mb-1.5 flex flex-wrap gap-1.5">
                   {["2-3 bet", "3-5 bet", "8 bet", "10 bet", "15 bet"].map((cnt) => (

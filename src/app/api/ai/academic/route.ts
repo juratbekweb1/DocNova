@@ -20,6 +20,7 @@ import {
   evaluateGeneratedWorkFidelity,
   IMAGE_TOPICS_CONTEXT_MARKER,
 } from "@/lib/academic/topic-fidelity";
+import { extractBase64Image } from "@/lib/academic/topic-parser";
 
 export async function POST(req: Request) {
   const startTime = Date.now();
@@ -85,6 +86,10 @@ export async function POST(req: Request) {
             fileSize: rawTemplateStr.length,
           }).structuralBlueprint
       : "";
+    const rawImage = String(body.image || body.imageBase64 || "").trim();
+    const hasImage = Boolean(rawImage);
+    const mimeType = String(body.mimeType || "image/jpeg").trim();
+
     const topic = String(body.topic || "")
       .trim()
       .slice(0, 300);
@@ -110,16 +115,148 @@ export async function POST(req: Request) {
       .trim()
       .slice(0, 150);
 
-    if (!topic) {
-      return NextResponse.json({ error: "Mavzu kiritilishi shart" }, { status: 400 });
+    // Validation: topic is optional when an image is provided.
+    // If neither topic nor image is provided, return 400 error.
+    if (!topic && !hasImage) {
+      return NextResponse.json(
+        { error: "Mavzu kiritilishi yoki rasm yuklanishi shart" },
+        { status: 400 }
+      );
+    }
+
+    let extractedImage: { data: string; mimeType: string } | null = null;
+    if (hasImage) {
+      const imgRes = extractBase64Image(rawImage, mimeType);
+      if (!imgRes.ok) {
+        return NextResponse.json({ error: imgRes.error }, { status: imgRes.status });
+      }
+      extractedImage = { data: imgRes.data, mimeType: imgRes.mimeType };
     }
 
     const currentYear = new Date().getFullYear();
     const isRu = language === "ru";
     const selectedPart = part || "To'liq BMI majmuasi (Barcha boblar va 30 ta adabiyot)";
+    const effectivePages = String(body.pageCount || length || "10")
+      .trim()
+      .slice(0, 30);
+    const cleanEffectivePages = effectivePages.replace(/\s*bet.*$/i, "").trim() || effectivePages;
     const bmiPages = String(body.pageCount || "70")
       .trim()
       .slice(0, 10);
+
+    const isGenericTopicPlaceholder =
+      !topic ||
+      topic.toLowerCase() === "referat" ||
+      topic.toLowerCase() === "mustaqil ish" ||
+      topic.toLowerCase() === "diplom ishi" ||
+      topic.toLowerCase() === "bmi" ||
+      topic.toLowerCase().startsWith("rasmdagi") ||
+      Boolean(body.imageMode);
+
+    // Multimodal flow: Image is provided without a text topic (or with generic image placeholder).
+    // Instruct Gemini SDK to:
+    // 1. Extract all topics/items listed in the uploaded image.
+    // 2. Generate structured academic content for EACH extracted topic, strictly adhering to the selected pageCount.
+    if (hasImage && isGenericTopicPlaceholder && extractedImage) {
+      const academicLabel =
+        action === "generate-bmi"
+          ? isRu
+            ? "Выпускная квалификационная работа (ВКР / BMI)"
+            : "Bitiruv Malakaviy Ishi (BMI)"
+          : action === "generate-exam-prep"
+            ? isRu
+              ? "Экзаменационные билеты и конспект"
+              : "Imtihon savollari va bilet konspekti"
+            : isRu
+              ? "Реферат / Самостоятельная работа"
+              : "Referat va Mustaqil ish";
+
+      const imagePrompt = isRu
+        ? `Вы — ведущий профессор и академический эксперт высшей квалификации по стандартам высшего образования Республики Узбекистан (МОВСО РУз).
+Перед вами загруженное изображение (конспект, страница учебника, список тем, силлабус или экзаменационные вопросы).
+
+ВАША ОБЯЗАТЕЛЬНАЯ ЗАДАЧА:
+1. Внимательно извлеките ВСЕ темы, вопросы или пункты, перечисленные на загруженном изображении (Extract all topics/items listed in the uploaded image).
+2. Для КАЖДОЙ извлечённой темы подготовьте структурированную, качественную и завершённую академическую работу (${academicLabel}):
+   - Номер и точное название темы (сохраняйте оригинальный язык и формулировку с изображения)
+   - Введение (актуальность темы, цель и задачи)
+   - Основная содержательная часть с глубоким теоретическим и практическим анализом
+   - Заключение и выводы (Xulosa)
+   - Список использованной литературы по стандартам ГОСТ (реальные источники)
+3. СТРОГОЕ ТРЕБОВАНИЕ К ОБЪЁМУ: Для КАЖДОЙ темы из изображения строго соблюдайте выбранный объём страниц — ровно ${cleanEffectivePages} страниц на каждую тему!
+
+Направление / Предмет: "${specialty || subject || "Профильная дисциплина"}"
+${university ? `ВУЗ: "${university}"\n` : ""}${faculty ? `Факультет: "${faculty}"\n` : ""}${studentName ? `Студент: "${studentName}"\n` : ""}${teacherName ? `Преподаватель / Научный руководитель: "${teacherName}"\n` : ""}
+
+Форматируйте результат в чистом Markdown с чётким разделением тем заголовками первого уровня (# 1. Название темы, # 2. Название темы...).`
+        : `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi (MOVSO RUz) standartlariga to'liq javob beradigan yetakchi professor va ilmiy ekspertsiz.
+Quyidagi rasmda darslik sahifasi, daftar/konspekt, fan dasturi yoki mavzular ro'yxati keltirilgan.
+
+SIZNING QAT'IY VAZIFALARINGIZ:
+1. Yuklangan rasmdagi BARCHA mavzular, savollar, masalalar yoki bandlarni to'liq va aniq o'qib ajratib oling (Extract all topics/items listed in the uploaded image).
+2. Rasmdan topilgan HAR BIR mavzu uchun alohida, to'liq va tizimli akademik ${academicLabel} tayyorlang:
+   - Mavzuning tartib raqami va rasmdagi asl sarlavhasi
+   - Kirish (mavzuning dolzarbligi, tadqiqot maqsadi va vazifalari)
+   - Asosiy ilmiy-nazariy va amaliy tahlil qismi (chuqur ilmiy abzaslar, mezonlar)
+   - Xulosa va amaliy tavsiyalar
+   - O'zbekiston OTM va GOST talablariga mos adabiyotlar ro'yxati (kamida 5-10 ta real manba)
+3. HAJMGA QAT'IY AMAL QILISH: Rasmdagi har bir mavzu uchun belgilangan hajmga qat'iy amal qiling — rasmdagi har bir mavzuga aynan ${cleanEffectivePages} bet hajmda chuqur yoritilsin!
+
+Fan / Mutaxassislik: "${specialty || subject || "Mutaxassislik fani"}"
+${university ? `OTM: "${university}"\n` : ""}${faculty ? `Fakultet: "${faculty}"\n` : ""}${studentName ? `Talaba: "${studentName}"\n` : ""}${teacherName ? `Ilmiy rahbar / O'qituvchi: "${teacherName}"\n` : ""}
+
+Javobni toza Markdown formatida, har bir mavzuni (# 1. [Mavzu sarlavhasi], # 2. [Mavzu sarlavhasi]...) tarzida tartibli ajratib yozing.`;
+
+      try {
+        const geminiRes = await generateGeminiContent(imagePrompt, {
+          systemInstruction: isRu
+            ? "Вы — ведущий профессор вузов Узбекистана. Извлеките все темы с изображения и подробно раскройте каждую строго по указанному объёму страниц."
+            : "Siz O'zbekiston oliy ta'lim tizimi professori va ilmiy ekspertisiz. Rasmdagi barcha mavzularni ajratib oling va har birini belgilangan sahifalar soni bo'yicha to'liq yoritib bering.",
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+          inlineData: extractedImage,
+        });
+
+        if (geminiRes.text) {
+          if (userId) {
+            try {
+              await deductUserAiCredit(userId);
+              creditDeducted = true;
+            } catch {
+              // Non-blocking
+            }
+          }
+          await trackAIUsage({
+            userId,
+            plan,
+            feature: "ACADEMIC_GENERATION",
+            status: "SUCCESS",
+            inputTokens: geminiRes.usage.promptTokenCount,
+            outputTokens: geminiRes.usage.candidatesTokenCount,
+            model: geminiRes.modelUsed,
+          });
+
+          return NextResponse.json({
+            success: true,
+            result: geminiRes.text,
+            generatedWith: geminiRes.modelUsed || "gemini-vision-academic",
+            topicsFromImage: true,
+            pageCountPerTopic: effectivePages,
+          });
+        }
+      } catch (geminiErr) {
+        console.error("[ACADEMIC_IMAGE_GENERATION_FAILED]", geminiErr);
+        return NextResponse.json(
+          {
+            error:
+              geminiErr instanceof Error
+                ? geminiErr.message
+                : "Rasmdagi mavzularni o'qish va generatsiya qilishda xatolik yuz berdi.",
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     // 1. BMI / DIPLOM ISHI GENERATION
     if (action === "generate-bmi") {

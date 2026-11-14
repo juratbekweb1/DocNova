@@ -29,6 +29,10 @@ export interface GeminiGenerateOptions {
   systemInstruction?: string;
   maxRetries?: number;
   jsonMode?: boolean;
+  inlineData?: {
+    data: string;
+    mimeType: string;
+  };
 }
 
 export interface GeminiUsageMetadata {
@@ -321,8 +325,20 @@ export async function generateGeminiContent(
           },
         });
 
+        const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> =
+          [];
+        if (options.inlineData) {
+          parts.push({
+            inlineData: {
+              data: options.inlineData.data,
+              mimeType: options.inlineData.mimeType,
+            },
+          });
+        }
+        parts.push({ text: prompt });
+
         const generatePromise = model.generateContent({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts }],
         });
 
         const apiResponse = await withTimeout(

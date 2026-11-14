@@ -28,6 +28,7 @@ import {
   Trash2,
   AlertTriangle,
   ShieldCheck,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { GalleryTopicTriggerButton } from "@/components/academic/image-topic-parser";
@@ -302,6 +303,25 @@ export default function CourseworkGenerator() {
     templateText: "",
   });
 
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string>("");
+
+  const handleImageSelect = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(reader.result as string);
+      setImageFileName(file.name);
+      setFormData((prev) => ({ ...prev, topic: "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setImage(null);
+    setImageFileName("");
+  };
+
   // Step 2: Outline state
   const [outline, setOutline] = useState<CourseworkOutline | null>(null);
   const [isOutlineLoading, setIsOutlineLoading] = useState(false);
@@ -386,10 +406,10 @@ export default function CourseworkGenerator() {
   const handleOneClickGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanTopic = formData.topic.trim();
-    if (!cleanTopic) {
+    if (!image && !cleanTopic) {
       toast({
         title: "Mavzuni kiriting",
-        description: "Kurs ishi mavzusini kiritishingiz shart.",
+        description: "Kurs ishi mavzusini kiritishingiz yoki rasm yuklashingiz shart.",
         variant: "destructive",
       });
       return;
@@ -402,9 +422,11 @@ export default function CourseworkGenerator() {
 
     const payload = {
       ...formData,
-      topic: cleanTopic,
+      topic: image ? "" : cleanTopic,
       subject: formData.subject.trim() || activeCategory.subjects[0] || "Mutaxassislik fani",
       outline: matchedOutline,
+      image,
+      pageCount: formData.pageCount,
     };
 
     setGenerationError(null);
@@ -519,10 +541,10 @@ export default function CourseworkGenerator() {
   const handleProceedToOutline = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanTopic = formData.topic.trim();
-    if (!cleanTopic) {
+    if (!image && !cleanTopic) {
       toast({
-        title: "Mavzuni kiriting",
-        description: "Kurs ishi mavzusi kiritilishi shart.",
+        title: "Mavzu yoki rasm kiriting",
+        description: "Kurs ishi mavzusi kiritilishi yoki rasm yuklanishi shart.",
         variant: "destructive",
       });
       return;
@@ -543,7 +565,8 @@ export default function CourseworkGenerator() {
         body: JSON.stringify({
           action: "outline",
           ...formData,
-          topic: cleanTopic,
+          topic: image ? "" : cleanTopic,
+          image: image || undefined,
           subject: cleanSubject,
         }),
         signal: controller.signal,
@@ -664,10 +687,10 @@ export default function CourseworkGenerator() {
   // ------------------------------------------------------------------
   const handleStartFullGeneration = async () => {
     const cleanTopic = formData.topic.trim();
-    if (!cleanTopic) {
+    if (!image && !cleanTopic) {
       toast({
-        title: "Mavzuni kiriting",
-        description: "Kurs ishi mavzusi kiritilishi shart.",
+        title: "Mavzu yoki rasm kiriting",
+        description: "Kurs ishi mavzusi kiritilishi yoki rasm yuklanishi shart.",
         variant: "destructive",
       });
       return;
@@ -704,7 +727,8 @@ export default function CourseworkGenerator() {
         body: JSON.stringify({
           action: "generate",
           ...formData,
-          topic: cleanTopic,
+          topic: image ? "" : cleanTopic,
+          image: image || undefined,
           outline: matchedOutline,
         }),
         signal: controller.signal,
@@ -788,8 +812,9 @@ export default function CourseworkGenerator() {
       setDownloading(true);
       setDownloadProgress("Word (.docx) fayl tayyorlanmoqda...");
 
+      const cleanImageTitle = imageFileName ? imageFileName.replace(/\.[^/.]+$/, "") : "";
       const exported = await downloadAcademicDocx({
-        topic: formData.topic || "Kurs ishi",
+        topic: formData.topic || cleanImageTitle || "Kurs ishi",
         markdownContent: result || "",
         pages: pages.length > 0 ? pages : undefined,
         workType: "Kurs ishi",
@@ -1118,6 +1143,12 @@ export default function CourseworkGenerator() {
                   accentColor="blue"
                   defaultPagesPerTopic="15"
                   subjectHint={formData.subject}
+                  onImageFileSelected={(dataUrl, name) => {
+                    setImage(dataUrl);
+                    if (name) setImageFileName(name);
+                    setFormData((prev) => ({ ...prev, topic: "" }));
+                  }}
+                  onImageCleared={handleClearImage}
                   onSampleBlueprintReady={(blueprint) => {
                     // MUHIM: Namuna fayldagi eski mavzu va eski talaba F.I.Sh. yangi hujjatga avtomatik ko'chirilmaydi!
                     setFormData((prev) => ({
@@ -1164,6 +1195,7 @@ export default function CourseworkGenerator() {
                   }}
                   onApplyTopicsToForm={(topics) => {
                     if (topics.length === 0) return;
+                    handleClearImage();
                     setFormData((prev) => ({
                       ...prev,
                       topic: topics[0].title || prev.topic,
@@ -1176,6 +1208,7 @@ export default function CourseworkGenerator() {
                   }}
                   onWorksGenerated={(works) => {
                     if (works.length === 0) return;
+                    handleClearImage();
                     const combinedMarkdown = works
                       .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
                       .join("\n\n---\n\n");
@@ -1215,54 +1248,120 @@ export default function CourseworkGenerator() {
                   }}
                 />
 
-                {/* 1. MAVZU (HERO INPUT) */}
-                <div>
-                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                    <label className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
-                      <span>Kurs ishi mavzusi *</span>
-                      <span className="text-foreground-muted text-[11px] font-normal">
-                        Aniq va to&apos;liq yozing
+                {/* Rasm biriktirish maydoni */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-foreground-secondary block text-xs font-semibold">
+                      Mavzular rasmi (Ixtiyoriy — konspekt, metodik qo&apos;llanma yoki mavzular
+                      ro&apos;yxati)
+                    </label>
+                    {image && (
+                      <button
+                        type="button"
+                        onClick={handleClearImage}
+                        className="text-xs font-semibold text-rose-400 transition hover:text-rose-300"
+                      >
+                        Rasmni tozalash
+                      </button>
+                    )}
+                  </div>
+                  {image ? (
+                    <div className="flex items-center justify-between rounded-xl border border-blue-500/40 bg-blue-500/10 p-3">
+                      <div className="flex items-center gap-2.5">
+                        <FileImage className="h-5 w-5 shrink-0 text-blue-400" />
+                        <div className="text-xs">
+                          <p className="text-foreground max-w-[200px] truncate font-semibold sm:max-w-xs">
+                            {imageFileName || "Mavzular rasmi biriktirildi"}
+                          </p>
+                          <p className="text-[11px] font-medium text-blue-500">
+                            Rasmdagi har bir mavzu avtomatik o&apos;qiladi va yoritiladi
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearImage}
+                        className="border-border/80 bg-background/80 text-foreground-secondary rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:bg-rose-500/10 hover:text-rose-400"
+                      >
+                        O&apos;chirish
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-border bg-surface-elevated/40 flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-3.5 py-2.5 transition hover:border-blue-500/60 hover:bg-blue-500/5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageSelect(file);
+                        }}
+                        className="sr-only"
+                        id="coursework-image-upload-input"
+                      />
+                      <div className="flex items-center gap-2">
+                        <FileImage className="h-4 w-4 shrink-0 text-blue-400" />
+                        <span className="text-foreground-secondary text-xs">
+                          Galereyadan mavzular rasmini yuklash
+                        </span>
+                      </div>
+                      <span className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500">
+                        Rasm tanlash
                       </span>
                     </label>
-                    <GalleryTopicTriggerButton accentColor="blue" label="Rasm tashlash" />
-                  </div>
-                  <textarea
-                    rows={3}
-                    name="topic"
-                    required
-                    value={formData.topic}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      handleTopicChange(e.target.value)
-                    }
-                    placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari..."
-                    className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-base leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
-                  />
+                  )}
+                </div>
 
-                  {/* QUICK TOPIC SUGGESTIONS */}
-                  <div className="mt-2.5">
-                    <span className="text-foreground-muted mb-1.5 flex items-center gap-1 text-[11px] font-semibold">
-                      <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-                      <span>Ommabop mavzulardan tezkor tanlash:</span>
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        "Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari",
-                        "Tibbiy diagnostikada sun'iy intellekt va mashinali o'rganish texnologiyalarini qo'llash",
-                        "O'zbekiston iqtisodiyotida kichik biznes va xususiy tadbirkorlikni rivojlantirish yo'llari",
-                        "Kiberxavfsizlik va axborot himoyasi tamoyillari",
-                      ].map((item, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => handleSelectTopicSuggestion(item)}
-                          className="border-border bg-surface-elevated hover:bg-primary/10 hover:border-primary/50 text-foreground-secondary hover:text-foreground cursor-pointer rounded-lg border px-2.5 py-1.5 text-left text-[11px] font-medium break-words transition-all"
-                        >
-                          ⚡ {item}
-                        </button>
-                      ))}
+                {/* Case A: No Image Uploaded -> Show Topic input */}
+                {/* Case B: Image IS Uploaded -> Hide Topic input */}
+                {!image && (
+                  <div>
+                    <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm">
+                        <span>Kurs ishi mavzusi *</span>
+                        <span className="text-foreground-muted text-[11px] font-normal">
+                          Aniq va to&apos;liq yozing
+                        </span>
+                      </label>
+                      <GalleryTopicTriggerButton accentColor="blue" label="Rasm tashlash" />
+                    </div>
+                    <textarea
+                      rows={3}
+                      name="topic"
+                      required
+                      value={formData.topic}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        handleTopicChange(e.target.value)
+                      }
+                      placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari..."
+                      className="border-primary/40 bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border p-3.5 text-base leading-relaxed font-medium shadow-inner focus:ring-2 focus:outline-none sm:text-sm"
+                    />
+
+                    {/* QUICK TOPIC SUGGESTIONS */}
+                    <div className="mt-2.5">
+                      <span className="text-foreground-muted mb-1.5 flex items-center gap-1 text-[11px] font-semibold">
+                        <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                        <span>Ommabop mavzulardan tezkor tanlash:</span>
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          "Sun'iy intellektning ta'lim sohasidagi o'rni va rivojlanish istiqbollari",
+                          "Tibbiy diagnostikada sun'iy intellekt va mashinali o'rganish texnologiyalarini qo'llash",
+                          "O'zbekiston iqtisodiyotida kichik biznes va xususiy tadbirkorlikni rivojlantirish yo'llari",
+                          "Kiberxavfsizlik va axborot himoyasi tamoyillari",
+                        ].map((item, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => handleSelectTopicSuggestion(item)}
+                            className="border-border bg-surface-elevated hover:bg-primary/10 hover:border-primary/50 text-foreground-secondary hover:text-foreground cursor-pointer rounded-lg border px-2.5 py-1.5 text-left text-[11px] font-medium break-words transition-all"
+                          >
+                            ⚡ {item}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* 2. FAN NOMI (SUBJECT) */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1315,7 +1414,9 @@ export default function CourseworkGenerator() {
                   {/* Hajm */}
                   <div>
                     <label className="text-foreground mb-1.5 block text-xs font-bold">
-                      Hajm (sahifalar soni: 1 — 500 betgacha)
+                      {image
+                        ? "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+                        : "Hajm (sahifalar soni: 1 — 500 betgacha)"}
                     </label>
                     <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
                       {[
@@ -1494,7 +1595,9 @@ export default function CourseworkGenerator() {
                       <>
                         <Zap className="h-4 w-4 text-amber-300 transition-transform group-hover:scale-110" />
                         <span>
-                          Bir klikda Kurs Ishini Yaratish ({formData.pageCount || "19"} bet)
+                          {image
+                            ? `Rasmdagi mavzular bo'yicha Kurs Ishini Yaratish (${formData.pageCount || "19"} betdan)`
+                            : `Bir klikda Kurs Ishini Yaratish (${formData.pageCount || "19"} bet)`}
                         </span>
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </>

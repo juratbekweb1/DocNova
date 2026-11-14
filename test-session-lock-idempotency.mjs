@@ -1,3 +1,4 @@
+import "dotenv/config";
 import assert from "node:assert";
 import crypto from "node:crypto";
 import { PrismaClient, DocumentType, DocumentStatus } from "@prisma/client";

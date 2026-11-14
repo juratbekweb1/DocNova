@@ -9,13 +9,14 @@ import {
   refundUserAiCredit,
   getUserSubscription,
 } from "@/lib/limits";
-import { generateGeminiJson } from "@/lib/gemini";
+import { generateGeminiJson, generateGeminiContent } from "@/lib/gemini";
 import {
   auditAndSanitizeAcademicContent,
   buildControlledAcademicPrompt,
 } from "@/lib/academic-content-architect";
 import { analyzeSampleDocument } from "@/lib/academic-sample-intelligence";
 import { IMAGE_TOPICS_CONTEXT_MARKER } from "@/lib/academic/topic-fidelity";
+import { extractBase64Image } from "@/lib/academic/topic-parser";
 
 export interface CourseworkOutlineChapter {
   number: number;
@@ -1666,12 +1667,126 @@ export async function POST(req: Request) {
       .trim()
       .slice(0, 150);
 
-    if (!cleanTopic || !cleanSubject) {
-      return NextResponse.json({ error: "Fan nomi va Mavzu kiritilishi shart." }, { status: 400 });
+    const rawImage = String(body.image || body.imageBase64 || "").trim();
+    const hasImage = Boolean(rawImage);
+    const mimeType = String(body.mimeType || "image/jpeg").trim();
+
+    if ((!cleanTopic && !hasImage) || (!cleanSubject && !hasImage && !cleanTopic)) {
+      return NextResponse.json(
+        { error: "Fan nomi va Mavzu kiritilishi yoki rasm yuklanishi shart." },
+        { status: 400 }
+      );
+    }
+
+    let extractedImage: { data: string; mimeType: string } | null = null;
+    if (hasImage) {
+      const imgRes = extractBase64Image(rawImage, mimeType);
+      if (!imgRes.ok) {
+        return NextResponse.json({ error: imgRes.error }, { status: imgRes.status });
+      }
+      extractedImage = { data: imgRes.data, mimeType: imgRes.mimeType };
     }
 
     const lang = (language === "ru" || language === "uz-cyrl" ? language : "uz") as
       "uz" | "uz-cyrl" | "ru";
+    const effectivePages = String(pageCount || "19")
+      .trim()
+      .slice(0, 20);
+    const cleanEffectivePages = effectivePages.replace(/\s*bet.*$/i, "").trim() || effectivePages;
+
+    const isGenericCourseworkTopicPlaceholder =
+      !cleanTopic ||
+      cleanTopic === "Rasmdagi mavzular bo'yicha kurs ishi" ||
+      cleanTopic === "Rasmdagi mavzular" ||
+      cleanTopic.toLowerCase().startsWith("rasmdagi") ||
+      Boolean(body.imageMode);
+
+    // Multimodal flow: Image is provided without a text topic (or with generic placeholder).
+    // 1. Extract all topics/items from image.
+    // 2. Generate structured academic coursework for each topic adhering to pageCount.
+    if (hasImage && isGenericCourseworkTopicPlaceholder && extractedImage) {
+      const isRu = lang === "ru";
+      const courseworkPrompt = isRu
+        ? `Вы — профессор вузов Узбекистана по стандартам МОВСО РУз.
+Перед вами загруженное изображение со списком тем курсовых работ.
+ИНСТРУКЦИЯ:
+1. Внимательно извлеките ВСЕ темы, вопросы или пункты, перечисленные на изображении (Extract all topics/items listed in the uploaded image).
+2. Для КАЖДОЙ извлечённой темы подготовьте структурированную академическую курсовую работу:
+   - Титульные данные и название темы
+   - План (содержание из 3 глав)
+   - Введение (актуальность, цель, задачи)
+   - Основная аналитическая часть
+   - Заключение и выводы
+   - Список литературы по ГОСТ
+3. СТРОГОЕ СОБЛЮДЕНИЕ ОБЪЁМА: Для каждой темы строго соблюдайте целевой объём: ровно ${cleanEffectivePages} страниц на тему.
+
+Предмет: "${cleanSubject || "Профильная дисциплина"}"
+${cleanFaculty ? `Факультет: "${cleanFaculty}"\n` : ""}${cleanUniversity ? `ВУЗ: "${cleanUniversity}"\n` : ""}${cleanStudentName ? `Студент: "${cleanStudentName}"\n` : ""}${cleanTeacherName ? `Научный руководитель: "${cleanTeacherName}"\n` : ""}
+
+Форматируйте результат в чистом Markdown с чётким разделением тем (# 1. Тема, # 2. Тема...).`
+        : `Siz O'zbekiston Respublikasi Oliy ta'lim, fan va innovatsiyalar vazirligi standartlari bo'yicha kurs ishlari mutaxassisisiz.
+Quyidagi rasmda kurs ishi mavzulari yoki fan dasturi keltirilgan.
+VAZIFALAR:
+1. Yuklangan rasmdagi BARCHA mavzular yoki topshiriqlarni aniq o'qib ajratib oling (Extract all topics/items listed in the uploaded image).
+2. Rasmdan topilgan HAR BIR mavzu uchun alohida, to'liq akademik kurs ishini (Reja, Kirish, 3 ta bob, Xulosa, GOST adabiyotlar) tayyorlang.
+3. HAJMGA QAT'IY AMAL QILISH: Rasmdagi har bir mavzu uchun belgilangan hajmga qat'iy amal qiling — har bir mavzuga aynan ${cleanEffectivePages} bet hajmda yozilsin!
+
+Fan: "${cleanSubject || "Mutaxassislik fani"}"
+${cleanFaculty ? `Fakultet: "${cleanFaculty}"\n` : ""}${cleanUniversity ? `OTM: "${cleanUniversity}"\n` : ""}${cleanStudentName ? `Talaba: "${cleanStudentName}"\n` : ""}${cleanTeacherName ? `Ilmiy rahbar: "${cleanTeacherName}"\n` : ""}
+
+Javobni toza Markdown formatida (# 1. [Mavzu], # 2. [Mavzu]...) tarzida yozing.`;
+
+      try {
+        const geminiRes = await generateGeminiContent(courseworkPrompt, {
+          systemInstruction: isRu
+            ? "Вы — ведущий профессор вузов Узбекистана. Извлеките темы с изображения и подробно раскройте каждую по указанному объёму страниц."
+            : "Siz oliy ta'lim professori va kurs ishlari bo'yicha yetakchi ekspertsiz. Rasmdagi barcha mavzularni ajratib olib, har biriga belgilangan sahifalar soni bo'yicha to'liq ish yozib bering.",
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+          inlineData: extractedImage,
+        });
+
+        if (geminiRes.text) {
+          if (userId) {
+            try {
+              await deductUserAiCredit(userId);
+              creditDeducted = true;
+            } catch {
+              // Non-blocking
+            }
+          }
+          await trackAIUsage({
+            userId,
+            plan,
+            feature: "COURSEWORK",
+            status: "SUCCESS",
+            inputTokens: geminiRes.usage.promptTokenCount,
+            outputTokens: geminiRes.usage.candidatesTokenCount,
+            model: geminiRes.modelUsed,
+          });
+
+          return NextResponse.json({
+            success: true,
+            markdown: geminiRes.text,
+            result: geminiRes.text,
+            totalPages: effectivePages,
+            generatedWith: geminiRes.modelUsed || "gemini-vision-coursework",
+            topicsFromImage: true,
+          });
+        }
+      } catch (geminiErr) {
+        console.error("[COURSEWORK_IMAGE_GENERATION_FAILED]", geminiErr);
+        return NextResponse.json(
+          {
+            error:
+              geminiErr instanceof Error
+                ? geminiErr.message
+                : "Rasmdagi mavzularni o'qish va kurs ishini shakllantirishda xatolik yuz berdi.",
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     // ----------------------------------------------------
     // ACTION: OUTLINE ONLY (Step 2 Preview & Editing)

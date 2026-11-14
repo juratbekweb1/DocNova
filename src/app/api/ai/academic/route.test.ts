@@ -342,4 +342,180 @@ Bog'bonchilik va landshaft dizaynida manzarali ko'chatlarni parvarishlash tuproq
     expect(anovaPrompt).toContain("One-Way & Two-Way ANOVA");
     expect(anovaPrompt).toContain("Fisher LSD");
   });
+
+  describe("Academic Hub Case A (No Image) vs Case B (Image Uploaded) flows", () => {
+    const validPngBase64 =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    it("Case A / Validation: returns 400 when neither topic nor image is provided in /api/ai/academic", async () => {
+      const req = new NextRequest("http://localhost:3000/api/ai/academic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-referat",
+          subject: "Falsafa",
+          topic: "",
+          // No image
+        }),
+      });
+
+      const res = await academicPost(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(json.error).toContain("Mavzu kiritilishi yoki rasm yuklanishi shart");
+    });
+
+    it("Case B (Multimodal Image): allows submitting without topic in /api/ai/academic and instructs Gemini SDK to extract topics and strictly adhere to pageCount", async () => {
+      mockGenerateGeminiContent.mockResolvedValueOnce({
+        text: "# 1. Birinchi mavzu\n\nKirish va asosiy tahlil...\n\n# 2. Ikkinchi mavzu\n\nKirish va tahlil...",
+        modelUsed: "gemini-2.5-flash",
+        usage: { promptTokenCount: 450, candidatesTokenCount: 1100 },
+      });
+
+      const req = new NextRequest("http://localhost:3000/api/ai/academic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-referat",
+          subject: "Falsafa",
+          topic: "", // Topic is empty because image was uploaded!
+          image: validPngBase64,
+          pageCount: "3-5 bet",
+          language: "uz",
+        }),
+      });
+
+      const res = await academicPost(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(json.result).toContain("Birinchi mavzu");
+      expect(mockGenerateGeminiContent).toHaveBeenCalledTimes(1);
+
+      const [prompt, options] = mockGenerateGeminiContent.mock.calls[0];
+      expect(prompt).toContain("Extract all topics/items listed in the uploaded image");
+      expect(prompt).toContain("3-5 bet");
+      expect(options.inlineData).toBeDefined();
+      expect(options.inlineData.mimeType).toBe("image/png");
+      expect(typeof options.inlineData.data).toBe("string");
+      expect(options.inlineData.data.length).toBeGreaterThan(0);
+    });
+
+    it("Case B in Coursework: allows submitting without topic when image is provided and instructs Gemini to generate coursework per topic adhering to pageCount", async () => {
+      mockGenerateGeminiContent.mockResolvedValueOnce({
+        text: "# KURS ISHI: Sun'iy intellekt asoslari\n\n## 1-BOB: Kirish va nazariya...",
+        modelUsed: "gemini-2.5-flash",
+        usage: { promptTokenCount: 520, candidatesTokenCount: 1350 },
+      });
+
+      const req = new NextRequest("http://localhost:3000/api/generate-coursework", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate",
+          subject: "Informatika",
+          topic: "", // No text topic
+          image: validPngBase64,
+          pageCount: "25",
+          language: "uz",
+        }),
+      });
+
+      const res = await courseworkPost(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(json.result).toContain("KURS ISHI");
+      expect(mockGenerateGeminiContent).toHaveBeenCalledTimes(1);
+
+      const [prompt, options] = mockGenerateGeminiContent.mock.calls[0];
+      expect(prompt).toContain("Extract all topics/items listed in the uploaded image");
+      expect(prompt).toContain("25");
+      expect(options.inlineData).toBeDefined();
+      expect(options.inlineData.mimeType).toBe("image/png");
+    });
+
+    it("Case B in Coursework: safely triggers multimodal extraction even if client passes generic placeholder like 'Rasmdagi mavzular bo'yicha kurs ishi'", async () => {
+      mockGenerateGeminiContent.mockResolvedValueOnce({
+        text: "# KURS ISHI: Rasmdagi mavzular bo'yicha...",
+        modelUsed: "gemini-2.5-flash",
+        usage: { promptTokenCount: 400, candidatesTokenCount: 900 },
+      });
+
+      const req = new NextRequest("http://localhost:3000/api/generate-coursework", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate",
+          subject: "Iqtisodiyot",
+          topic: "Rasmdagi mavzular bo'yicha kurs ishi",
+          image: validPngBase64,
+          pageCount: "19 bet",
+        }),
+      });
+
+      const res = await courseworkPost(req);
+      expect(res.status).toBe(200);
+      expect(mockGenerateGeminiContent).toHaveBeenCalledTimes(1);
+      const [prompt] = mockGenerateGeminiContent.mock.calls[0];
+      expect(prompt).toContain("Extract all topics/items listed in the uploaded image");
+      expect(prompt).toContain("19");
+    });
+
+    it("Case B in Exam Prep: passes pageCount and extracts topics per page count", async () => {
+      mockGenerateGeminiContent.mockResolvedValueOnce({
+        text: "# 1-bilet: Kriptografiya asoslari\n\nJavoblar...",
+        modelUsed: "gemini-2.5-flash",
+        usage: { promptTokenCount: 380, candidatesTokenCount: 850 },
+      });
+
+      const req = new NextRequest("http://localhost:3000/api/ai/academic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-exam-prep",
+          subject: "Kiberxavfsizlik",
+          topic: "",
+          image: validPngBase64,
+          pageCount: "3-5 bet",
+        }),
+      });
+
+      const res = await academicPost(req);
+      expect(res.status).toBe(200);
+      expect(mockGenerateGeminiContent).toHaveBeenCalledTimes(1);
+      const [prompt] = mockGenerateGeminiContent.mock.calls[0];
+      expect(prompt).toContain("Extract all topics/items listed in the uploaded image");
+      expect(prompt).toContain("3-5");
+      expect(prompt).toContain("Imtihon savollari va bilet konspekti");
+    });
+
+    it("Case B in Diplom (BMI): safely triggers multimodal extraction when image is attached", async () => {
+      mockGenerateGeminiContent.mockResolvedValueOnce({
+        text: "# 1. Bitiruv Malakaviy Ishi: Sun'iy intellekt\n\nKirish va reja...",
+        modelUsed: "gemini-2.5-flash",
+        usage: { promptTokenCount: 500, candidatesTokenCount: 1200 },
+      });
+
+      const req = new NextRequest("http://localhost:3000/api/ai/academic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-bmi",
+          specialty: "Axborot tizimlari",
+          topic: "Diplom ishi", // Generic placeholder
+          image: validPngBase64,
+          pageCount: "50",
+        }),
+      });
+
+      const res = await academicPost(req);
+      expect(res.status).toBe(200);
+      expect(mockGenerateGeminiContent).toHaveBeenCalledTimes(1);
+      const [prompt] = mockGenerateGeminiContent.mock.calls[0];
+      expect(prompt).toContain("Extract all topics/items listed in the uploaded image");
+      expect(prompt).toContain("Bitiruv Malakaviy Ishi (BMI)");
+    });
+  });
 });

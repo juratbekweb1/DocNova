@@ -78,6 +78,8 @@ export interface ImageTopicParserProps {
   onWorksGenerated?: (works: ParsedTopic[]) => void;
   onImageMetadataDetected?: (meta: { subject?: string; language?: AcademicLanguage }) => void;
   onImageSelected?: () => void;
+  onImageFileSelected?: (base64OrDataUrl: string, fileName?: string) => void;
+  onImageCleared?: () => void;
   autoGeneratePerTopicWorks?: boolean;
   defaultPagesPerTopic?: string;
   subjectHint?: string;
@@ -228,6 +230,8 @@ export function ImageTopicParser({
   onWorksGenerated,
   onImageMetadataDetected,
   onImageSelected,
+  onImageFileSelected,
+  onImageCleared,
   autoGeneratePerTopicWorks = false,
   defaultPagesPerTopic = "2-3",
   subjectHint,
@@ -387,6 +391,7 @@ export function ImageTopicParser({
         );
       }
       setPreviewUrl(optimized.dataUrl);
+      onImageFileSelected?.(optimized.dataUrl, file.name);
 
       const controller = new AbortController();
       const abortTimer = window.setTimeout(() => controller.abort(), 52_000);
@@ -835,6 +840,7 @@ export function ImageTopicParser({
     setCopiedWorks(false);
     setTopicPageDrafts({});
     setCustomPageTopics({});
+    onImageCleared?.();
   };
 
   const handleSaveAllTopics = async () => {

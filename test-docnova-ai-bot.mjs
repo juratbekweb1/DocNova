@@ -134,7 +134,7 @@ console.log(`[PASS] New User Bot Webhook Route (/api/telegram/docnova-ai/webhook
 // 6. Verify Auth Connect Page & API
 const connectPage = fs.readFileSync("src/app/telegram/connect/page.tsx", "utf-8");
 const connectApi = fs.readFileSync("src/app/api/telegram/docnova-ai/connect/route.ts", "utf-8");
-assert.ok(connectPage.includes("signIn(\"google\""), "Google OAuth login must be present");
+assert.ok(/signIn\s*\(\s*["']google["']/.test(connectPage), "Google OAuth login must be present");
 assert.ok(connectApi.includes("prisma.user.update"), "User telegramId linking must update database");
 assert.ok(connectApi.includes("docnovaAiBot.api.sendMessage"), "Instant confirmation push must be sent");
 console.log(`[PASS] Google Auth Linking Flow (/telegram/connect & /api/telegram/docnova-ai/connect) Verified`);

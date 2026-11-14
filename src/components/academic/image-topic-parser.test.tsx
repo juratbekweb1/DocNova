@@ -1810,4 +1810,250 @@ describe("<ImageTopicParser />", () => {
       await screen.findByText(/Server bilan aloqa uzildi yoki internet sekinlashdi/i)
     ).toBeInTheDocument();
   });
+
+  describe("Academic Hub Case A (No Image) vs Case B (Image Uploaded) UI Form Flow", () => {
+    it("AcademicReferatPage: shows Topic input and default page label in Case A, hides Topic input and updates page label in Case B, allowing submit without topic", async () => {
+      mockFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            result: "# Referat natijasi\n\nKirish...",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+      const { container, unmount } = render(<AcademicReferatPage />);
+
+      // Case A: Default state — No Image Uploaded
+      expect(
+        screen.getByPlaceholderText(/Yashil energetika va quyosh panellari istiqbollari/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Kutilayotgan hajm (Sahifalar soni: 1 — 500 betgacha)")
+      ).toBeInTheDocument();
+
+      // Fill in subject
+      const subjectInput = screen.getByPlaceholderText(/Falsafa, Iqtisodiyot nazariyasi/i);
+      fireEvent.change(subjectInput, { target: { value: "Falsafa" } });
+
+      // Case B: Upload an image file
+      const fileInput = container.querySelector("#referat-image-upload-input") as HTMLInputElement;
+      expect(fileInput).toBeInTheDocument();
+
+      const dummyFile = new File(["fake-image-bytes"], "referat-topics.jpg", {
+        type: "image/jpeg",
+      });
+      fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+      // Topic input is hidden completely so user is not confused
+      await waitFor(() => {
+        expect(
+          screen.queryByPlaceholderText(/Yashil energetika va quyosh panellari istiqbollari/i)
+        ).not.toBeInTheDocument();
+      });
+
+      // Page Count selector label is updated indicating it applies per topic in the image
+      expect(
+        screen.getByText(
+          "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+        )
+      ).toBeInTheDocument();
+
+      // Form validation allows submitting immediately without topic
+      const submitBtn = screen.getByRole("button", {
+        name: /Referatni generatsiya qilish/i,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/ai/academic",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining('"action":"generate-referat"'),
+          })
+        );
+      });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      expect(requestBody.image).toBeDefined();
+      expect(requestBody.pageCount).toBeDefined();
+
+      // Clearing the image restores Case A: Topic input reappears
+      const clearBtn = screen.getByRole("button", { name: /Rasmni tozalash/i });
+      fireEvent.click(clearBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText(/Yashil energetika va quyosh panellari istiqbollari/i)
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText("Kutilayotgan hajm (Sahifalar soni: 1 — 500 betgacha)")
+        ).toBeInTheDocument();
+      });
+
+      unmount();
+    });
+
+    it("DiplomBmiPage: hides Topic textarea and updates Page Count label when image is attached", async () => {
+      mockFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            result: "# Diplom ishi natijasi...",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+      const { container, unmount } = render(<DiplomBmiPage />);
+
+      // Case A: Topic textarea is visible
+      expect(container.querySelector('textarea[name="topic"]')).toBeInTheDocument();
+      expect(
+        screen.getByText("Kutilayotgan hajm (Sahifalar soni: 50 — 500 betgacha)")
+      ).toBeInTheDocument();
+
+      // Case B: Upload an image file
+      const fileInput = container.querySelector("#bmi-image-upload-input") as HTMLInputElement;
+      expect(fileInput).toBeInTheDocument();
+
+      const dummyFile = new File(["fake-image-bytes"], "bmi-topics.jpg", {
+        type: "image/jpeg",
+      });
+      fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+      // Topic textarea is hidden
+      await waitFor(() => {
+        expect(container.querySelector('textarea[name="topic"]')).not.toBeInTheDocument();
+      });
+
+      // Page Count label is updated
+      expect(
+        screen.getByText(
+          "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+        )
+      ).toBeInTheDocument();
+
+      unmount();
+    });
+
+    it("CourseworkGenerator: hides Topic textarea, updates Hajm label and button text when image is attached", async () => {
+      mockFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            result: "# Kurs ishi natijasi...",
+            totalPages: "19",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+      const { container, unmount } = render(<CourseworkGenerator />);
+
+      // Case A: Topic textarea is visible
+      expect(container.querySelector('textarea[name="topic"]')).toBeInTheDocument();
+      expect(screen.getByText("Hajm (sahifalar soni: 1 — 500 betgacha)")).toBeInTheDocument();
+
+      // Case B: Upload an image file
+      const fileInput = container.querySelector(
+        "#coursework-image-upload-input"
+      ) as HTMLInputElement;
+      expect(fileInput).toBeInTheDocument();
+
+      const dummyFile = new File(["fake-image-bytes"], "coursework-topics.png", {
+        type: "image/png",
+      });
+      fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+      // Topic textarea is hidden
+      await waitFor(() => {
+        expect(container.querySelector('textarea[name="topic"]')).not.toBeInTheDocument();
+      });
+
+      // Hajm label is updated
+      expect(
+        screen.getByText(
+          "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+        )
+      ).toBeInTheDocument();
+
+      // Fast track button text mentions image topics
+      expect(
+        screen.getByRole("button", {
+          name: /Rasmdagi mavzular bo'yicha Kurs Ishini Yaratish/i,
+        })
+      ).toBeInTheDocument();
+
+      unmount();
+    });
+
+    it("AcademicExamPrepPage: hides Topic input, updates page count label, and sends pageCount in Case B", async () => {
+      mockFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            result: "# 1-bilet javoblari...",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+      const { container, unmount } = render(<AcademicExamPrepPage />);
+
+      // Case A: Topic input is visible
+      expect(
+        screen.getByPlaceholderText(/Kriptografiya asoslari va RSA algoritmi/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText("Kutilayotgan hajm (Nechta bet yozilsin?)")).toBeInTheDocument();
+
+      // Enter subject
+      const subjectInput = screen.getByPlaceholderText(/Axborot xavfsizligi, Oliy matematika/i);
+      fireEvent.change(subjectInput, { target: { value: "Kriptografiya" } });
+
+      // Case B: Upload an image file
+      const fileInput = container.querySelector("#exam-image-upload-input") as HTMLInputElement;
+      expect(fileInput).toBeInTheDocument();
+
+      const dummyFile = new File(["fake-image-bytes"], "tickets.jpg", {
+        type: "image/jpeg",
+      });
+      fireEvent.change(fileInput, { target: { files: [dummyFile] } });
+
+      // Topic input is hidden
+      await waitFor(() => {
+        expect(
+          screen.queryByPlaceholderText(/Kriptografiya asoslari va RSA algoritmi/i)
+        ).not.toBeInTheDocument();
+      });
+
+      // Page Count label is updated
+      expect(
+        screen.getByText(
+          "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+        )
+      ).toBeInTheDocument();
+
+      // Submit immediately without typing topic
+      const submitBtn = screen.getByRole("button", {
+        name: /Imtihon materiallarini yaratish/i,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/ai/academic",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining('"action":"generate-exam-prep"'),
+          })
+        );
+      });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      expect(requestBody.image).toBeDefined();
+      expect(requestBody.pageCount).toBe("3-5 bet");
+      expect(requestBody.topic).toBe("");
+
+      unmount();
+    });
+  });
 });

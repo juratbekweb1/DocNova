@@ -19,6 +19,7 @@ import {
   RotateCcw,
   AlertTriangle,
   ShieldCheck,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +55,25 @@ export default function AcademicReferatPage() {
     templateText: "",
   });
 
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string>("");
+
+  const handleImageSelect = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(reader.result as string);
+      setImageFileName(file.name);
+      setFormData((prev) => ({ ...prev, topic: "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setImage(null);
+    setImageFileName("");
+  };
+
   const [loading, setLoading] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
   const [progressStepIdx, setProgressStepIdx] = useState(0);
@@ -78,10 +98,10 @@ export default function AcademicReferatPage() {
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!formData.topic.trim()) {
+    if (!image && !formData.topic.trim()) {
       toast({
         title: "Mavzuni kiriting",
-        description: "Referat yoki mustaqil ish mavzusi kiritilishi shart.",
+        description: "Referat yoki mustaqil ish mavzusi kiritilishi yoki rasm yuklanishi shart.",
         variant: "destructive",
       });
       return;
@@ -113,6 +133,9 @@ export default function AcademicReferatPage() {
         body: JSON.stringify({
           action: "generate-referat",
           ...formData,
+          topic: image ? "" : formData.topic,
+          image,
+          pageCount: formData.length,
         }),
         signal: controller.signal,
       });
@@ -184,9 +207,10 @@ export default function AcademicReferatPage() {
   const handleDownloadDoc = async () => {
     if (!result || isDownloadingDocx) return;
     setIsDownloadingDocx(true);
+    const cleanImageTitle = imageFileName ? imageFileName.replace(/\.[^/.]+$/, "") : "";
     try {
       const exported = await downloadAcademicDocx({
-        topic: formData.topic,
+        topic: formData.topic || cleanImageTitle || "Referat",
         markdownContent: result,
         workType: formData.workType,
         subject: formData.subject,
@@ -357,8 +381,15 @@ export default function AcademicReferatPage() {
                     subject: prev.subject.trim() ? prev.subject : meta.subject || prev.subject,
                   }));
                 }}
+                onImageFileSelected={(dataUrl, name) => {
+                  setImage(dataUrl);
+                  if (name) setImageFileName(name);
+                  setFormData((prev) => ({ ...prev, topic: "" }));
+                }}
+                onImageCleared={handleClearImage}
                 onApplyTopicsToForm={(topics) => {
                   if (topics.length === 0) return;
+                  handleClearImage();
                   setFormData((prev) => ({
                     ...prev,
                     topic: topics[0].title || prev.topic,
@@ -374,6 +405,7 @@ export default function AcademicReferatPage() {
                 }}
                 onWorksGenerated={(works) => {
                   if (works.length === 0) return;
+                  handleClearImage();
                   const combinedMarkdown = works
                     .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
                     .join("\n\n---\n\n");
@@ -447,23 +479,89 @@ export default function AcademicReferatPage() {
                 />
               </div>
 
-              <div>
-                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+              {/* Rasm biriktirish maydoni */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
                   <label className="text-foreground-secondary block text-xs font-semibold">
-                    Mavzu *
+                    Mavzular rasmi (Ixtiyoriy — konspekt, darslik yoki mavzular ro&apos;yxati)
                   </label>
-                  <GalleryTopicTriggerButton accentColor="emerald" label="Rasm tashlash" />
+                  {image && (
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="text-xs font-semibold text-rose-400 transition hover:text-rose-300"
+                    >
+                      Rasmni tozalash
+                    </button>
+                  )}
                 </div>
-                <input
-                  type="text"
-                  name="topic"
-                  required
-                  value={formData.topic}
-                  onChange={handleChange}
-                  placeholder="Masalan: Yashil energetika va quyosh panellari istiqbollari..."
-                  className="border-border bg-background text-foreground min-h-[44px] w-full rounded-xl border px-3.5 py-2.5 text-base focus:border-emerald-400 focus:outline-none sm:text-sm"
-                />
+                {image ? (
+                  <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileImage className="h-5 w-5 shrink-0 text-emerald-400" />
+                      <div className="text-xs">
+                        <p className="text-foreground max-w-[200px] truncate font-semibold sm:max-w-xs">
+                          {imageFileName || "Mavzular rasmi biriktirildi"}
+                        </p>
+                        <p className="text-[11px] font-medium text-emerald-500">
+                          Rasmdagi har bir mavzu avtomatik o&apos;qiladi va yoritiladi
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="border-border/80 bg-background/80 text-foreground-secondary rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:bg-rose-500/10 hover:text-rose-400"
+                    >
+                      O&apos;chirish
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-border bg-surface-elevated/40 flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-3.5 py-2.5 transition hover:border-emerald-500/60 hover:bg-emerald-500/5">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageSelect(file);
+                      }}
+                      className="sr-only"
+                      id="referat-image-upload-input"
+                    />
+                    <div className="flex items-center gap-2">
+                      <FileImage className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <span className="text-foreground-secondary text-xs">
+                        Galereyadan mavzular rasmini yuklash
+                      </span>
+                    </div>
+                    <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-500">
+                      Rasm tanlash
+                    </span>
+                  </label>
+                )}
               </div>
+
+              {/* Case A: No Image Uploaded (image === null) -> Show Topic input */}
+              {/* Case B: Image IS Uploaded (image !== null) -> Hide the Topic input completely */}
+              {!image && (
+                <div>
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-foreground-secondary block text-xs font-semibold">
+                      Mavzu *
+                    </label>
+                    <GalleryTopicTriggerButton accentColor="emerald" label="Rasm tashlash" />
+                  </div>
+                  <input
+                    type="text"
+                    name="topic"
+                    required
+                    value={formData.topic}
+                    onChange={handleChange}
+                    placeholder="Masalan: Yashil energetika va quyosh panellari istiqbollari..."
+                    className="border-border bg-background text-foreground min-h-[44px] w-full rounded-xl border px-3.5 py-2.5 text-base focus:border-emerald-400 focus:outline-none sm:text-sm"
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
@@ -496,7 +594,9 @@ export default function AcademicReferatPage() {
 
               <div>
                 <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                  Kutilayotgan hajm (Sahifalar soni: 1 — 500 betgacha)
+                  {image
+                    ? "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+                    : "Kutilayotgan hajm (Sahifalar soni: 1 — 500 betgacha)"}
                 </label>
                 <div className="mb-2 grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap">
                   {[

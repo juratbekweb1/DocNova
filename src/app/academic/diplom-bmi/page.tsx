@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   ShieldCheck,
   Loader2,
+  FileImage,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 import { useToast } from "@/hooks/use-toast";
@@ -269,6 +270,29 @@ export default function DiplomBmiPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string>("");
+
+  const handleImageSelect = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(reader.result as string);
+      setImageFileName(file.name);
+      setFormData((prev) => ({ ...prev, topic: "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setImage(null);
+    setImageFileName("");
+    setFormData((prev) => ({
+      ...prev,
+      topic: prev.topic || activeSpecialty.topics[0] || "",
+    }));
+  };
+
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
   const [generationError, setGenerationError] = useState<{
@@ -312,10 +336,10 @@ export default function DiplomBmiPage() {
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!formData.topic.trim()) {
+    if (!image && !formData.topic.trim()) {
       toast({
         title: "Mavzuni kiriting",
-        description: "Diplom yoki BMI mavzusi kiritilishi shart.",
+        description: "Diplom yoki BMI mavzusi kiritilishi yoki rasm yuklanishi shart.",
         variant: "destructive",
       });
       return;
@@ -350,6 +374,9 @@ export default function DiplomBmiPage() {
         body: JSON.stringify({
           action: "generate-bmi",
           ...formData,
+          topic: image ? "" : formData.topic,
+          image,
+          pageCount: formData.pageCount,
         }),
         signal: controller.signal,
       });
@@ -425,9 +452,10 @@ export default function DiplomBmiPage() {
   const handleDownloadDoc = async () => {
     if (!result || isDownloadingDocx) return;
     setIsDownloadingDocx(true);
+    const cleanImageTitle = imageFileName ? imageFileName.replace(/\.[^/.]+$/, "") : "";
     try {
       const exported = await downloadAcademicDocx({
-        topic: formData.topic,
+        topic: formData.topic || cleanImageTitle || "Diplom ishi",
         markdownContent: result,
         workType: formData.workType,
         subject: formData.specialty,
@@ -608,8 +636,15 @@ export default function DiplomBmiPage() {
                         : prev.language,
                   }));
                 }}
+                onImageFileSelected={(dataUrl, name) => {
+                  setImage(dataUrl);
+                  if (name) setImageFileName(name);
+                  setFormData((prev) => ({ ...prev, topic: "" }));
+                }}
+                onImageCleared={handleClearImage}
                 onApplyTopicsToForm={(topics) => {
                   if (topics.length === 0) return;
+                  handleClearImage();
                   setFormData((prev) => ({
                     ...prev,
                     topic: topics[0].title || prev.topic,
@@ -626,6 +661,7 @@ export default function DiplomBmiPage() {
                 }}
                 onWorksGenerated={(works) => {
                   if (works.length === 0) return;
+                  handleClearImage();
                   const combinedMarkdown = works
                     .map((w, idx) => `# ${idx + 1}. ${w.title}\n\n${w.content}`)
                     .join("\n\n---\n\n");
@@ -702,47 +738,112 @@ export default function DiplomBmiPage() {
                 </select>
               </div>
 
-              {/* Mavzu + Tavsiyalar */}
-              <div>
-                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+              {/* Rasm biriktirish maydoni */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
                   <label className="text-foreground-secondary block text-xs font-semibold">
-                    Tadqiqot mavzusi (Aniq va to&apos;liq) *
+                    Mavzular rasmi (Ixtiyoriy — konspekt, darslik yoki mavzular ro&apos;yxati)
                   </label>
-                  <GalleryTopicTriggerButton accentColor="amber" label="Rasm tashlash" />
+                  {image && (
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="text-xs font-semibold text-rose-400 transition hover:text-rose-300"
+                    >
+                      Rasmni tozalash
+                    </button>
+                  )}
                 </div>
-                <textarea
-                  rows={2}
-                  name="topic"
-                  required
-                  value={formData.topic}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setFormData({ ...formData, topic: e.target.value })
-                  }
-                  placeholder="Masalan: Raqamli iqtisodiyot sharoitida bank xizmatlarini modernizatsiya qilish..."
-                  className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-amber-400 focus:outline-none sm:text-sm"
-                />
+                {image ? (
+                  <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileImage className="h-5 w-5 shrink-0 text-amber-400" />
+                      <div className="text-xs">
+                        <p className="text-foreground max-w-[200px] truncate font-semibold sm:max-w-xs">
+                          {imageFileName || "Mavzular rasmi biriktirildi"}
+                        </p>
+                        <p className="text-[11px] font-medium text-amber-500">
+                          Rasmdagi har bir mavzu avtomatik o&apos;qiladi va yoritiladi
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      className="border-border/80 bg-background/80 text-foreground-secondary rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:bg-rose-500/10 hover:text-rose-400"
+                    >
+                      O&apos;chirish
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-border bg-surface-elevated/40 flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-3.5 py-2.5 transition hover:border-amber-500/60 hover:bg-amber-500/5">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageSelect(file);
+                      }}
+                      className="sr-only"
+                      id="bmi-image-upload-input"
+                    />
+                    <div className="flex items-center gap-2">
+                      <FileImage className="h-4 w-4 shrink-0 text-amber-400" />
+                      <span className="text-foreground-secondary text-xs">
+                        Galereyadan mavzular rasmini yuklash
+                      </span>
+                    </div>
+                    <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-500">
+                      Rasm tanlash
+                    </span>
+                  </label>
+                )}
+              </div>
 
-                {/* Topic Suggestions */}
-                <div className="mt-2 space-y-1.5">
-                  <span className="text-foreground-muted flex items-center gap-1 text-[11px] font-semibold">
-                    <Lightbulb className="h-3 w-3 text-amber-400" />
-                    <span>Kafedra tavsiya etgan dolzarb mavzular:</span>
-                  </span>
-                  <div className="space-y-1">
-                    {activeSpecialty.topics.slice(0, 3).map((item, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSelectTopicSuggestion(item)}
-                        className="border-border/70 bg-surface-elevated/70 text-foreground-secondary hover:text-foreground block w-full cursor-pointer truncate rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition-all hover:border-amber-400/40 hover:bg-amber-500/10"
-                        title={item}
-                      >
-                        → {item}
-                      </button>
-                    ))}
+              {/* Case A: No Image Uploaded (image === null) -> Show Topic input */}
+              {/* Case B: Image IS Uploaded (image !== null) -> Hide Topic field completely */}
+              {!image && (
+                <div>
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-foreground-secondary block text-xs font-semibold">
+                      Tadqiqot mavzusi (Aniq va to&apos;liq) *
+                    </label>
+                    <GalleryTopicTriggerButton accentColor="amber" label="Rasm tashlash" />
+                  </div>
+                  <textarea
+                    rows={2}
+                    name="topic"
+                    required
+                    value={formData.topic}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setFormData({ ...formData, topic: e.target.value })
+                    }
+                    placeholder="Masalan: Raqamli iqtisodiyot sharoitida bank xizmatlarini modernizatsiya qilish..."
+                    className="border-border bg-background text-foreground w-full rounded-xl border px-3.5 py-2.5 text-xs focus:border-amber-400 focus:outline-none sm:text-sm"
+                  />
+
+                  {/* Topic Suggestions */}
+                  <div className="mt-2 space-y-1.5">
+                    <span className="text-foreground-muted flex items-center gap-1 text-[11px] font-semibold">
+                      <Lightbulb className="h-3 w-3 text-amber-400" />
+                      <span>Kafedra tavsiya etgan dolzarb mavzular:</span>
+                    </span>
+                    <div className="space-y-1">
+                      {activeSpecialty.topics.slice(0, 3).map((item, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleSelectTopicSuggestion(item)}
+                          className="border-border/70 bg-surface-elevated/70 text-foreground-secondary hover:text-foreground block w-full cursor-pointer truncate rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition-all hover:border-amber-400/40 hover:bg-amber-500/10"
+                          title={item}
+                        >
+                          → {item}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Til tanlash */}
               <div>
@@ -857,7 +958,9 @@ export default function DiplomBmiPage() {
               {/* Sahifalar soni (Hajm) */}
               <div>
                 <label className="text-foreground-secondary mb-1.5 block text-xs font-semibold">
-                  Kutilayotgan hajm (Sahifalar soni: 50 — 500 betgacha)
+                  {image
+                    ? "Rasmdagi har bir mavzu uchun necha betdan yozilsin? (Pages per topic in the image)"
+                    : "Kutilayotgan hajm (Sahifalar soni: 50 — 500 betgacha)"}
                 </label>
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {["50", "70", "100", "150", "200", "300"].map((cnt) => (

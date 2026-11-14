@@ -26,6 +26,8 @@ export interface CreationModeSelectorProps {
   onApplySampleStructureHint?: (hint: { subject?: string; pageCount?: string }) => void;
   onApplyTopicsToForm?: (topics: ParsedTopic[]) => void;
   onImageMetadataDetected?: (meta: { subject?: string; language?: AcademicLanguage }) => void;
+  onImageFileSelected?: (base64OrDataUrl: string, fileName?: string) => void;
+  onImageCleared?: () => void;
   autoGeneratePerTopicWorks?: boolean;
   defaultPagesPerTopic?: string;
   initialMode?: "scratch" | "sample" | "image";
@@ -99,6 +101,8 @@ export function CreationModeSelector({
   onApplySampleStructureHint,
   onApplyTopicsToForm,
   onImageMetadataDetected,
+  onImageFileSelected,
+  onImageCleared,
   autoGeneratePerTopicWorks = false,
   defaultPagesPerTopic = "2-3",
   initialMode = "scratch",
@@ -467,6 +471,8 @@ export function CreationModeSelector({
           }}
           onApplyTopicsToForm={onApplyTopicsToForm}
           onImageMetadataDetected={onImageMetadataDetected}
+          onImageFileSelected={onImageFileSelected}
+          onImageCleared={onImageCleared}
           onWorksGenerated={onWorksGenerated}
           compact
         />
