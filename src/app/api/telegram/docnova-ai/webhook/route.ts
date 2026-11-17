@@ -46,6 +46,14 @@ import {
   regenerateAcademicDoc,
   AcademicGenResult,
 } from "@/lib/telegram-academic-generator";
+export {
+  generateCourseworkDoc,
+  generateReferatDoc,
+  generateBmiDoc,
+  generatePresentationDoc,
+  generateEssayDoc,
+  generateExamDoc,
+} from "@/lib/telegram-academic-generator";
 import {
   createAcademicDocumentRecord,
   saveNewDocumentVersion,
