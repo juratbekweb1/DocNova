@@ -104,7 +104,7 @@ const DANGEROUS_EXTENSIONS = [
 
 const ALLOWED_EXTENSIONS = [".docx", ".pdf", ".txt"];
 
-export const MAX_SAMPLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+export const MAX_SAMPLE_FILE_BYTES = 25 * 1024 * 1024; // 25 MB (direct browser-to-storage upload)
 
 /**
  * Fayl nomini xavfsiz tozalash (Path traversal va maxsus belgilardan himoya)

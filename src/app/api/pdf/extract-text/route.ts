@@ -1,28 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   analyzeSampleDocument,
+  MAX_SAMPLE_FILE_BYTES,
   sanitizeSafeFileName,
   sanitizeUntrustedSampleText,
   validateSampleFileBuffer,
 } from "@/lib/academic-sample-intelligence";
+import {
+  deleteUploadedStorageFile,
+  downloadUploadedStorageFile,
+} from "@/lib/storage/direct-upload-server";
+import type { UploadedStorageFile } from "@/lib/storage/direct-upload-shared";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+  let uploadedRef: UploadedStorageFile | null = null;
 
-    if (!file) {
-      return NextResponse.json({ error: "Fayl topilmadi" }, { status: 400 });
+  try {
+    const contentType = (req.headers.get("content-type") || "").toLowerCase();
+    let buffer: Buffer;
+    let fileName: string;
+    let fileSize: number;
+    let mimeType: string;
+
+    if (contentType.includes("application/json")) {
+      const body = (await req.json().catch(() => ({}))) as {
+        storageFile?: UploadedStorageFile;
+      };
+      const storageFile = body.storageFile;
+      if (!storageFile || !storageFile.provider || !storageFile.path) {
+        return NextResponse.json(
+          { error: "Yuklangan fayl havolasi (storageFile) topilmadi." },
+          { status: 400 }
+        );
+      }
+      uploadedRef = storageFile;
+      const downloaded = await downloadUploadedStorageFile(storageFile, MAX_SAMPLE_FILE_BYTES);
+      buffer = downloaded.buffer;
+      fileName = storageFile.fileName || storageFile.path.split("/").pop() || "namuna.pdf";
+      fileSize = buffer.byteLength;
+      mimeType = storageFile.mimeType || downloaded.mimeType;
+    } else {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+
+      if (!file) {
+        return NextResponse.json({ error: "Fayl topilmadi" }, { status: 400 });
+      }
+
+      buffer = Buffer.from(await file.arrayBuffer());
+      fileName = file.name;
+      fileSize = file.size;
+      mimeType = file.type;
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
     const validation = validateSampleFileBuffer({
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
+      fileName,
+      fileSize,
+      mimeType,
       buffer,
     });
 
@@ -70,21 +107,24 @@ export async function POST(req: NextRequest) {
 
     const analysis = analyzeSampleDocument({
       rawText: sanitized,
-      fileName: file.name,
-      fileSize: file.size,
+      fileName,
+      fileSize,
     });
 
     return NextResponse.json({
       success: true,
       text: analysis.structuralBlueprint,
       charCount: sanitized.length,
-      fileName: sanitizeSafeFileName(file.name),
+      fileName: sanitizeSafeFileName(fileName),
       analysis,
     });
-  } catch {
-    return NextResponse.json(
-      { error: "Faylni tahlil qilishda kutilmagan xatolik yuz berdi." },
-      { status: 500 }
-    );
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Faylni tahlil qilishda kutilmagan xatolik yuz berdi.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    if (uploadedRef) {
+      await deleteUploadedStorageFile(uploadedRef);
+    }
   }
 }

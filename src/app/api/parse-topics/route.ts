@@ -6,10 +6,15 @@ import { getUserSubscription, trackAIUsage } from "@/lib/limits";
 import { aiDemoRateLimiter } from "@/lib/security/rate-limiter";
 import {
   extractBase64Image,
+  MAX_TOPIC_IMAGE_BYTES,
   parseGeminiTopicsPayload,
   parseTopicsRequestSchema,
 } from "@/lib/academic/topic-parser";
 import { detectAcademicLanguage } from "@/lib/academic/topic-fidelity";
+import {
+  deleteUploadedStorageFile,
+  downloadUploadedStorageFile,
+} from "@/lib/storage/direct-upload-server";
 
 export const maxDuration = 60;
 
@@ -84,9 +89,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: firstIssue }, { status: 400 });
   }
 
-  const rawImage = parsedRequest.data.image ?? parsedRequest.data.imageBase64 ?? "";
-  const imageResult = extractBase64Image(rawImage, parsedRequest.data.mimeType);
+  const storageFile = parsedRequest.data.storageFile;
+  let resolvedBase64 = "";
+  let resolvedMimeType = parsedRequest.data.mimeType || "image/jpeg";
+
+  if (storageFile) {
+    try {
+      const downloaded = await downloadUploadedStorageFile(storageFile, MAX_TOPIC_IMAGE_BYTES);
+      resolvedBase64 = downloaded.buffer.toString("base64");
+      resolvedMimeType =
+        parsedRequest.data.mimeType || storageFile.mimeType || downloaded.mimeType || "image/jpeg";
+    } catch (downloadErr) {
+      await deleteUploadedStorageFile(storageFile);
+      return NextResponse.json(
+        {
+          error:
+            downloadErr instanceof Error
+              ? downloadErr.message
+              : "Bulutdan rasmni o'qishda xatolik yuz berdi.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  const rawImage = storageFile
+    ? resolvedBase64
+    : (parsedRequest.data.image ?? parsedRequest.data.imageBase64 ?? "");
+  const imageResult = extractBase64Image(rawImage, resolvedMimeType);
   if (!imageResult.ok) {
+    if (storageFile) {
+      await deleteUploadedStorageFile(storageFile);
+    }
     return NextResponse.json({ error: imageResult.error }, { status: imageResult.status });
   }
 
@@ -287,5 +321,9 @@ export async function POST(request: NextRequest) {
       },
       { status: isTimeoutError ? 504 : isQuotaError ? 429 : isUpstreamBusy ? 503 : 500 }
     );
+  } finally {
+    if (storageFile) {
+      await deleteUploadedStorageFile(storageFile);
+    }
   }
 }

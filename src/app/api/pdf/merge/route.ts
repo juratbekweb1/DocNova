@@ -3,10 +3,23 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { checkPdfLimit, increasePdfLimit } from "@/lib/pdf-limit";
 import { PDFDocument } from "pdf-lib";
+import {
+  deleteUploadedStorageFile,
+  downloadUploadedStorageFile,
+  storeProcessedOutputAndGetDownloadUrl,
+} from "@/lib/storage/direct-upload-server";
+import {
+  DIRECT_UPLOAD_MAX_BYTES,
+  SERVERLESS_SAFE_BODY_BYTES,
+  type UploadedStorageFile,
+} from "@/lib/storage/direct-upload-shared";
 
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const uploadedRefs: UploadedStorageFile[] = [];
+
   try {
     // 1. Session check - if authenticated, check user limits, otherwise allow guest usage
     const session = await getServerSession(authOptions).catch(() => null);
@@ -14,44 +27,72 @@ export async function POST(req: NextRequest) {
       const hasLimit = await checkPdfLimit(session.user.id).catch(() => true);
       if (!hasLimit) {
         return NextResponse.json(
-          { error: "Kunlik PDF amallar limitingiz tugagan. Davom etish uchun tarifni yangilang.", requireUpgrade: true },
+          {
+            error: "Kunlik PDF amallar limitingiz tugagan. Davom etish uchun tarifni yangilang.",
+            requireUpgrade: true,
+          },
           { status: 403 }
         );
       }
     }
 
-    // 2. Parse uploaded multipart/form-data files
-    const formData = await req.formData();
-    const rawFiles = formData.getAll("files");
+    // 2. Collect input PDF buffers from either direct storage refs (JSON) or FormData fallback
+    const contentType = (req.headers.get("content-type") || "").toLowerCase();
+    const inputDocs: Array<{ name: string; buffer: Buffer }> = [];
 
-    const files: File[] = [];
-    for (const item of rawFiles) {
-      if (item && typeof item === "object" && "arrayBuffer" in item) {
-        files.push(item as File);
+    if (contentType.includes("application/json")) {
+      const body = (await req.json().catch(() => ({}))) as {
+        storageFiles?: UploadedStorageFile[];
+      };
+      const refs = Array.isArray(body.storageFiles) ? body.storageFiles : [];
+      if (refs.length < 2) {
+        return NextResponse.json(
+          { error: "Birlashtirish uchun kamida 2 ta PDF fayl yuklanishi shart." },
+          { status: 400 }
+        );
       }
-    }
+      uploadedRefs.push(...refs);
 
-    if (files.length < 2) {
-      return NextResponse.json(
-        { error: "Birlashtirish uchun kamida 2 ta PDF fayl yuklanishi shart." },
-        { status: 400 }
-      );
+      for (const ref of refs) {
+        const downloaded = await downloadUploadedStorageFile(ref, DIRECT_UPLOAD_MAX_BYTES);
+        inputDocs.push({
+          name: ref.fileName || ref.path.split("/").pop() || "document.pdf",
+          buffer: downloaded.buffer,
+        });
+      }
+    } else {
+      const formData = await req.formData();
+      const rawFiles = formData.getAll("files");
+
+      for (const item of rawFiles) {
+        if (item && typeof item === "object" && "arrayBuffer" in item) {
+          const f = item as File;
+          inputDocs.push({
+            name: f.name || "document.pdf",
+            buffer: Buffer.from(await f.arrayBuffer()),
+          });
+        }
+      }
+
+      if (inputDocs.length < 2) {
+        return NextResponse.json(
+          { error: "Birlashtirish uchun kamida 2 ta PDF fayl yuklanishi shart." },
+          { status: 400 }
+        );
+      }
     }
 
     // 3. Create merged PDF document
     const mergedPdf = await PDFDocument.create();
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (const item of inputDocs) {
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-          console.warn(`[PDF Merge] Bo'sh fayl o'tkazib yuborildi: ${file.name}`);
+        if (!item.buffer || item.buffer.byteLength === 0) {
+          console.warn(`[PDF Merge] Bo'sh fayl o'tkazib yuborildi: ${item.name}`);
           continue;
         }
 
-        // ignoreEncryption: true enables parsing protected/bank/Chrome PDFs safely
-        const pdf = await PDFDocument.load(arrayBuffer, {
+        const pdf = await PDFDocument.load(item.buffer, {
           ignoreEncryption: true,
           throwOnInvalidObject: false,
           updateMetadata: false,
@@ -65,9 +106,10 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (fileErr) {
-        console.error(`[PDF Merge] Faylni yuklashda xatolik (${file.name}):`, fileErr);
-        // If a specific file fails, continue with others if possible or report
-        throw new Error(`"${file.name}" faylini o'qishda xatolik yuz berdi. PDF formati to'g'riligini tekshiring.`);
+        console.error(`[PDF Merge] Faylni yuklashda xatolik (${item.name}):`, fileErr);
+        throw new Error(
+          `"${item.name}" faylini o'qishda xatolik yuz berdi. PDF formati to'g'riligini tekshiring.`
+        );
       }
     }
 
@@ -78,8 +120,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save with object streams compression
-    const mergedPdfFile = await mergedPdf.save({ useObjectStreams: true });
+    const mergedPdfBytes = Buffer.from(await mergedPdf.save({ useObjectStreams: true }));
 
     // Track usage if authenticated
     if (session?.user?.id) {
@@ -88,17 +129,38 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return new NextResponse(Buffer.from(mergedPdfFile), {
+    if (mergedPdfBytes.byteLength > SERVERLESS_SAFE_BODY_BYTES) {
+      const storedOutput = await storeProcessedOutputAndGetDownloadUrl({
+        buffer: mergedPdfBytes,
+        fileName: "docnova_merged.pdf",
+        mimeType: "application/pdf",
+      });
+
+      if (storedOutput) {
+        return NextResponse.json({
+          downloadUrl: storedOutput.downloadUrl,
+          fileName: "docnova_merged.pdf",
+          totalSize: mergedPdfBytes.byteLength,
+        });
+      }
+    }
+
+    return new NextResponse(new Uint8Array(mergedPdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'attachment; filename="docnova_merged.pdf"',
-        "Content-Length": mergedPdfFile.byteLength.toString(),
+        "Content-Length": mergedPdfBytes.byteLength.toString(),
       },
     });
   } catch (error) {
     console.error("[PDF Merge API] Fatal error:", error);
-    const message = error instanceof Error ? error.message : "PDF birlashtirishda server xatoligi yuz berdi";
+    const message =
+      error instanceof Error ? error.message : "PDF birlashtirishda server xatoligi yuz berdi";
     return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    if (uploadedRefs.length > 0) {
+      await Promise.all(uploadedRefs.map((ref) => deleteUploadedStorageFile(ref)));
+    }
   }
 }

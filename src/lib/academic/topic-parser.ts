@@ -12,7 +12,7 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
 
 export type AllowedImageMimeType = (typeof ALLOWED_IMAGE_MIME_TYPES)[number];
 
-export const MAX_TOPIC_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB decoded binary cap
+export const MAX_TOPIC_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB decoded binary cap (direct storage supported)
 export const MAX_TOPICS_PER_IMAGE = 50;
 
 export const PAGE_COUNT_PATTERN = /^\d{1,3}(?:\s*[-–—]\s*\d{1,3})?$/;
@@ -70,15 +70,25 @@ export const parsedTopicSchema = z.object({
 
 export type ParsedTopic = z.infer<typeof parsedTopicSchema>;
 
+export const storageFileRefSchema = z.object({
+  provider: z.enum(["supabase", "vercel-blob"]),
+  path: z.string().trim().min(1).max(512),
+  url: z.string().trim().max(2048).optional().default(""),
+  fileName: z.string().trim().max(255).optional().default("image.jpg"),
+  fileSize: z.number().int().nonnegative().optional().default(0),
+  mimeType: z.string().trim().max(100).optional().default("image/jpeg"),
+});
+
 export const parseTopicsRequestSchema = z
   .object({
     image: z.string().min(1).optional(),
     imageBase64: z.string().min(1).optional(),
+    storageFile: storageFileRefSchema.optional(),
     mimeType: z.string().trim().max(100).optional(),
     fileName: z.string().trim().max(255).optional(),
   })
-  .refine((value) => Boolean(value.image || value.imageBase64), {
-    message: "Rasm base64 ma'lumoti yuborilishi shart",
+  .refine((value) => Boolean(value.image || value.imageBase64 || value.storageFile), {
+    message: "Rasm ma'lumoti (base64 yoki bulut havolasi) yuborilishi shart",
   });
 
 export const academicLanguageSchema = z.enum(["uz", "uz-cyrl", "ru", "en"]);

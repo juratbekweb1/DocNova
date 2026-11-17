@@ -389,18 +389,26 @@ describe("DOCNOVA — PREMIUM ACADEMIC DOCUMENT INTELLIGENCE UPGRADE (22 Test Sc
     }
   });
 
-  // 16. Katta fayl
-  it("16. Katta fayl: 10 MB dan katta fayl aniq xabar bilan rad etiladi", () => {
-    const over10Mb = 11 * 1024 * 1024;
+  // 16. Katta fayl (25 MB gacha ruxsat etiladi, 25 MB dan kattasi rad etiladi)
+  it("16. Katta fayl: 12 MB fayl qabul qilinadi, 25 MB dan katta fayl aniq xabar bilan rad etiladi", () => {
+    const allowed12Mb = validateSampleFileBuffer({
+      fileName: "thesis-12mb.pdf",
+      mimeType: "application/pdf",
+      fileSize: 12 * 1024 * 1024,
+      buffer: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]),
+    });
+    expect(allowed12Mb.valid).toBe(true);
+
+    const over25Mb = 26 * 1024 * 1024;
     const res = validateSampleFileBuffer({
       fileName: "huge.pdf",
       mimeType: "application/pdf",
-      fileSize: over10Mb,
+      fileSize: over25Mb,
       buffer: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]),
     });
     expect(res.valid).toBe(false);
     if (!res.valid) {
-      expect(res.error).toContain("10 MB");
+      expect(res.error).toContain("25 MB");
     }
   });
 

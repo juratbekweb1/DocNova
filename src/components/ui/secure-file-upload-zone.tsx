@@ -14,12 +14,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  MAX_SAMPLE_FILE_BYTES,
   SampleDocumentAnalysis,
   analyzeSampleDocument,
   sanitizeSafeFileName,
   sanitizeUntrustedSampleText,
   validateSampleFileBuffer,
 } from "@/lib/academic-sample-intelligence";
+import {
+  uploadFileDirectlyToStorage,
+  type DirectUploadProgress,
+} from "@/lib/storage/client-upload";
+import { UploadProgressBar } from "@/components/ui/upload-progress-bar";
 
 export interface SecureFileUploadZoneProps {
   onTextExtracted: (
@@ -30,13 +36,14 @@ export interface SecureFileUploadZoneProps {
   onSampleAnalyzed?: (analysis: SampleDocumentAnalysis) => void;
   onClear?: () => void;
   className?: string;
-  maxSizeBytes?: number; // Default 10MB
+  maxSizeBytes?: number; // Default 25MB (direct browser-to-storage upload)
   title?: string;
   description?: string;
   showAnalysisCard?: boolean;
 }
 
-const MAX_SIZE_DEFAULT = 10 * 1024 * 1024; // 10 MB
+const MAX_SIZE_DEFAULT = MAX_SAMPLE_FILE_BYTES; // 25 MB
+const SERVERLESS_FALLBACK_MAX_BYTES = 4 * 1024 * 1024; // 4 MB safe FormData fallback if cloud storage unavailable
 
 /**
  * Sanitize extracted text to prevent script & prompt injection before passing to AI prompts
@@ -57,12 +64,71 @@ export function SecureFileUploadZone({
 }: SecureFileUploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<DirectUploadProgress | null>(null);
+  const [processingStage, setProcessingStage] = useState<string>("");
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [fileSizeStr, setFileSizeStr] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<SampleDocumentAnalysis | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const sendSampleToAnalyzer = async (file: File) => {
+    setProcessingStage("Fayl bulutga yuklanmoqda...");
+    setUploadProgress({ loaded: 0, total: file.size, percentage: 5 });
+
+    const uploadedStorageFile = await uploadFileDirectlyToStorage(file, {
+      folder: "samples",
+      onProgress: (prog) => {
+        setUploadProgress(prog);
+      },
+    });
+
+    if (uploadedStorageFile) {
+      setProcessingStage("Namuna tuzilmasi tahlil qilinmoqda...");
+      setUploadProgress({ loaded: file.size, total: file.size, percentage: 100 });
+      const res = await fetch("/api/academic/analyze-sample", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storageFile: uploadedStorageFile }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            "Fayldan matn ajratib olinmadi. Parol bilan himoyalangan yoki skanerlangan rasm bo'lishi mumkin."
+        );
+      }
+      return data as { text?: string; analysis?: SampleDocumentAnalysis };
+    }
+
+    if (file.size > SERVERLESS_FALLBACK_MAX_BYTES) {
+      throw new Error(
+        "Katta fayllarni yuklash uchun bulut xotirasi (Storage) ulanishi topilmadi. Iltimos, keyinroq urinib ko'ring."
+      );
+    }
+
+    setProcessingStage("Namuna tuzilmasi tahlil qilinmoqda...");
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/academic/analyze-sample", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 413) {
+        throw new Error(
+          "Fayl hajmi server chegarasidan oshib ketdi. Iltimos qayta urinib ko'ring."
+        );
+      }
+      throw new Error(
+        data.error ||
+          "Fayldan matn ajratib olinmadi. Parol bilan himoyalangan yoki skanerlangan rasm bo'lishi mumkin."
+      );
+    }
+    return data as { text?: string; analysis?: SampleDocumentAnalysis };
+  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -114,8 +180,10 @@ export function SecureFileUploadZone({
       let serverAnalysis: SampleDocumentAnalysis | undefined;
 
       if (validation.ext === ".txt") {
+        setProcessingStage("Matn o'qilmoqda...");
         extractedText = new TextDecoder("utf-8").decode(uint8);
       } else if (validation.ext === ".docx") {
+        setProcessingStage("DOCX hujjati o'qilmoqda...");
         try {
           const mammothModule = await import("mammoth");
           const mammoth =
@@ -124,37 +192,13 @@ export function SecureFileUploadZone({
           const result = await mammoth.extractRawText({ arrayBuffer });
           extractedText = result.value || "";
         } catch {
-          // Server fallback
-          const formData = new FormData();
-          formData.append("file", file);
-          const res = await fetch("/api/academic/analyze-sample", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(
-              data.error ||
-                "DOCX faylni o'qib bo'lmadi. Fayl shikastlangan bo'lishi mumkin — boshqa fayl tanlang."
-            );
-          }
+          // Direct cloud storage upload fallback (bypasses Vercel 4.5 MB limit)
+          const data = await sendSampleToAnalyzer(file);
           extractedText = data.text || "";
           serverAnalysis = data.analysis;
         }
       } else if (validation.ext === ".pdf") {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/academic/analyze-sample", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(
-            data.error ||
-              "PDF fayldan matn ajratib olinmadi. Parol bilan himoyalangan yoki skanerlangan rasm bo'lishi mumkin."
-          );
-        }
+        const data = await sendSampleToAnalyzer(file);
         extractedText = data.text || "";
         serverAnalysis = data.analysis;
       }
@@ -193,6 +237,8 @@ export function SecureFileUploadZone({
       setAnalysis(null);
     } finally {
       setIsProcessing(false);
+      setUploadProgress(null);
+      setProcessingStage("");
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -235,10 +281,10 @@ export function SecureFileUploadZone({
 
   const hasIsolatedPii = Boolean(
     analysis &&
-      (analysis.isolatedOldMetadata.oldStudentName ||
-        analysis.isolatedOldMetadata.oldTeacherName ||
-        analysis.isolatedOldMetadata.oldGroup ||
-        analysis.isolatedOldMetadata.oldTopic)
+    (analysis.isolatedOldMetadata.oldStudentName ||
+      analysis.isolatedOldMetadata.oldTeacherName ||
+      analysis.isolatedOldMetadata.oldGroup ||
+      analysis.isolatedOldMetadata.oldTopic)
   );
 
   return (
@@ -273,7 +319,7 @@ export function SecureFileUploadZone({
         </div>
 
         <div className="text-foreground text-xs font-bold sm:text-sm">
-          {isProcessing ? "Namuna fayl tuzilmasi tahlil qilinmoqda..." : title}
+          {isProcessing ? processingStage || "Namuna fayl tuzilmasi tahlil qilinmoqda..." : title}
         </div>
         <p className="text-foreground-muted mt-1 max-w-lg text-[11px] leading-relaxed">
           {description}
@@ -294,6 +340,17 @@ export function SecureFileUploadZone({
           </span>
         </div>
       </div>
+
+      {/* Live Upload / Processing Progress Bar */}
+      {isProcessing && (
+        <UploadProgressBar
+          percentage={uploadProgress?.percentage ?? 100}
+          loadedBytes={uploadProgress?.loaded}
+          totalBytes={uploadProgress?.total}
+          indeterminate={!uploadProgress || uploadProgress.percentage >= 100}
+          label={processingStage || "Namuna fayl tuzilmasi tahlil qilinmoqda..."}
+        />
+      )}
 
       {/* Active File Loaded Banner with Replace & Remove buttons */}
       {currentFileName && (

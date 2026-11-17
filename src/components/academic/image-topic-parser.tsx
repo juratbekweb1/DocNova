@@ -28,6 +28,12 @@ import ReactMarkdown from "react-markdown";
 import { downloadAcademicDocx } from "@/lib/docx-download-client";
 import { normalizePageCountInput, type ParsedTopic } from "@/lib/academic/topic-parser";
 import type { AcademicLanguage } from "@/lib/academic/topic-fidelity";
+import {
+  uploadFileDirectlyToStorage,
+  type DirectUploadProgress,
+} from "@/lib/storage/client-upload";
+import type { UploadedStorageFile } from "@/lib/storage/direct-upload-shared";
+import { UploadProgressBar } from "@/components/ui/upload-progress-bar";
 
 export interface EditableTopicBlock extends ParsedTopic {
   id: string;
@@ -95,7 +101,8 @@ interface SaveResultState {
 }
 
 const DRAFT_STORAGE_KEY = "docnova_academic_image_topics_draft_v1";
-const MAX_RAW_UPLOAD_BYTES = 15 * 1024 * 1024;
+const MAX_RAW_UPLOAD_BYTES = 25 * 1024 * 1024;
+const DIRECT_STORAGE_IMAGE_THRESHOLD_BYTES = 2 * 1024 * 1024;
 const COMPRESS_THRESHOLD_BYTES = 1 * 1024 * 1024;
 const SAFE_BASE64_DATAURL_MAX_CHARS = 2_800_000;
 const HARD_VERCEL_BASE64_MAX_CHARS = 4_100_000;
@@ -256,6 +263,7 @@ export function ImageTopicParser({
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<DirectUploadProgress | null>(null);
   const [isWritingWorks, setIsWritingWorks] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [autoWriteWorks, setAutoWriteWorks] = useState<boolean>(autoGeneratePerTopicWorks);
@@ -369,13 +377,14 @@ export function ImageTopicParser({
     }
 
     if (file.size > MAX_RAW_UPLOAD_BYTES) {
-      setErrorMessage("Rasm hajmi 15 MB dan oshmasligi kerak.");
+      setErrorMessage("Rasm hajmi 25 MB dan oshmasligi kerak.");
       if (inputEl) inputEl.value = "";
       return;
     }
 
     onImageSelected?.();
     setIsAnalyzing(true);
+    setUploadProgress(null);
     setFileName(file.name);
 
     try {
@@ -385,11 +394,26 @@ export function ImageTopicParser({
         file.size,
         file.type || "image/jpeg"
       );
-      if (optimized.dataUrl.length > HARD_VERCEL_BASE64_MAX_CHARS) {
+
+      let uploadedStorageFile: UploadedStorageFile | null = null;
+      const shouldUseDirectStorage =
+        file.size > DIRECT_STORAGE_IMAGE_THRESHOLD_BYTES ||
+        optimized.dataUrl.length > SAFE_BASE64_DATAURL_MAX_CHARS;
+
+      if (shouldUseDirectStorage) {
+        setUploadProgress({ loaded: 0, total: file.size, percentage: 5 });
+        uploadedStorageFile = await uploadFileDirectlyToStorage(file, {
+          folder: "topics",
+          onProgress: (prog) => setUploadProgress(prog),
+        });
+      }
+
+      if (!uploadedStorageFile && optimized.dataUrl.length > HARD_VERCEL_BASE64_MAX_CHARS) {
         throw new Error(
           "Tanlangan rasm hajmi juda katta (4.5 MB chegarasidan oshdi). Iltimos rasmni skrinshot qilib yoki kichikroq JPEG/PNG ko'rinishida yuklang."
         );
       }
+
       setPreviewUrl(optimized.dataUrl);
       onImageFileSelected?.(optimized.dataUrl, file.name);
 
@@ -403,11 +427,19 @@ export function ImageTopicParser({
             "Content-Type": "application/json",
           },
           signal: controller.signal,
-          body: JSON.stringify({
-            image: optimized.dataUrl,
-            mimeType: optimized.mimeType,
-            fileName: file.name,
-          }),
+          body: JSON.stringify(
+            uploadedStorageFile
+              ? {
+                  storageFile: uploadedStorageFile,
+                  mimeType: file.type || optimized.mimeType,
+                  fileName: file.name,
+                }
+              : {
+                  image: optimized.dataUrl,
+                  mimeType: optimized.mimeType,
+                  fileName: file.name,
+                }
+          ),
         });
       } catch (networkErr) {
         if (networkErr instanceof DOMException && networkErr.name === "AbortError") {
@@ -495,6 +527,7 @@ export function ImageTopicParser({
       );
     } finally {
       setIsAnalyzing(false);
+      setUploadProgress(null);
       // Reset input value after reading completes so mobile WebViews never lose the File handle
       if (inputEl) {
         inputEl.value = "";
@@ -1305,17 +1338,23 @@ export function ImageTopicParser({
 
       {/* Loading Status */}
       {isAnalyzing && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-center gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm font-medium text-sky-700 dark:text-sky-300"
-        >
-          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-sky-500" />
-          <div>
-            <p className="font-semibold">Rasm tahlil qilinmoqda...</p>
-            <p className="text-xs opacity-80">
-              AI rasmdagi mavzular va matnlarni alohida bloklarga ajratmoqda, iltimos kuting.
-            </p>
+        <div role="status" aria-live="polite" className="space-y-2">
+          {uploadProgress && uploadProgress.percentage < 100 && (
+            <UploadProgressBar
+              percentage={uploadProgress.percentage}
+              loadedBytes={uploadProgress.loaded}
+              totalBytes={uploadProgress.total}
+              label="Katta rasm bulutga yuklanmoqda..."
+            />
+          )}
+          <div className="flex items-center gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm font-medium text-sky-700 dark:text-sky-300">
+            <Loader2 className="h-5 w-5 shrink-0 animate-spin text-sky-500" />
+            <div>
+              <p className="font-semibold">Rasm tahlil qilinmoqda...</p>
+              <p className="text-xs opacity-80">
+                AI rasmdagi mavzular va matnlarni alohida bloklarga ajratmoqda, iltimos kuting.
+              </p>
+            </div>
           </div>
         </div>
       )}

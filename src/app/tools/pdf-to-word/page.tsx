@@ -6,6 +6,13 @@ import { FileText, Loader2, Upload, File, Sparkles, Copy, Download, FileDown } f
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/modals/upgrade-modal";
 import { useToast } from "@/hooks/use-toast";
+import {
+  uploadFileDirectlyToStorage,
+  type DirectUploadProgress,
+} from "@/lib/storage/client-upload";
+import { UploadProgressBar } from "@/components/ui/upload-progress-bar";
+
+const SERVERLESS_FALLBACK_MAX_BYTES = 4 * 1024 * 1024;
 
 export default function PdfToWordPage() {
   useRecentTool("pdf-to-word", "PDF to Text / Word", "Tools Hub", "/tools/pdf-to-word");
@@ -13,6 +20,8 @@ export default function PdfToWordPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<DirectUploadProgress | null>(null);
+  const [stageLabel, setStageLabel] = useState("");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [result, setResult] = useState("");
 
@@ -28,22 +37,48 @@ export default function PdfToWordPage() {
 
     setIsProcessing(true);
     setResult("");
-    const formData = new FormData();
-    formData.append("file", file);
+    setStageLabel("PDF bulutga yuklanmoqda...");
+    setUploadProgress({ loaded: 0, total: file.size, percentage: 5 });
 
     try {
-      const res = await fetch("/api/pdf/pdf-to-word", {
-        method: "POST",
-        body: formData,
+      const storageFile = await uploadFileDirectlyToStorage(file, {
+        folder: "pdf",
+        onProgress: (prog) => setUploadProgress(prog),
       });
+
+      let res: Response;
+      if (storageFile) {
+        setStageLabel("PDF matni ajratib olinmoqda...");
+        setUploadProgress({ loaded: file.size, total: file.size, percentage: 100 });
+        res = await fetch("/api/pdf/pdf-to-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storageFile }),
+        });
+      } else {
+        if (file.size > SERVERLESS_FALLBACK_MAX_BYTES) {
+          throw new Error(
+            "Katta PDF fayllarni yuklash uchun bulut xotirasi (Storage) ulanishi kerak."
+          );
+        }
+        setStageLabel("PDF matni ajratib olinmoqda...");
+        const formData = new FormData();
+        formData.append("file", file);
+        res = await fetch("/api/pdf/pdf-to-word", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       if (res.status === 403) {
         setShowUpgrade(true);
-        setIsProcessing(false);
         return;
       }
 
-      if (!res.ok) throw new Error("Failed to extract");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || "Failed to extract");
+      }
 
       const data = await res.json();
       setResult(data.text);
@@ -52,11 +87,14 @@ export default function PdfToWordPage() {
       console.error(error);
       toast({
         title: "Xatolik",
-        description: "PDF faylni qayta ishlashda xatolik yuz berdi.",
+        description:
+          error instanceof Error ? error.message : "PDF faylni qayta ishlashda xatolik yuz berdi.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setUploadProgress(null);
+      setStageLabel("");
     }
   };
 
@@ -109,7 +147,7 @@ export default function PdfToWordPage() {
         </h1>
         <p className="text-foreground-secondary mb-12 max-w-2xl text-center text-lg">
           PDF hujjatdagi barcha matnlarni bir zumda ajratib oling va Word (.doc) yoki Matn (.txt)
-          shaklida saqlang.
+          shaklida saqlang (50 MB gacha).
         </p>
 
         <div className="bg-surface border-border w-full rounded-3xl border p-8 shadow-lg">
@@ -127,12 +165,12 @@ export default function PdfToWordPage() {
                   PDF faylni bu yerga tashlang yoki tanlang
                 </h3>
                 <p className="text-foreground-secondary text-sm">
-                  Faqat .pdf formatidagi fayllar qabul qilinadi
+                  Faqat .pdf formatidagi fayllar qabul qilinadi (50 MB gacha)
                 </p>
               </div>
 
               {file && (
-                <div className="bg-background border-border mb-8 flex items-center gap-3 rounded-xl border p-4">
+                <div className="bg-background border-border mb-6 flex items-center gap-3 rounded-xl border p-4">
                   <File className="text-primary h-6 w-6 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-foreground truncate text-sm font-medium">{file.name}</p>
@@ -151,6 +189,17 @@ export default function PdfToWordPage() {
                 </div>
               )}
 
+              {isProcessing && (
+                <UploadProgressBar
+                  className="mb-6"
+                  percentage={uploadProgress?.percentage ?? 100}
+                  loadedBytes={uploadProgress?.loaded}
+                  totalBytes={uploadProgress?.total}
+                  indeterminate={!uploadProgress || uploadProgress.percentage >= 100}
+                  label={stageLabel || "Matn ajratilmoqda..."}
+                />
+              )}
+
               <Button
                 onClick={handleExtract}
                 disabled={!file || isProcessing}
@@ -158,7 +207,8 @@ export default function PdfToWordPage() {
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" /> Matn ajratilmoqda...
+                    <Loader2 className="h-5 w-5 animate-spin" />{" "}
+                    {stageLabel || "Matn ajratilmoqda..."}
                   </>
                 ) : (
                   <>
