@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { checkPdfLimit, increasePdfLimit } from "@/lib/pdf-limit";
-import pdfParse from "pdf-parse";
 import {
   deleteUploadedStorageFile,
   downloadUploadedStorageFile,
@@ -14,6 +13,13 @@ import {
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed. Please use POST to convert PDF documents." },
+    { status: 405 }
+  );
+}
 
 export async function POST(req: NextRequest) {
   let uploadedRef: UploadedStorageFile | null = null;
@@ -69,9 +75,12 @@ export async function POST(req: NextRequest) {
     }
 
     type PdfParseFn = (dataBuffer: Buffer) => Promise<{ text: string }>;
-    const pdfModule = pdfParse as unknown as PdfParseFn | { default?: PdfParseFn };
+    const pdfModule = (await import("pdf-parse/lib/pdf-parse.js")) as unknown as
+      PdfParseFn | { default?: PdfParseFn };
     const parsePdf: PdfParseFn =
-      typeof pdfModule === "function" ? pdfModule : pdfModule.default || (pdfParse as PdfParseFn);
+      typeof pdfModule === "function"
+        ? pdfModule
+        : pdfModule.default || (pdfModule as unknown as PdfParseFn);
     const data = await parsePdf(buffer);
 
     if (session?.user?.id) {

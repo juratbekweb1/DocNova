@@ -1795,7 +1795,7 @@ if (docnovaAiBot) {
 
       // Parse PDF text using pdf-parse
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require("pdf-parse");
+      const pdfParse = require("pdf-parse/lib/pdf-parse.js");
       const pdfData = await pdfParse(pdfBuffer);
       const extractedText = String(pdfData?.text || "").trim();
 

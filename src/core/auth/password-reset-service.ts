@@ -2,14 +2,11 @@ import { randomBytes } from "crypto";
 import { hash } from "bcryptjs";
 
 export interface PasswordResetRepository {
-  create(input: {
-    email: string;
-    token: string;
-    expiresAt: Date;
-  }): Promise<unknown>;
+  create(input: { email: string; token: string; expiresAt: Date }): Promise<unknown>;
   findValidToken(token: string): Promise<unknown | null>;
   markUsed(token: string): Promise<unknown>;
   invalidateAllForEmail(email: string): Promise<unknown>;
+  updateUserPassword?(email: string, passwordHash: string): Promise<unknown>;
 }
 
 export class PasswordResetService {
@@ -17,15 +14,18 @@ export class PasswordResetService {
 
   async requestReset(email: string) {
     const normalizedEmail = email.trim().toLowerCase();
+    const token = this.generateToken();
 
     // Always return success to prevent user enumeration
     await this.repository.create({
       email: normalizedEmail,
-      token: await this.generateToken(),
+      token,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
     });
 
     return {
+      success: true,
+      token,
       message: "If an account exists, you will receive a password reset email.",
     };
   }
@@ -41,31 +41,25 @@ export class PasswordResetService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const record = await this.repository.findValidToken(token);
+    const record = (await this.repository.findValidToken(token)) as { email: string } | null;
 
-    if (!record) {
+    if (!record || !record.email) {
       throw new Error("Invalid or expired reset token");
     }
 
-    void newPassword;
+    const hashedPassword = await hash(newPassword, 12);
 
-
-
-    // In a real implementation, you would:
-    // 1. Update the user's passwordHash with hashedPassword
-    // 2. Mark the token as used
-    // 3. Invalidate all existing sessions
-    // 4. Invalidate all other reset tokens for this email
+    if (this.repository.updateUserPassword) {
+      await this.repository.updateUserPassword(record.email, hashedPassword);
+    }
 
     await this.repository.markUsed(token);
-    await this.repository.invalidateAllForEmail((record as { email: string }).email);
+    await this.repository.invalidateAllForEmail(record.email);
 
     return { success: true };
   }
 
-  private async generateToken(): Promise<string> {
-    const rawToken = randomBytes(32).toString("hex");
-    const hashedToken = await hash(rawToken, 10);
-    return hashedToken;
+  private generateToken(): string {
+    return randomBytes(32).toString("hex");
   }
 }

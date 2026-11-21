@@ -1,4 +1,4 @@
-import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+import { ResetPasswordClient } from "@/components/auth/ResetPasswordClient";
 import { PasswordResetService } from "@/core/auth/password-reset-service";
 import { PrismaPasswordResetRepository } from "@/core/auth/prisma-password-reset-repository";
 
@@ -24,15 +24,16 @@ export default async function ResetPasswordPage({ params }: ResetPasswordPagePro
         <div className="relative z-10 w-full max-w-md">
           <div className="premium-card border-border bg-surface/80 rounded-2xl border p-8 shadow-2xl backdrop-blur-xl">
             <div className="space-y-6 text-center">
-              <h1 className="text-2xl font-semibold text-white">Invalid or expired link</h1>
+              <h1 className="text-2xl font-semibold text-white">Havola eskirgan yoki yaroqsiz</h1>
               <p className="text-foreground-secondary text-sm">
-                This password reset link is invalid or has expired. Please request a new one.
+                Ushbu parolni tiklash havolasi yaroqsiz yoki muddati o&apos;tgan. Iltimos, yangi
+                havola so&apos;rang.
               </p>
               <a
                 href="/forgot-password"
                 className="inline-block rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/50 transition-all hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/60"
               >
-                Request new link
+                Yangi havola so&apos;rash
               </a>
             </div>
           </div>
@@ -53,14 +54,7 @@ export default async function ResetPasswordPage({ params }: ResetPasswordPagePro
 
       <div className="relative z-10 w-full max-w-md">
         <div className="premium-card border-border bg-surface/95 rounded-2xl border p-8 shadow-2xl">
-          <ResetPasswordForm
-            onSubmit={async (data) => {
-              await passwordResetService.resetPassword(token, data.password);
-            }}
-            onSuccess={() => {
-              // handled by success state in form
-            }}
-          />
+          <ResetPasswordClient token={token} />
         </div>
       </div>
     </div>

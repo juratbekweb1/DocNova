@@ -326,8 +326,8 @@ export async function acquireUserLock(
     });
   } catch (err: unknown) {
     const prismaErr = err as { code?: string };
-    if (prismaErr?.code === "P2002") {
-      // Concurrent insert at the exact same millisecond: PostgreSQL unique constraint prevented conflict
+    if (prismaErr?.code === "P2002" || prismaErr?.code === "P2028" || prismaErr?.code === "P2034") {
+      // Concurrent insert or transaction contention: PostgreSQL unique/isolation prevented race condition
       return {
         acquired: false,
         reason: "LOCKED",

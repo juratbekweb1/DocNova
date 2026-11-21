@@ -1,12 +1,25 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { PasswordResetService } from "@/core/auth/password-reset-service";
-import { PrismaPasswordResetRepository } from "@/core/auth/prisma-password-reset-repository";
-
-const passwordResetService = new PasswordResetService(new PrismaPasswordResetRepository());
-
-export const dynamic = "force-dynamic";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
+
+  const handleResetRequest = async (data: { email: string }) => {
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { error: json.error || "Xatolik yuz berdi. Qayta urinib ko'ring." };
+    }
+    return {};
+  };
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12">
       {/* Background Effects */}
@@ -20,11 +33,9 @@ export default function ForgotPasswordPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="premium-card rounded-2xl border border-white/10 bg-slate-900/95 p-8 shadow-2xl">
           <ForgotPasswordForm
-            onSubmit={async (data) => {
-              await passwordResetService.requestReset(data.email);
-            }}
+            onSubmit={handleResetRequest}
             onBackToLogin={() => {
-              // handled by link in footer
+              router.push("/login");
             }}
           />
         </div>

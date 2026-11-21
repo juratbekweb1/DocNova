@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         const result = await mammoth.extractRawText({ buffer });
         rawText = result.value || "";
       } else if (validation.ext === ".pdf") {
-        const pdfParseModule = await import("pdf-parse");
+        const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
         const pdfParse = pdfParseModule.default || pdfParseModule;
         const data = await pdfParse(buffer);
         rawText = data.text || "";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { CreditCard, ShieldCheck, CheckCircle, Loader2, Lock } from "lucide-react";
@@ -22,10 +22,18 @@ function CheckoutContent() {
   const [provider, setProvider] = useState<"click" | "payme" | "payx">("click");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // If not logged in, redirect to login
-  if (status === "unauthenticated") {
-    _router.push(`/login?callbackUrl=/checkout?plan=${plan}`);
-    return null;
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      _router.push(`/login?callbackUrl=/checkout?plan=${plan}`);
+    }
+  }, [status, _router, plan]);
+
+  if (status === "unauthenticated" || status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+      </div>
+    );
   }
 
   const isPremium = plan === "premium";

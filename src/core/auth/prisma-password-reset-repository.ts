@@ -35,4 +35,16 @@ export class PrismaPasswordResetRepository implements PasswordResetRepository {
       data: { usedAt: new Date() },
     });
   }
+
+  async updateUserPassword(email: string, passwordHash: string) {
+    return prisma.user.update({
+      where: { email },
+      data: {
+        passwordHash,
+        sessionVersion: { increment: 1 },
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+  }
 }

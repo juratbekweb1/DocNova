@@ -53,7 +53,7 @@ async function acquireUserLock(telegramId, leaseSeconds = 150) {
       };
     });
   } catch (err) {
-    if (err?.code === "P2002") {
+    if (err?.code === "P2002" || err?.code === "P2028" || err?.code === "P2034") {
       return {
         acquired: false,
         reason: "LOCKED",
