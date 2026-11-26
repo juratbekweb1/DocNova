@@ -24,6 +24,7 @@ import { SecureFileUploadZone } from "@/components/ui/secure-file-upload-zone";
 import { UrlImageModeSync } from "@/components/academic/creation-mode-selector";
 import { ImageTopicParser } from "@/components/academic/image-topic-parser";
 import { formatImageTopicsTemplateContext } from "@/lib/academic/topic-fidelity";
+import { downloadAcademicDocx } from "@/lib/docx-download-client";
 
 export default function AcademicExamPrepPage() {
   const { toast } = useToast();
@@ -175,17 +176,38 @@ export default function AcademicExamPrepPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadDoc = () => {
+  const handleDownloadDoc = async () => {
     if (!result) return;
     const cleanImageTitle = imageFileName ? imageFileName.replace(/\.[^/.]+$/, "") : "";
-    const cleanTopic =
-      (formData.topic || cleanImageTitle || "Imtihon")
+    const cleanTopic = (formData.topic || cleanImageTitle || "Imtihon savollari").trim();
+
+    try {
+      const exported = await downloadAcademicDocx({
+        topic: cleanTopic,
+        markdownContent: result,
+        workType: formData.prepType || "Imtihon tayyorlash",
+        subject: formData.subject || "Fan",
+        language: "uz",
+      });
+      if (exported.deliveryMethod !== "cancelled") {
+        toast({
+          title: "Word (.docx) yuklab olindi! 📄",
+          description: "Imtihon tayyorgarlik matni standart .docx formatida saqlandi.",
+        });
+        return;
+      }
+    } catch {
+      // Fallback to client-side doc blob
+    }
+
+    const safeTopic =
+      cleanTopic
         .slice(0, 40)
         .replace(/['`\u2018\u2019\u02BB\u02BC]/g, "")
         .replace(/[^a-zA-Z0-9\u0400-\u04FF_-]+/g, "_")
         .replace(/^_+|_+$/g, "") || "Imtihon";
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>${formData.topic || cleanImageTitle || "Imtihon"}</title>
+    <head><meta charset='utf-8'><title>${cleanTopic}</title>
     <style>
       body { font-family: 'Calibri', sans-serif; font-size: 12pt; line-height: 1.4; margin: 20mm; }
       h1 { font-size: 16pt; color: #1e293b; font-weight: bold; border-bottom: 2px solid #0ea5e9; padding-bottom: 6px; }
@@ -205,7 +227,7 @@ export default function AcademicExamPrepPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Imtihon_${cleanTopic}.doc`;
+    a.download = `Imtihon_${safeTopic}.doc`;
     a.click();
     URL.revokeObjectURL(url);
   };

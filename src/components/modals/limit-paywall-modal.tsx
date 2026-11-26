@@ -26,7 +26,8 @@ function mapUrlToSectionId(url: string): string | null {
     url.includes("/api/generate-coursework") ||
     url.includes("/api/academic/coursework") ||
     url.includes("/api/academic/diplom-bmi") ||
-    url.includes("/api/ai/academic")
+    url.includes("/api/ai/academic") ||
+    url.includes("/api/ai/amaliy-ish")
   ) {
     return "coursework";
   }

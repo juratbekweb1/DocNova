@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkUserLimit, trackAIUsage } from "@/lib/limits";
+import { checkUserLimit, trackAIUsage, deductUserAiCredit } from "@/lib/limits";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { generateMockTestQuestion, evaluateMockTestAnswer } from "@/lib/ai/geminiService";
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const plan = user?.plan ? String(user.plan) : "FREE";
 
     const limitCheck = await checkUserLimit(userId, "mock_test");
-    if (limitCheck.limitExceeded) {
+    if (!limitCheck.allowed || limitCheck.limitExceeded) {
       await trackAIUsage({
         userId,
         plan,
@@ -29,7 +29,16 @@ export async function POST(req: Request) {
         status: "QUOTA_EXCEEDED",
         errorCode: "LIMIT_EXCEEDED",
       });
-      return NextResponse.json({ error: limitCheck.error, code: limitCheck.code }, { status: 429 });
+      return NextResponse.json(
+        {
+          error:
+            limitCheck.error ||
+            "Mock test limitingiz tugadi! Davom ettirish uchun obuna sotib oling.",
+          requireUpgrade: true,
+          code: limitCheck.code || "LIMIT_EXCEEDED",
+        },
+        { status: 403 }
+      );
     }
 
     const { action, lang, role, difficulty, answer, questionCount } = await req.json();
@@ -41,6 +50,7 @@ export async function POST(req: Request) {
 
     try {
       if (action === "start") {
+        await deductUserAiCredit(userId, "mock_test");
         const nextQuestion = await generateMockTestQuestion(lang, role, difficulty);
         resultData = { nextQuestion };
       } else if (action === "answer") {

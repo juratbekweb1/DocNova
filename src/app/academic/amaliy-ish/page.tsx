@@ -758,6 +758,27 @@ export default function AmaliyIshPage() {
         body: JSON.stringify({ ...formData, useAi: true }),
       });
       const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401) {
+        toast({
+          title: "Ro'yxatdan o'tish talab etiladi",
+          description: "Amaliy ish generatoridan foydalanish uchun tizimga kiring.",
+          variant: "destructive",
+        });
+        window.location.href = `/login?callbackUrl=${encodeURIComponent("/academic/amaliy-ish")}`;
+        return;
+      }
+
+      if (res.status === 403) {
+        toast({
+          title: "Limitingiz tugadi",
+          description:
+            data.error || "Davom ettirish uchun obuna sotib oling yoki token xarid qiling.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (res.ok && data.document) {
         setDoc(data.document);
         toast({

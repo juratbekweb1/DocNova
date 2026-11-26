@@ -70,7 +70,14 @@ export default function AcademicEssayBuilderPage() {
   const [upgradeMessage, setUpgradeMessage] = useState("");
 
   const handleGenerate = async () => {
-    if (!topic.trim()) return;
+    if (!topic.trim()) {
+      toast({
+        title: "Mavzu kiritilmadi",
+        description: "Iltimos, insho mavzusini kiriting.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -95,6 +102,17 @@ Quyidagi tuzilmani qat'iy saqla:
       });
 
       const data = await res.json();
+
+      if (res.status === 401) {
+        toast({
+          title: "Ro'yxatdan o'tish talab etiladi",
+          description: "Insho generatoridan foydalanish uchun profilingizga kiring.",
+          variant: "destructive",
+        });
+        window.location.href = `/login?callbackUrl=${encodeURIComponent("/academic/essay-builder")}`;
+        setIsGenerating(false);
+        return;
+      }
 
       if (res.status === 403) {
         if (data.upgradeMessage) setUpgradeMessage(data.upgradeMessage);

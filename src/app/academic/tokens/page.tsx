@@ -294,15 +294,15 @@ export default function AcademicTokensPage() {
             <input
               type="range"
               min={1}
-              max={50}
-              value={Math.min(customCount, 50)}
+              max={100}
+              value={Math.min(customCount, 100)}
               onChange={(e) => handleCustomChange(Number(e.target.value))}
               className="mb-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-800 accent-amber-400"
             />
 
             {/* Quick picks */}
             <div className="mb-5 flex flex-wrap gap-2">
-              {[1, 3, 5, 10, 15, 20, 30].map((n) => (
+              {[1, 3, 5, 10, 15, 20, 30, 50, 100].map((n) => (
                 <button
                   key={n}
                   type="button"

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { generateGeminiJson } from "@/lib/gemini";
-import { trackAIUsage } from "@/lib/limits";
+import {
+  checkUserLimit,
+  trackAIUsage,
+  deductUserAiCredit,
+  refundUserAiCredit,
+  getUserSubscription,
+} from "@/lib/limits";
 import {
   AmaliyIshFormInput,
   generateDeterministicAmaliyIsh,
@@ -39,6 +45,10 @@ interface AiAmaliyEnrichment {
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
+  let userId: string | undefined;
+  let plan = "FREE";
+  let creditDeducted = false;
+
   try {
     const body = (await req.json().catch(() => ({}))) as Partial<AmaliyIshFormInput> & {
       forceAi?: boolean;
@@ -55,6 +65,47 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    const session = await getServerSession(authOptions).catch(() => null);
+    userId = session?.user?.id;
+
+    if (!userId && process.env.NODE_ENV !== "test") {
+      return NextResponse.json(
+        {
+          error: "Avtorizatsiya talab etiladi",
+          requireLogin: true,
+          message:
+            "Amaliy ish generatoridan foydalanish uchun profilingizga kiring yoki ro'yxatdan o'ting.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (userId) {
+      const sub = await getUserSubscription(userId);
+      plan = sub.plan;
+
+      const limitCheck = await checkUserLimit(userId, "coursework");
+      if (!limitCheck.allowed) {
+        await trackAIUsage({
+          userId,
+          plan,
+          feature: "AMALIY_ISH",
+          status: "QUOTA_EXCEEDED",
+          errorCode: "LIMIT_EXCEEDED",
+        });
+        return NextResponse.json(
+          {
+            error:
+              limitCheck.error ||
+              "Limitingiz tugadi. Iltimos, obuna bo'ling yoki token sotib oling.",
+            requireUpgrade: true,
+            remaining: limitCheck.remaining,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const rawCount = Number(body.problemCount || 4);
@@ -333,28 +384,40 @@ ${domainRequirements}`;
       }
     }
 
-    // Track usage if logged in (non-blocking)
-    try {
-      const session = await getServerSession(authOptions).catch(() => null);
-      if (session?.user?.id) {
+    if (userId) {
+      await deductUserAiCredit(userId, "coursework");
+      creditDeducted = true;
+    }
+
+    // Track usage (non-blocking)
+    if (userId) {
+      try {
         await trackAIUsage({
-          userId: session.user.id,
-          plan: "FREE",
+          userId,
+          plan,
           feature: "AMALIY_ISH",
           status: "SUCCESS",
           requestDurationMs: Date.now() - startTime,
         });
+      } catch {
+        // Ignore tracking errors
       }
-    } catch {
-      // Ignore tracking errors
     }
 
     return NextResponse.json({
       success: true,
       document,
+      creditDeducted,
     });
   } catch (error) {
     console.error("[AMALIY_ISH_API_ERR]", error);
+    if (creditDeducted && userId) {
+      await refundUserAiCredit({
+        userId,
+        errorCode: "AMALIY_ISH_FAILED",
+        featureType: "coursework",
+      }).catch(() => {});
+    }
     return NextResponse.json(
       {
         error:
