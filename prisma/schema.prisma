@@ -94,6 +94,7 @@ model User {
   lastRequestDate     DateTime          @default(now())
   mockTestCount       Int               @default(0)
   resumeCount         Int               @default(0)
+  academicTokens      Int               @default(3)
   chatMessages        ChatMessage[]
   mockTests           MockTestSession[]
   aiusages            AIUsage[]
@@ -479,6 +480,7 @@ model Transaction {
   amount    Float
   provider  String
   status    String
+  itemType  String?  @default("SUBSCRIPTION")
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

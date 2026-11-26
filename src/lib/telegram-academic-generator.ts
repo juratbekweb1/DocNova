@@ -173,7 +173,7 @@ export async function generateCourseworkDoc(params: {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
 
-    await deductUserAiCredit(params.userId);
+    await deductUserAiCredit(params.userId, "coursework");
     await trackAIUsage({
       userId: params.userId,
       plan: params.userPlan,
@@ -276,7 +276,7 @@ export async function generateReferatDoc(params: {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
 
-    await deductUserAiCredit(params.userId);
+    await deductUserAiCredit(params.userId, "coursework");
     await trackAIUsage({
       userId: params.userId,
       plan: params.userPlan,
@@ -361,7 +361,7 @@ export async function generateBmiDoc(params: {
       throw new Error("AI tomonidan yaratilgan matn yetarli hajmda emas");
     }
 
-    await deductUserAiCredit(params.userId);
+    await deductUserAiCredit(params.userId, "coursework");
     await trackAIUsage({
       userId: params.userId,
       plan: params.userPlan,
@@ -603,7 +603,7 @@ Format: Markdown ko'rinishida yozing.`;
     });
 
     const content = res.text.trim();
-    await deductUserAiCredit(params.userId);
+    await deductUserAiCredit(params.userId, "coursework");
     await trackAIUsage({
       userId: params.userId,
       plan: params.userPlan,

@@ -14,6 +14,7 @@ import {
   Presentation,
   Calculator,
   FileImage,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,8 @@ interface StudentSubNavProps {
     | "presentation"
     | "image-topics"
     | "exam-prep"
-    | "mock-test";
+    | "mock-test"
+    | "tokens";
   className?: string;
 }
 
@@ -39,7 +41,8 @@ export interface StudentSectionItem {
     | "presentation"
     | "image-topics"
     | "exam-prep"
-    | "mock-test";
+    | "mock-test"
+    | "tokens";
   title: string;
   shortTitle: string;
   href: string;
@@ -114,6 +117,14 @@ export const STUDENT_SECTIONS: StudentSectionItem[] = [
     badge: "IELTS • TRKI • TÖMER",
     isFeatured: true,
   },
+  {
+    id: "tokens",
+    title: "Token sotib olish",
+    shortTitle: "Token olish",
+    href: "/academic/tokens",
+    icon: Coins,
+    badge: "5 000 so'mdan",
+  },
 ];
 
 export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
@@ -121,24 +132,26 @@ export function StudentSubNav({ activeTab, className }: StudentSubNavProps) {
 
   const currentTab =
     activeTab ||
-    (pathname.includes("/academic/amaliy-ish")
-      ? "amaliy-ish"
-      : pathname.includes("/academic/image-topics")
-        ? "image-topics"
-        : pathname.includes("/academic/presentation")
-          ? "presentation"
-          : pathname.includes("/academic/mock-test")
-            ? "mock-test"
-            : pathname.includes("/academic/diplom-bmi")
-              ? "diplom-bmi"
-              : pathname.includes("/academic/referat") ||
-                  pathname.includes("/academic/essay-builder")
-                ? "referat"
-                : pathname.includes("/academic/exam-prep")
-                  ? "exam-prep"
-                  : pathname.includes("/academic/coursework") || pathname === "/coursework"
-                    ? "coursework"
-                    : undefined);
+    (pathname.includes("/academic/tokens")
+      ? "tokens"
+      : pathname.includes("/academic/amaliy-ish")
+        ? "amaliy-ish"
+        : pathname.includes("/academic/image-topics")
+          ? "image-topics"
+          : pathname.includes("/academic/presentation")
+            ? "presentation"
+            : pathname.includes("/academic/mock-test")
+              ? "mock-test"
+              : pathname.includes("/academic/diplom-bmi")
+                ? "diplom-bmi"
+                : pathname.includes("/academic/referat") ||
+                    pathname.includes("/academic/essay-builder")
+                  ? "referat"
+                  : pathname.includes("/academic/exam-prep")
+                    ? "exam-prep"
+                    : pathname.includes("/academic/coursework") || pathname === "/coursework"
+                      ? "coursework"
+                      : undefined);
 
   return (
     <div

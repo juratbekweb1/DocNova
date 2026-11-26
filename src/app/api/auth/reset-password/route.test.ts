@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/core/auth/password-reset-service", () => ({
   PasswordResetService: class {
-    resetPassword = vi.fn().mockImplementation(async (token: string, pass: string) => {
+    resetPassword = vi.fn().mockImplementation(async (token: string, _pass: string) => {
       if (token === "expired-token") {
         throw new Error("Invalid or expired reset token");
       }

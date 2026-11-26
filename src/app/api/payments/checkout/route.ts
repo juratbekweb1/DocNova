@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { buildProviderPaymentUrl, createClickPhoneInvoice } from "@/lib/billing/provider";
+import { resolveTokenPackById } from "@/lib/billing/token-packs";
 
 export async function POST(req: Request) {
   try {
@@ -13,22 +14,32 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const rawPlan = (body.plan || "").toString().trim().toUpperCase();
+    const tokenPackId = (body.tokenPackId || "").toString().trim().toUpperCase();
     const rawProvider = (body.provider || "click").toString().trim().toLowerCase();
     const billingCycle = body.billingCycle === "yearly" ? "yearly" : "monthly";
     const cardType =
       body.cardType === "humo" ? "humo" : body.cardType === "uzcard" ? "uzcard" : undefined;
     const phoneNumber = typeof body.phoneNumber === "string" ? body.phoneNumber.trim() : "";
 
+    const tokenPack = tokenPackId ? resolveTokenPackById(tokenPackId) : undefined;
+
     if (
-      !["PRO", "PREMIUM"].includes(rawPlan) ||
+      (!tokenPack && !["PRO", "PREMIUM"].includes(rawPlan)) ||
       !["click", "payme", "payx"].includes(rawProvider)
     ) {
-      return NextResponse.json({ error: "Invalid plan or provider" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid plan, token pack, or provider" }, { status: 400 });
     }
 
     const isYearly = billingCycle === "yearly";
-    const amount =
-      rawPlan === "PREMIUM" ? (isYearly ? 662_000 : 69_000) : isYearly ? 374_000 : 39_000;
+    const amount = tokenPack
+      ? tokenPack.amountUzs
+      : rawPlan === "PREMIUM"
+        ? isYearly
+          ? 662_000
+          : 69_000
+        : isYearly
+          ? 374_000
+          : 39_000;
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -36,6 +47,7 @@ export async function POST(req: Request) {
         amount,
         provider: rawProvider.toUpperCase(),
         status: "PENDING",
+        itemType: tokenPack ? "TOKEN_PACK" : "SUBSCRIPTION",
       },
     });
 

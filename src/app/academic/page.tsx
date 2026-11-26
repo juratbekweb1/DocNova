@@ -28,6 +28,7 @@ import {
   Wrench,
   ArrowUpRight,
   FileImage,
+  Coins,
 } from "lucide-react";
 import { StudentSubNav } from "@/components/academic/student-sub-nav";
 
@@ -173,6 +174,22 @@ export default function AcademicHubPage() {
       accent: "from-cyan-600/20 to-blue-500/5 hover:border-cyan-500/40",
       gridSpan: "col-span-1",
       iconBg: "text-cyan-400",
+    },
+    {
+      id: "tokens",
+      title: "Token sotib olish",
+      subtitle: "1 ta akademik ish = 1 ta token (5 000 so'mdan)",
+      description:
+        "Bepul 3 ta tokeningiz tugadimi? Oylik obunasiz, faqat kerakli miqdorda token (1, 5 yoki 15 ta) sotib olib foydalaning.",
+      href: "/academic/tokens",
+      icon: Coins,
+      badge: "Yangi bo'lim",
+      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+      stats: "Click • Payme • PayX orqali tezkor",
+      cta: "Token sotib olish",
+      accent: "from-amber-600/20 to-yellow-500/5 hover:border-amber-500/40",
+      gridSpan: "col-span-1",
+      iconBg: "text-amber-400",
     },
   ];
 

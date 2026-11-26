@@ -220,7 +220,7 @@ Javobni toza Markdown formatida, har bir mavzuni (# 1. [Mavzu sarlavhasi], # 2. 
         if (geminiRes.text) {
           if (userId) {
             try {
-              await deductUserAiCredit(userId);
+              await deductUserAiCredit(userId, "coursework");
               creditDeducted = true;
             } catch {
               // Non-blocking
@@ -354,7 +354,7 @@ Matnni Markdown formatida, #, ##, ### sarlavhalar, qalin shrift va II Bobda stat
           }
 
           if (userId) {
-            await deductUserAiCredit(userId);
+            await deductUserAiCredit(userId, "coursework");
             creditDeducted = true;
           }
           trackedUsageId = await trackAIUsage({
@@ -750,7 +750,7 @@ Bitiruv malakaviy ishi doirasida olib borilgan tadqiqotlar asosida quyidagi xulo
       }
 
       if (userId) {
-        await deductUserAiCredit(userId);
+        await deductUserAiCredit(userId, "coursework");
         creditDeducted = true;
       }
       trackedUsageId = await trackAIUsage({
@@ -939,7 +939,7 @@ QAT'IY TALABLAR:
       }
 
       if (userId) {
-        await deductUserAiCredit(userId);
+        await deductUserAiCredit(userId, "coursework");
         creditDeducted = true;
       }
       trackedUsageId = await trackAIUsage({
@@ -1003,7 +1003,7 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
         }
 
         if (userId) {
-          await deductUserAiCredit(userId);
+          await deductUserAiCredit(userId, "coursework");
         }
         await trackAIUsage({
           userId,
@@ -1068,7 +1068,7 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
 *(To'liq 10 ta test savollari va yechimlari bilan o'zlashtirish tavsiya etiladi)*`;
 
         if (userId) {
-          await deductUserAiCredit(userId);
+          await deductUserAiCredit(userId, "coursework");
         }
         await trackAIUsage({
           userId,
@@ -1097,6 +1097,7 @@ Ushbu mavzu bo'yicha talabaning imtihonga tayyorlanishi uchun 10 ta sifatli test
       creditRefunded = await refundUserAiCredit({
         userId,
         usageId: trackedUsageId,
+        featureType: "coursework",
         errorCode: "REFUNDED_AFTER_ERROR",
       });
     }

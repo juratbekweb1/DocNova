@@ -64,8 +64,10 @@ export async function checkUserLimit(
     select: {
       role: true,
       plan: true,
+      subscriptionEndDate: true,
       lastRequestDate: true,
       mockTestCount: true,
+      academicTokens: true,
     },
   });
 
@@ -119,7 +121,10 @@ export async function checkUserLimit(
     };
   }
 
-  const plan = user.plan || SubscriptionTier.FREE;
+  const isExpired = user.subscriptionEndDate
+    ? new Date(user.subscriptionEndDate) < new Date()
+    : false;
+  const plan = isExpired ? SubscriptionTier.FREE : user.plan || SubscriptionTier.FREE;
   const limits = PLAN_LIMITS[plan];
 
   const now = new Date();
@@ -130,6 +135,23 @@ export async function checkUserLimit(
       limitExceeded: false,
       remaining: 999,
       totalLimit: 999,
+    };
+  }
+
+  // Academic text works (Kurs ishi, Mustaqil ish, Referat, Amaliy ish, BMI, Insho):
+  // FREE users get 3 lifetime academic tokens on signup (no daily reset) and can buy more tokens or subscribe.
+  if (featureType === "coursework" && plan === SubscriptionTier.FREE) {
+    const remainingTokens = Math.max(0, user.academicTokens ?? 3);
+    const allowed = remainingTokens > 0;
+    return {
+      allowed,
+      limitExceeded: !allowed,
+      remaining: remainingTokens,
+      totalLimit: Math.max(3, remainingTokens),
+      ...(!allowed && {
+        error: "Limitingiz tugadi! Davom ettirish uchun obuna sotib oling yoki token xarid qiling.",
+        code: "LIMIT_EXCEEDED",
+      }),
     };
   }
 
@@ -167,15 +189,20 @@ export async function checkUserLimit(
   });
 
   const limit = (limits[featureType as keyof typeof limits] ?? 10) as number;
-  const allowed = usageCount < limit;
+  const planRemaining = Math.max(0, limit - usageCount);
+  const extraTokens = featureType === "coursework" ? Math.max(0, user.academicTokens ?? 0) : 0;
+  const allowed = planRemaining > 0 || extraTokens > 0;
 
   return {
     allowed,
     limitExceeded: !allowed,
-    remaining: Math.max(0, limit - usageCount),
+    remaining: planRemaining > 0 ? planRemaining : extraTokens,
     totalLimit: limit,
     ...(!allowed && {
-      error: "Limitingiz tugadi! Generatsiyani davom ettirish uchun iltimos obuna sotib oling.",
+      error:
+        featureType === "coursework"
+          ? "Limitingiz tugadi! Davom ettirish uchun obuna sotib oling yoki token xarid qiling."
+          : "Limitingiz tugadi! Generatsiyani davom ettirish uchun iltimos obuna sotib oling.",
       code: "LIMIT_EXCEEDED",
     }),
   };
@@ -260,13 +287,19 @@ export async function getAllUserSectionLimits(userId: string): Promise<SectionLi
     href,
   });
 
+  const tokensRemaining = Math.max(0, sub.user?.academicTokens ?? 3);
+  const courseworkTotal =
+    plan === "FREE" && !unlimited ? Math.max(3, tokensRemaining) : limits.coursework;
+  const courseworkUsedDisplay =
+    plan === "FREE" && !unlimited ? Math.max(0, courseworkTotal - tokensRemaining) : courseworkUsed;
+
   const result = [
     buildStat(
       "coursework",
-      "Kurs ishi, Referat va BMI",
-      courseworkUsed,
-      limits.coursework,
-      "/academic/coursework"
+      "Kurs ishi, Referat va BMI (Tokenlar)",
+      courseworkUsedDisplay,
+      courseworkTotal,
+      "/academic/tokens"
     ),
     buildStat(
       "presentation",
@@ -388,6 +421,7 @@ export async function getUserSubscription(userId: string) {
       aiUsageCount: true,
       dailyAiCount: true,
       lastRequestDate: true,
+      academicTokens: true,
     },
   });
 
@@ -422,13 +456,19 @@ export async function getUserSubscription(userId: string) {
 /**
  * Deduct/increment AI generation credits and daily usage in the database
  */
-export async function deductUserAiCredit(userId: string): Promise<void> {
+export async function deductUserAiCredit(userId: string, featureType?: FeatureType): Promise<void> {
   sectionLimitsCache.delete(userId);
   try {
     const now = new Date();
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { lastRequestDate: true, dailyAiCount: true },
+      select: {
+        lastRequestDate: true,
+        dailyAiCount: true,
+        plan: true,
+        subscriptionEndDate: true,
+        academicTokens: true,
+      },
     });
     if (!user) return;
 
@@ -438,12 +478,46 @@ export async function deductUserAiCredit(userId: string): Promise<void> {
       now.getMonth() === lastReq.getMonth() &&
       now.getDate() === lastReq.getDate();
 
+    const isExpired = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) < now : false;
+    const activePlan = isExpired ? SubscriptionTier.FREE : user.plan || SubscriptionTier.FREE;
+
+    let shouldDecrementToken = false;
+    if (featureType === "coursework") {
+      if (activePlan === SubscriptionTier.FREE) {
+        shouldDecrementToken = (user.academicTokens ?? 0) > 0;
+      } else {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthlyUsed = await prisma.aIUsage.count({
+          where: {
+            userId,
+            feature: {
+              in: [
+                "COURSEWORK",
+                "REFERAT",
+                "REFERAT_EXTENDED",
+                "BMI_DIPLOM",
+                "EXAM_PREP",
+                "ACADEMIC_GENERATION",
+              ],
+            },
+            status: "SUCCESS",
+            createdAt: { gte: startOfMonth },
+          },
+        });
+        const planLimit = PLAN_LIMITS[activePlan].coursework;
+        if (monthlyUsed >= planLimit && (user.academicTokens ?? 0) > 0) {
+          shouldDecrementToken = true;
+        }
+      }
+    }
+
     await prisma.user.update({
       where: { id: userId },
       data: {
         aiUsageCount: { increment: 1 },
         dailyAiCount: isSameDay ? { increment: 1 } : 1,
         lastRequestDate: now,
+        ...(shouldDecrementToken ? { academicTokens: { decrement: 1 } } : {}),
       },
     });
   } catch (err) {
@@ -459,13 +533,14 @@ export async function refundUserAiCredit(params: {
   userId: string;
   usageId?: string | null;
   errorCode?: string;
+  featureType?: FeatureType;
 }): Promise<boolean> {
-  const { userId, usageId, errorCode = "GENERATION_FAILED_REFUND" } = params;
+  const { userId, usageId, errorCode = "GENERATION_FAILED_REFUND", featureType } = params;
   sectionLimitsCache.delete(userId);
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { aiUsageCount: true, dailyAiCount: true },
+      select: { aiUsageCount: true, dailyAiCount: true, plan: true, academicTokens: true },
     });
 
     if (user) {
@@ -474,6 +549,9 @@ export async function refundUserAiCredit(params: {
         data: {
           aiUsageCount: Math.max(0, (user.aiUsageCount || 0) - 1),
           dailyAiCount: Math.max(0, (user.dailyAiCount || 0) - 1),
+          ...(featureType === "coursework"
+            ? { academicTokens: (user.academicTokens ?? 0) + 1 }
+            : {}),
         },
       });
     }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resolveTokenPackById } from "@/lib/billing/token-packs";
 
 export async function POST(req: Request) {
   try {
@@ -12,15 +13,25 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const rawPlan = (body.plan || "").toString().trim().toLowerCase();
+    const tokenPackId = (body.tokenPackId || "").toString().trim().toUpperCase();
     const billingCycle = body.billingCycle === "yearly" ? "yearly" : "monthly";
 
-    if (!["pro", "premium"].includes(rawPlan)) {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+    const tokenPack = tokenPackId ? resolveTokenPackById(tokenPackId) : undefined;
+
+    if (!tokenPack && !["pro", "premium"].includes(rawPlan)) {
+      return NextResponse.json({ error: "Invalid plan or token pack" }, { status: 400 });
     }
 
     const isYearly = billingCycle === "yearly";
-    const amount =
-      rawPlan === "premium" ? (isYearly ? 662_000 : 69_000) : isYearly ? 374_000 : 39_000;
+    const amount = tokenPack
+      ? tokenPack.amountUzs
+      : rawPlan === "premium"
+        ? isYearly
+          ? 662_000
+          : 69_000
+        : isYearly
+          ? 374_000
+          : 39_000;
 
     // Create a pending transaction
     const transaction = await prisma.transaction.create({
@@ -29,6 +40,7 @@ export async function POST(req: Request) {
         amount,
         provider: "PAYX",
         status: "PENDING",
+        itemType: tokenPack ? "TOKEN_PACK" : "SUBSCRIPTION",
       },
     });
 

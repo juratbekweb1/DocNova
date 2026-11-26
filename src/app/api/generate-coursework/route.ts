@@ -1749,7 +1749,7 @@ Javobni toza Markdown formatida (# 1. [Mavzu], # 2. [Mavzu]...) tarzida yozing.`
         if (geminiRes.text) {
           if (userId) {
             try {
-              await deductUserAiCredit(userId);
+              await deductUserAiCredit(userId, "coursework");
               creditDeducted = true;
             } catch {
               // Non-blocking
@@ -1997,7 +1997,7 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
     // Deduct user credits & track usage ONLY after valid content is assembled
     const duration = Date.now() - startTime;
     if (userId) {
-      await deductUserAiCredit(userId);
+      await deductUserAiCredit(userId, "coursework");
       creditDeducted = true;
     }
 
@@ -2042,6 +2042,7 @@ Javobni FAQAT quyidagi JSON formatida qaytaring:
       creditRefunded = await refundUserAiCredit({
         userId,
         usageId: trackedUsageId,
+        featureType: "coursework",
         errorCode: "COURSEWORK_EXCEPTION_REFUND",
       });
     } else if (userId) {

@@ -18,6 +18,7 @@ export async function GET() {
           plan: true,
           dailyAiCount: true,
           lastRequestDate: true,
+          academicTokens: true,
         },
       }),
       getAllUserSectionLimits(session.user.id),
@@ -44,6 +45,7 @@ export async function GET() {
       usage: currentDailyAiCount,
       limit: limits.chat,
       remaining: Math.max(0, limits.chat - currentDailyAiCount),
+      academicTokens: Math.max(0, user.academicTokens ?? 3),
       sections,
     });
   } catch (error) {

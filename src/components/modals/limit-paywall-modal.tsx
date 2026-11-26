@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Crown, Lock, Sparkles, X, CheckCircle2, ArrowRight } from "lucide-react";
+import { Crown, Lock, Sparkles, X, CheckCircle2, ArrowRight, Coins } from "lucide-react";
 import { useSession } from "next-auth/react";
 import type { SectionLimitStat } from "@/lib/limits";
 import {
@@ -104,7 +104,7 @@ export function LimitPaywallModal() {
           const stat = sectionsRef.current.find((s) => s.id === sectionId);
           if (stat && !stat.unlimited && stat.remaining <= 0) {
             const msg =
-              "Limitingiz tugadi! Generatsiyani davom ettirish uchun iltimos obuna sotib oling.";
+              "Limitingiz tugadi! Davom ettirish uchun obuna sotib oling yoki token xarid qiling.";
             setMessage(msg);
             setIsOpen(true);
             return new Response(
@@ -143,7 +143,9 @@ export function LimitPaywallModal() {
             data?.error === "Limit reached"
           ) {
             setMessage(
-              "Limitingiz tugadi! Generatsiyani davom ettirish uchun iltimos obuna sotib oling."
+              data?.upgradeMessage ||
+                data?.error ||
+                "Limitingiz tugadi! Davom ettirish uchun obuna sotib oling yoki token xarid qiling."
             );
             setIsOpen(true);
           }
@@ -206,21 +208,30 @@ export function LimitPaywallModal() {
 
           <div className="flex w-full flex-col gap-2.5">
             <Link
+              href="/academic/tokens"
+              onClick={() => setIsOpen(false)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:brightness-110"
+            >
+              <Coins className="h-4 w-4" />
+              <span>Token sotib olish (5 000 so&apos;mdan)</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <Link
               href="/checkout"
               onClick={() => setIsOpen(false)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold shadow-lg transition-all"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold shadow-lg transition-all"
             >
               <Crown className="h-4 w-4" />
-              <span>Obuna bo&apos;lish</span>
-              <ArrowRight className="h-4 w-4" />
+              <span>Obuna bo&apos;lish (Pro / Premium)</span>
             </Link>
 
             <Link
               href="/dashboard/billing"
               onClick={() => setIsOpen(false)}
-              className="border-border bg-surface-elevated text-foreground hover:border-primary/40 flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-3 text-xs font-semibold transition-all"
+              className="border-border bg-surface-elevated text-foreground hover:border-primary/40 flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-xs font-semibold transition-all"
             >
-              <span>Tarifni oshirish</span>
+              <span>Tariflarni ko&apos;rish</span>
             </Link>
           </div>
         </div>

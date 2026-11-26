@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SubscriptionTier } from "@prisma/client";
 import crypto from "crypto";
+import { resolveTokenPackByAmount } from "./token-packs";
 
 export interface CheckoutSessionOptions {
   userId: string;
@@ -120,6 +121,30 @@ export async function fulfillPaymentTransaction(
         subscriptionEndDate:
           user.subscriptionEndDate ||
           new Date(Date.now() + planMeta.durationDays * 24 * 60 * 60 * 1000),
+      };
+    }
+
+    const tokenPack =
+      existingTx.itemType === "TOKEN_PACK"
+        ? resolveTokenPackByAmount(existingTx.amount)
+        : resolveTokenPackByAmount(existingTx.amount);
+
+    if (tokenPack) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          academicTokens: { increment: tokenPack.tokens },
+          paymentStatus: "PAID",
+        },
+      });
+
+      return {
+        alreadyProcessed: false,
+        transactionId: existingTx.id,
+        userId: existingTx.userId,
+        planTier: user.plan || SubscriptionTier.FREE,
+        planSlug: user.plan === SubscriptionTier.PREMIUM ? "premium" : "pro",
+        subscriptionEndDate: user.subscriptionEndDate || new Date(),
       };
     }
 
