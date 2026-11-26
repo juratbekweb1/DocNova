@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SubscriptionTier } from "@prisma/client";
 import crypto from "crypto";
-import { resolveTokenPackByAmount } from "./token-packs";
+import { resolveTokenPackByAmount, calcCustomTokenPrice } from "./token-packs";
 
 export interface CheckoutSessionOptions {
   userId: string;
@@ -124,10 +124,22 @@ export async function fulfillPaymentTransaction(
       };
     }
 
+    // TOKEN_PACK: resolve by amount first (fixed packs), then by reverse-calc for custom amounts
     const tokenPack =
       existingTx.itemType === "TOKEN_PACK"
-        ? resolveTokenPackByAmount(existingTx.amount)
-        : resolveTokenPackByAmount(existingTx.amount);
+        ? (() => {
+            const fixed = resolveTokenPackByAmount(existingTx.amount);
+            if (fixed) return fixed;
+            // Reverse-calculate token count from custom amount using price breaks
+            // Try 1-500 to find token count whose price matches the stored amount
+            for (let t = 1; t <= 500; t++) {
+              if (calcCustomTokenPrice(t) === existingTx.amount) {
+                return { tokens: t, amountUzs: existingTx.amount, id: "TOKEN_CUSTOM" as const };
+              }
+            }
+            return null;
+          })()
+        : null;
 
     if (tokenPack) {
       await tx.user.update({

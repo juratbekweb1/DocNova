@@ -1,11 +1,32 @@
 export interface TokenPack {
-  id: "TOKEN_1" | "TOKEN_5" | "TOKEN_15";
+  id: "TOKEN_1" | "TOKEN_5" | "TOKEN_15" | "TOKEN_CUSTOM";
   tokens: number;
   amountUzs: number;
   title: string;
   subtitle: string;
   badge?: string;
   pricePerTokenLabel: string;
+}
+
+/** Price per token based on quantity breaks */
+export function calcCustomTokenPrice(tokens: number): number {
+  if (tokens >= 15) return Math.round(tokens * 3_333);
+  if (tokens >= 5) return Math.round(tokens * 4_000);
+  return tokens * 5_000;
+}
+
+export function buildCustomTokenPack(tokens: number): TokenPack {
+  const amount = calcCustomTokenPrice(tokens);
+  const priceEach = Math.round(amount / tokens);
+  const discount = tokens >= 15 ? " (33% tejamkor)" : tokens >= 5 ? " (20% tejamkor)" : "";
+  return {
+    id: "TOKEN_CUSTOM",
+    tokens,
+    amountUzs: amount,
+    title: `${tokens} ta Akademik Token`,
+    subtitle: `${tokens} ta ixtiyoriy akademik ish${discount}`,
+    pricePerTokenLabel: `${priceEach.toLocaleString("uz-UZ")} so'm / ish`,
+  };
 }
 
 export const ACADEMIC_TOKEN_PACKS: TokenPack[] = [

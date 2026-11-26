@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { resolveTokenPackById } from "@/lib/billing/token-packs";
+import { resolveTokenPackById, buildCustomTokenPack } from "@/lib/billing/token-packs";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,15 @@ export async function POST(req: Request) {
     const tokenPackId = (body.tokenPackId || "").toString().trim().toUpperCase();
     const billingCycle = body.billingCycle === "yearly" ? "yearly" : "monthly";
 
-    const tokenPack = tokenPackId ? resolveTokenPackById(tokenPackId) : undefined;
+    const customTokenCount =
+      typeof body.customTokens === "number" && body.customTokens >= 1
+        ? Math.min(Math.round(body.customTokens), 500)
+        : null;
+
+    let tokenPack = tokenPackId ? resolveTokenPackById(tokenPackId) : undefined;
+    if (!tokenPack && customTokenCount) {
+      tokenPack = buildCustomTokenPack(customTokenCount);
+    }
 
     if (!tokenPack && !["pro", "premium"].includes(rawPlan)) {
       return NextResponse.json({ error: "Invalid plan or token pack" }, { status: 400 });
