@@ -302,19 +302,19 @@ export function ServicesGridSection() {
       stats: "15, 19, 25, 30 bet • A4 PDF & Word",
       cta: "Kurs ishini boshlash",
       theme: {
-        borderHover: "dark:group-hover:border-blue-400/70 group-hover:border-blue-400",
-        glowPrimary: "from-blue-500/35 via-cyan-600/15 to-transparent",
-        glowSecondary: "from-sky-500/25 via-blue-700/10 to-transparent",
-        topBeam: "via-blue-400",
+        borderHover: "dark:group-hover:border-sky-400 group-hover:border-sky-500",
+        glowPrimary: "from-sky-500/40 via-blue-600/20 to-transparent",
+        glowSecondary: "from-blue-500/30 via-indigo-700/15 to-transparent",
+        topBeam: "via-sky-400",
         overlayGrad:
-          "dark:from-blue-950/30 dark:via-transparent dark:to-cyan-950/20 from-blue-50/60 to-transparent",
-        cardGlow: "hover:shadow-[0_15px_35px_rgba(59,130,246,0.25),0_0_15px_rgba(59,130,246,0.1)]",
+          "dark:from-sky-950/40 dark:via-transparent dark:to-blue-950/25 from-sky-50/60 to-transparent",
+        cardGlow: "hover:shadow-[0_25px_60px_rgba(14,165,233,0.35),0_0_30px_rgba(56,189,248,0.25)]",
         iconBox:
-          "border-blue-500/40 bg-gradient-to-br from-blue-500/20 to-sky-500/10 text-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.35)]",
-        titleHover: "group-hover:text-blue-300",
+          "border-sky-500/40 bg-gradient-to-br from-sky-500/25 to-blue-600/15 text-sky-400 shadow-[0_0_25px_rgba(14,165,233,0.35)] group-hover:border-sky-300 group-hover:shadow-[0_0_35px_rgba(56,189,248,0.6)]",
+        titleHover: "group-hover:text-sky-400 dark:group-hover:text-sky-300",
         btnStyle:
-          "bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white shadow-md shadow-blue-500/25 border border-blue-400/30",
-        subColor: "text-sky-400",
+          "bg-gradient-to-r from-blue-600 via-sky-500 to-blue-500 hover:from-blue-500 hover:to-sky-400 text-white shadow-lg shadow-sky-500/30 border border-sky-400/40",
+        subColor: "text-sky-400 group-hover:text-sky-300 transition-colors",
       },
     },
     {
@@ -332,19 +332,19 @@ export function ServicesGridSection() {
       stats: "40-80 bet • Ilmiy yangilik & Reja",
       cta: "BMI tuzishni boshlash",
       theme: {
-        borderHover: "dark:group-hover:border-amber-400/70 group-hover:border-amber-400",
-        glowPrimary: "from-amber-500/35 via-orange-600/15 to-transparent",
-        glowSecondary: "from-yellow-500/25 via-amber-700/10 to-transparent",
+        borderHover: "dark:group-hover:border-amber-400 group-hover:border-amber-500",
+        glowPrimary: "from-amber-500/40 via-orange-600/20 to-transparent",
+        glowSecondary: "from-yellow-500/30 via-amber-700/15 to-transparent",
         topBeam: "via-amber-400",
         overlayGrad:
-          "dark:from-amber-950/30 dark:via-transparent dark:to-orange-950/20 from-amber-50/60 to-transparent",
-        cardGlow: "hover:shadow-[0_15px_35px_rgba(245,158,11,0.25),0_0_15px_rgba(245,158,11,0.1)]",
+          "dark:from-amber-950/40 dark:via-transparent dark:to-orange-950/25 from-amber-50/60 to-transparent",
+        cardGlow: "hover:shadow-[0_25px_60px_rgba(245,158,11,0.35),0_0_30px_rgba(251,191,36,0.25)]",
         iconBox:
-          "border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)]",
-        titleHover: "group-hover:text-amber-300",
+          "border-amber-500/40 bg-gradient-to-br from-amber-500/25 to-orange-600/15 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)] group-hover:border-amber-300 group-hover:shadow-[0_0_35px_rgba(245,158,11,0.6)]",
+        titleHover: "group-hover:text-amber-400 dark:group-hover:text-amber-300",
         btnStyle:
-          "bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white shadow-md shadow-amber-500/25 border border-amber-400/30",
-        subColor: "text-amber-400/90",
+          "bg-gradient-to-r from-amber-600 via-orange-500 to-amber-500 hover:from-amber-500 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30 border border-amber-400/40",
+        subColor: "text-amber-400/90 group-hover:text-amber-300 transition-colors",
       },
     },
     {
@@ -362,19 +362,19 @@ export function ServicesGridSection() {
       stats: "3-15 bet • Word (.doc) eksport",
       cta: "Referat tayyorlash",
       theme: {
-        borderHover: "dark:group-hover:border-emerald-400/70 group-hover:border-emerald-400",
-        glowPrimary: "from-emerald-500/35 via-teal-600/15 to-transparent",
-        glowSecondary: "from-green-500/25 via-emerald-700/10 to-transparent",
+        borderHover: "dark:group-hover:border-emerald-400 group-hover:border-emerald-500",
+        glowPrimary: "from-emerald-500/40 via-teal-600/20 to-transparent",
+        glowSecondary: "from-green-500/30 via-emerald-700/15 to-transparent",
         topBeam: "via-emerald-400",
         overlayGrad:
-          "dark:from-emerald-950/30 dark:via-transparent dark:to-teal-950/20 from-emerald-50/60 to-transparent",
-        cardGlow: "hover:shadow-[0_15px_35px_rgba(16,185,129,0.25),0_0_15px_rgba(16,185,129,0.1)]",
+          "dark:from-emerald-950/40 dark:via-transparent dark:to-teal-950/25 from-emerald-50/60 to-transparent",
+        cardGlow: "hover:shadow-[0_25px_60px_rgba(16,185,129,0.35),0_0_30px_rgba(52,211,153,0.25)]",
         iconBox:
-          "border-emerald-500/40 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.35)]",
-        titleHover: "group-hover:text-emerald-300",
+          "border-emerald-500/40 bg-gradient-to-br from-emerald-500/25 to-teal-600/15 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.35)] group-hover:border-emerald-300 group-hover:shadow-[0_0_35px_rgba(16,185,129,0.6)]",
+        titleHover: "group-hover:text-emerald-400 dark:group-hover:text-emerald-300",
         btnStyle:
-          "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/30",
-        subColor: "text-emerald-400/90",
+          "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400/40",
+        subColor: "text-emerald-400/90 group-hover:text-emerald-300 transition-colors",
       },
     },
     {
@@ -392,19 +392,20 @@ export function ServicesGridSection() {
       stats: "1-4 masala • Jadval, Grafik & Excel • Word/PDF",
       cta: "Amaliy ish tayyorlash",
       theme: {
-        borderHover: "dark:group-hover:border-indigo-400/70 group-hover:border-indigo-400",
-        glowPrimary: "from-indigo-500/35 via-blue-600/15 to-transparent",
-        glowSecondary: "from-sky-500/25 via-indigo-700/10 to-transparent",
+        borderHover: "dark:group-hover:border-indigo-400 group-hover:border-indigo-500",
+        glowPrimary: "from-indigo-500/40 via-blue-600/20 to-transparent",
+        glowSecondary: "from-sky-500/30 via-indigo-700/15 to-transparent",
         topBeam: "via-indigo-400",
         overlayGrad:
-          "dark:from-indigo-950/30 dark:via-transparent dark:to-blue-950/20 from-indigo-50/60 to-transparent",
-        cardGlow: "hover:shadow-[0_15px_35px_rgba(99,102,241,0.25),0_0_15px_rgba(99,102,241,0.1)]",
+          "dark:from-indigo-950/40 dark:via-transparent dark:to-blue-950/25 from-indigo-50/60 to-transparent",
+        cardGlow:
+          "hover:shadow-[0_25px_60px_rgba(99,102,241,0.35),0_0_30px_rgba(129,140,248,0.25)]",
         iconBox:
-          "border-indigo-500/40 bg-gradient-to-br from-indigo-500/20 to-blue-500/10 text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.35)]",
-        titleHover: "group-hover:text-indigo-300",
+          "border-indigo-500/40 bg-gradient-to-br from-indigo-500/25 to-blue-600/15 text-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.35)] group-hover:border-indigo-300 group-hover:shadow-[0_0_35px_rgba(99,102,241,0.6)]",
+        titleHover: "group-hover:text-indigo-400 dark:group-hover:text-indigo-300",
         btnStyle:
-          "bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/30",
-        subColor: "text-indigo-400/90",
+          "bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-500 hover:from-indigo-500 hover:to-blue-400 text-white shadow-lg shadow-indigo-500/30 border border-indigo-400/40",
+        subColor: "text-indigo-400/90 group-hover:text-indigo-300 transition-colors",
       },
     },
   ];
@@ -695,20 +696,20 @@ export function ServicesGridSection() {
                 <div key={service.title} className="group relative flex">
                   <Link
                     href={service.href}
-                    className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${service.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${service.theme.cardGlow}`}
+                    className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${service.theme.borderHover} bg-white p-6 shadow-md transition-all duration-300 ease-out hover:-translate-y-2.5 hover:scale-[1.015] dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612] dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${service.theme.cardGlow}`}
                   >
-                    {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
+                    {/* Ambient 3D Neon Orbs & Top Light Beam (Expands brilliantly on hover) */}
                     <div
-                      className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${service.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                      className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowPrimary} opacity-25 transition-all duration-500 group-hover:scale-115 group-hover:opacity-90`}
                     />
                     <div
-                      className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${service.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                      className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${service.theme.glowSecondary} opacity-15 transition-all duration-500 group-hover:scale-115 group-hover:opacity-80`}
                     />
                     <div
-                      className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${service.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                      className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent ${service.theme.topBeam} to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_15px_rgba(56,189,248,0.9)]`}
                     />
                     <div
-                      className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                      className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${service.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                     />
 
                     {/* Card Content */}
@@ -844,20 +845,20 @@ export function ServicesGridSection() {
                 return (
                   <div key={module.id} className="group relative flex">
                     <div
-                      className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${module.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${module.theme.cardGlow}`}
+                      className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${module.theme.borderHover} bg-white p-6 shadow-md transition-all duration-300 ease-out hover:-translate-y-2.5 hover:scale-[1.015] sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612] dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${module.theme.cardGlow}`}
                     >
-                      {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
+                      {/* Ambient 3D Neon Orbs & Top Light Beam (Expands brilliantly on hover) */}
                       <div
-                        className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${module.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                        className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowPrimary} opacity-25 transition-all duration-500 group-hover:scale-115 group-hover:opacity-90`}
                       />
                       <div
-                        className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${module.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                        className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${module.theme.glowSecondary} opacity-15 transition-all duration-500 group-hover:scale-115 group-hover:opacity-80`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${module.theme.topBeam} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent ${module.theme.topBeam} to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_15px_rgba(56,189,248,0.9)]`}
                       />
                       <div
-                        className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+                        className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${module.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                       />
 
                       {/* Card Content */}
@@ -906,7 +907,7 @@ export function ServicesGridSection() {
                             {"secondaryHref" in module && module.secondaryHref && (
                               <Link
                                 href={module.secondaryHref}
-                                className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-sky-600 transition-all hover:bg-sky-500/20 sm:w-auto dark:text-sky-300"
+                                className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-sky-600 transition-all duration-200 hover:scale-105 hover:border-sky-400 hover:bg-sky-500/25 active:scale-95 sm:w-auto dark:text-sky-300"
                               >
                                 <FileImage className="h-3.5 w-3.5 shrink-0" />
                                 <span>{module.secondaryCta || "Rasm tashlash"}</span>
@@ -914,10 +915,10 @@ export function ServicesGridSection() {
                             )}
                             <Link
                               href={module.href}
-                              className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
+                              className={`inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 sm:w-auto ${module.theme.btnStyle}`}
                             >
                               <span>{module.cta}</span>
-                              <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" />
+                              <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1.5" />
                             </Link>
                           </div>
                         </div>
@@ -931,20 +932,20 @@ export function ServicesGridSection() {
             {/* PASTKI KENG KARTA (Prezentatsiya va Slaydlar) */}
             <div className="group relative flex">
               <div
-                className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${widePresentationModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-8 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${widePresentationModule.theme.cardGlow}`}
+                className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${widePresentationModule.theme.borderHover} bg-white p-6 shadow-md transition-all duration-300 ease-out hover:-translate-y-2.5 hover:scale-[1.01] sm:p-8 dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612] dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${widePresentationModule.theme.cardGlow}`}
               >
-                {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
+                {/* Ambient 3D Neon Orbs & Top Light Beam (Expands brilliantly on hover) */}
                 <div
-                  className={`pointer-events-none absolute -top-20 -right-20 hidden h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${widePresentationModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                  className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowPrimary} opacity-25 transition-all duration-500 group-hover:scale-115 group-hover:opacity-90`}
                 />
                 <div
-                  className={`pointer-events-none absolute -bottom-20 -left-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${widePresentationModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                  className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${widePresentationModule.theme.glowSecondary} opacity-15 transition-all duration-500 group-hover:scale-115 group-hover:opacity-80`}
                 />
                 <div
-                  className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent ${widePresentationModule.theme.topBeam} to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.9)]`}
                 />
                 <div
-                  className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                  className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${widePresentationModule.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                 />
 
                 {/* Card Content */}
@@ -1047,20 +1048,20 @@ export function ServicesGridSection() {
               {/* 1. TEST VA IMTIHONLARGA TAYYORGARLIK */}
               <div className="group relative col-span-1 flex">
                 <div
-                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${examModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${examModule.theme.cardGlow}`}
+                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${examModule.theme.borderHover} bg-white p-6 shadow-md transition-all duration-300 ease-out hover:-translate-y-2.5 hover:scale-[1.015] sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612] dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${examModule.theme.cardGlow}`}
                 >
-                  {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
+                  {/* Ambient 3D Neon Orbs & Top Light Beam (Expands brilliantly on hover) */}
                   <div
-                    className={`pointer-events-none absolute -top-16 -right-16 hidden h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${examModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    className={`pointer-events-none absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowPrimary} opacity-25 transition-all duration-500 group-hover:scale-115 group-hover:opacity-90`}
                   />
                   <div
-                    className={`pointer-events-none absolute -bottom-16 -left-16 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${examModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-75`}
+                    className={`pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${examModule.theme.glowSecondary} opacity-15 transition-all duration-500 group-hover:scale-115 group-hover:opacity-80`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${examModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent ${examModule.theme.topBeam} to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_15px_rgba(168,85,247,0.9)]`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${examModule.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                   />
 
                   {/* Card Content */}
@@ -1126,20 +1127,20 @@ export function ServicesGridSection() {
               {/* 2. MOCK TEST (CHET TILLARI) - 2 COLS */}
               <div className="group relative col-span-1 flex lg:col-span-2">
                 <div
-                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[24px] border border-slate-200/90 dark:border-slate-800/80 ${mockTestModule.theme.borderHover} bg-white p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98 dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${mockTestModule.theme.cardGlow}`}
+                  className={`relative flex h-full w-full flex-col justify-between overflow-hidden rounded-[26px] border border-slate-200/90 dark:border-slate-800/80 ${mockTestModule.theme.borderHover} bg-white p-6 shadow-md transition-all duration-300 ease-out hover:-translate-y-2.5 hover:scale-[1.01] sm:p-7 dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612] dark:shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${mockTestModule.theme.cardGlow}`}
                 >
-                  {/* Ambient 3D Neon Orbs & Top Light Beam (Desktop only to prevent mobile scroll overdraw) */}
+                  {/* Ambient 3D Neon Orbs & Top Light Beam (Expands brilliantly on hover) */}
                   <div
-                    className={`pointer-events-none absolute -top-20 -right-20 hidden h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${mockTestModule.theme.glowPrimary} opacity-35 transition-opacity duration-300 group-hover:opacity-85`}
+                    className={`pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowPrimary} opacity-25 transition-all duration-500 group-hover:scale-115 group-hover:opacity-90`}
                   />
                   <div
-                    className={`pointer-events-none absolute -bottom-20 -left-20 hidden h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] md:block ${mockTestModule.theme.glowSecondary} opacity-20 transition-opacity duration-300 group-hover:opacity-70`}
+                    className={`pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] ${mockTestModule.theme.glowSecondary} opacity-15 transition-all duration-500 group-hover:scale-115 group-hover:opacity-80`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-x-0 top-0 hidden h-[1.5px] bg-gradient-to-r from-transparent md:block ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent ${mockTestModule.theme.topBeam} to-transparent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-[0_0_15px_rgba(6,182,212,0.9)]`}
                   />
                   <div
-                    className={`pointer-events-none absolute inset-0 hidden bg-gradient-to-b md:block ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${mockTestModule.theme.overlayGrad} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                   />
 
                   {/* Card Content */}
@@ -1256,7 +1257,7 @@ export function ServicesGridSection() {
                     <Link
                       key={tool.id}
                       href={tool.href}
-                      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 ${tool.theme.borderHover} bg-white p-5 shadow-sm transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:shadow-md dark:bg-gradient-to-b dark:from-[#0a142f]/90 dark:via-[#060c1e]/95 dark:to-[#020612]/98`}
+                      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 ${tool.theme.borderHover} bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg dark:bg-gradient-to-b dark:from-[#0a142f]/95 dark:via-[#060c1e]/98 dark:to-[#020612]`}
                     >
                       <div>
                         <div className="mb-3 flex items-center justify-between">

@@ -263,21 +263,40 @@ export function Hero3DShowcase() {
       {/* 2. Main 3D Stage Container with Real Perspective */}
       <div className="relative mt-6 [perspective:1400px]">
         {/* Ambient Halo Behind Stage */}
-        <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-r from-cyan-500/15 via-sky-500/10 to-indigo-500/15 blur-3xl dark:from-cyan-500/20 dark:via-blue-600/15 dark:to-purple-600/15" />
+        <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-r from-cyan-500/15 via-sky-500/10 to-indigo-500/15 blur-3xl transition-all duration-500 group-hover:scale-105 group-hover:from-cyan-400/30 group-hover:via-sky-400/25 group-hover:to-blue-500/30 group-hover:opacity-100 dark:from-cyan-500/20 dark:via-blue-600/15 dark:to-purple-600/15" />
 
-        {/* 3D Tilted Interactive Card Platform */}
+        {/* 3D Floating & Tilted Interactive Card Platform (Continuous Sekin Tebranish + 3D Hover) */}
         <motion.div
           key={currentDoc.id}
-          initial={{ opacity: 0, scale: 0.96, rotateX: 12, rotateY: -6 }}
-          animate={{ opacity: 1, scale: 1, rotateX: 6, rotateY: -3 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-          className="group relative transform-gpu rounded-3xl border border-slate-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:[transform:rotateX(2deg)_rotateY(0deg)_translateY(-4px)] sm:p-7 dark:border-sky-500/30 dark:bg-[#060c22]/95 dark:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(14,165,233,0.15)]"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: [0, -10, 0],
+            rotateX: [6, 4, 6],
+            rotateY: [-3, -1, -3],
+          }}
+          transition={{
+            opacity: { duration: 0.4 },
+            scale: { duration: 0.4 },
+            y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+            rotateX: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+            rotateY: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+          }}
+          whileHover={{
+            y: -14,
+            rotateX: 1,
+            rotateY: 0,
+            scale: 1.015,
+            transition: { duration: 0.35, ease: "easeOut" },
+          }}
+          className="group relative transform-gpu cursor-default rounded-3xl border border-slate-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-cyan-400/80 hover:shadow-[0_30px_80px_rgba(6,182,212,0.35),0_0_50px_rgba(14,165,233,0.25)] sm:p-7 dark:border-sky-500/30 dark:bg-[#060c22]/95 dark:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(14,165,233,0.15)] dark:hover:border-cyan-400/90 dark:hover:shadow-[0_35px_90px_rgba(0,0,0,0.95),0_0_60px_rgba(6,182,212,0.35)]"
         >
           {/* Top Holographic Specular Light Line */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80 transition-all duration-300 group-hover:h-[3px] group-hover:opacity-100 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.9)]" />
 
           {/* Laser AI Scanner Sweep Bar (Simulating live generation) */}
-          <div className="pointer-events-none absolute inset-x-4 top-0 z-20 h-[3px] animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70 shadow-[0_0_15px_rgba(56,189,248,0.9)]" />
+          <div className="pointer-events-none absolute inset-x-4 top-0 z-20 h-[3px] animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70 shadow-[0_0_15px_rgba(56,189,248,0.9)] group-hover:opacity-100 group-hover:shadow-[0_0_25px_rgba(6,182,212,1)]" />
 
           {/* Floating 3D Depth Badges (Top Row) */}
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800/80">
@@ -331,19 +350,19 @@ export function Hero3DShowcase() {
                 {currentDoc.subject}
               </p>
 
-              {/* Document Main Heading Title */}
-              <h2 className="mt-4 text-lg leading-snug font-black tracking-tight text-slate-900 sm:text-2xl lg:text-3xl dark:text-white">
+              {/* Document Main Heading Title with Hover Glow */}
+              <h2 className="mt-4 text-lg leading-snug font-black tracking-tight text-slate-900 transition-colors duration-300 group-hover:text-cyan-600 sm:text-2xl lg:text-3xl dark:text-white dark:group-hover:text-cyan-300">
                 &ldquo;{currentDoc.title}&rdquo;
               </h2>
 
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-medium text-cyan-500 dark:text-cyan-300">
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-medium text-cyan-500 transition-all duration-300 group-hover:scale-105 group-hover:border-cyan-400 group-hover:bg-cyan-500/20 dark:text-cyan-300">
                 <Sparkles className="h-3 w-3" />
                 <span>{currentDoc.statsPill}</span>
               </div>
             </div>
 
-            {/* Document Table of Contents / Outline Preview */}
-            <div className="relative mt-6 space-y-2.5 rounded-xl border border-slate-200/80 bg-white/70 p-4 sm:p-5 dark:border-slate-800/80 dark:bg-[#070e24]/70">
+            {/* Document Table of Contents / Outline Preview with Interactive Hover Items */}
+            <div className="relative mt-6 space-y-2 rounded-xl border border-slate-200/80 bg-white/70 p-4 transition-colors duration-300 group-hover:border-cyan-500/40 sm:p-5 dark:border-slate-800/80 dark:bg-[#070e24]/70 dark:group-hover:border-cyan-500/30">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2 text-xs font-bold text-slate-500 uppercase dark:border-slate-800 dark:text-slate-400">
                 <span>Mundarija va Tuzilishi</span>
                 <span>Hajm</span>
@@ -352,7 +371,7 @@ export function Hero3DShowcase() {
               {currentDoc.sections.map((sec, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-3 text-xs text-slate-700 transition-colors hover:text-cyan-500 sm:text-sm dark:text-slate-300 dark:hover:text-cyan-300"
+                  className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 transition-all duration-200 hover:translate-x-1.5 hover:border hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-600 sm:text-sm dark:text-slate-300 dark:hover:text-cyan-300"
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
                     <span className="shrink-0 font-mono font-bold text-sky-500">{sec.num}</span>
