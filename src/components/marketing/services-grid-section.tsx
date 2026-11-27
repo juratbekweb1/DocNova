@@ -34,6 +34,7 @@ import {
   KeyRound,
   BookOpen,
   FileImage,
+  Coins,
 } from "lucide-react";
 
 export function ServicesGridSection() {
@@ -797,6 +798,43 @@ export function ServicesGridSection() {
                 <FileImage className="h-4 w-4 shrink-0" />
                 <span>Rasm tashlash</span>
               </Link>
+            </div>
+
+            {/* 3D TOKEN PROMO & SOTIB OLISH MODULI */}
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-indigo-500/10 p-5 shadow-lg backdrop-blur-xl dark:from-[#1c1400]/80 dark:via-[#091533]/85 dark:to-[#050f24]/90 dark:shadow-[0_10px_30px_rgba(245,158,11,0.15)]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+              <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 text-white shadow-md shadow-amber-500/30">
+                    <Coins className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-base font-bold text-slate-900 sm:text-lg dark:text-white">
+                        Akademik Ishlar Balansi & Tokenlar
+                      </h4>
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-extrabold text-emerald-400">
+                        3 TA BEPUL TOKEN
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-600 sm:text-sm dark:text-slate-300">
+                      1 ta to&apos;liq kurs ishi, referat, diplom BMI yoki amaliy ish = 1 ta token.
+                      Istalgan miqdorda (1 tadan 500 tagacha) xarid qiling!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
+                  <Link
+                    href="/academic/tokens"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 sm:w-auto sm:text-sm"
+                  >
+                    <Coins className="h-4 w-4" />
+                    <span>Token sotib olish</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* 4 TA YUQORI KARTA (Kurs ishi, Diplom ishi va BMI, Mustaqil ish va Referat, Amaliy ish) */}

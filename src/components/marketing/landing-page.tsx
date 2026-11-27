@@ -9,6 +9,7 @@ import { PricingSection } from "./pricing-section";
 import { HeroFeaturesBar } from "./hero-features-bar";
 import { ServicesGridSection } from "./services-grid-section";
 import { AcademicBackground3D } from "./academic-background-3d";
+import { Hero3DShowcase } from "./hero-3d-showcase";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -109,9 +110,9 @@ export function LandingPage() {
           className="w-full max-w-full overflow-x-clip border-none outline-none"
         >
           {/* =========================================================================
-              1. HERO SECTION (100% Focused, Centered, Clean Cosmic Atmosphere)
+              1. HERO SECTION (100% Focused, Centered, Clean Cosmic Atmosphere + 3D Showcase)
              ========================================================================= */}
-          <section className="relative mx-auto max-w-5xl px-4 pt-10 pb-12 text-center sm:px-6 sm:pt-16 sm:pb-16 lg:px-8 lg:pt-20 lg:pb-20">
+          <section className="relative mx-auto max-w-7xl px-4 pt-10 pb-12 text-center sm:px-6 sm:pt-16 sm:pb-16 lg:px-8 lg:pt-20 lg:pb-20">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
@@ -182,6 +183,9 @@ export function LandingPage() {
                   foydalanuvchilar tanlovi 💙
                 </div>
               </div>
+
+              {/* 3D Holographic Document Showcase */}
+              <Hero3DShowcase />
             </motion.div>
           </section>
 
