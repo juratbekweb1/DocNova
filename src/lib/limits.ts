@@ -15,10 +15,10 @@ export type FeatureType =
 export const PLAN_LIMITS = {
   FREE: {
     chat: 20,
-    document_generation: 3,
-    resume_analysis: 1,
-    rewrite: 5,
-    mock_test: 1,
+    document_generation: 5,
+    resume_analysis: 3,
+    rewrite: 10,
+    mock_test: 2,
     coursework: 3,
     presentation: 3,
     resume_export: "basic",

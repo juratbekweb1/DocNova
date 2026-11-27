@@ -261,67 +261,69 @@ export function StudentFeaturesSection() {
         </div>
       </div>
 
-      {/* Token Purchase Mini-Banner */}
+      {/* 3D Premium Token Purchase Banner */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.55, delay: 0.15 }}
-        className="mt-10 overflow-hidden rounded-[28px] border border-amber-500/25 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-900/80 p-6 sm:p-8"
+        className="mt-12 overflow-hidden rounded-[32px] border border-amber-500/35 bg-gradient-to-r from-amber-500/15 via-[#0b1329]/90 to-slate-950 p-6 shadow-[0_20px_50px_rgba(245,158,11,0.12)] backdrop-blur-xl sm:p-8"
       >
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           {/* Left: info */}
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-400">
-              <Coins className="h-6 w-6" />
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/30">
+              <Coins className="h-7 w-7 drop-shadow" />
             </div>
             <div>
-              <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
-                <Sparkles className="h-3 w-3" />
-                Akademik Tokenlar — 5 000 so&apos;mdan
+              <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-0.5 text-xs font-bold text-amber-300">
+                <Sparkles className="h-3 w-3 animate-spin text-amber-400" />
+                PayX &middot; Karta orqali xavfsiz to&apos;lov (Uzcard / Humo / Visa)
               </div>
-              <h3 className="text-base font-extrabold text-white sm:text-lg">
-                Token sotib oling va xohlagan ishni bajaring
+              <h3 className="text-lg font-black text-white sm:text-xl">
+                Akademik Tokenlar &middot; 1 ta ish = 1 ta token
               </h3>
-              <p className="mt-1 max-w-xl text-sm text-slate-300">
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-300 sm:text-sm">
                 Yangi foydalanuvchilarga{" "}
-                <strong className="text-amber-300">3 ta bepul token</strong> beriladi. Tugagandan
-                keyin yoki ko&apos;proq kerak bo&apos;lsa — o&apos;zingiz xohlagan miqdorda token
-                sotib oling.{" "}
-                <span className="font-medium text-emerald-400">
-                  5 ta — 20% tejamkor · 15 ta — 33% tejamkor
-                </span>
+                <strong className="text-amber-300">3 ta umrbod bepul token</strong> beriladi.
+                Istalgan vaqtda hohlagancha token sotib oling — muddatsiz va barcha akademik
+                bo&apos;limlarda o&apos;tadi.
               </p>
             </div>
           </div>
 
-          {/* Right: 3 quick-pick pills + CTA */}
+          {/* Right: quick-pick pills + CTA */}
           <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:flex-nowrap">
             {[
               { label: "1 ta", price: "5 000" },
-              { label: "5 ta", price: "20 000", badge: "−20%" },
-              { label: "15 ta", price: "50 000", badge: "−33%" },
+              { label: "3 ta", price: "12 000", badge: "−20%" },
+              { label: "5 ta", price: "19 000", badge: "−24%" },
+              { label: "10 ta", price: "35 000", badge: "−30%" },
             ].map((item) => (
               <Link
                 key={item.label}
                 href="/academic/tokens"
-                className="relative flex flex-col items-center rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-center transition hover:bg-amber-500/20"
+                className="group relative flex flex-col items-center rounded-2xl border border-amber-500/35 bg-slate-900/80 px-3.5 py-2.5 text-center transition hover:-translate-y-1 hover:border-amber-400 hover:bg-amber-500/15 hover:shadow-lg hover:shadow-amber-500/20"
               >
                 {item.badge && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-0.5 text-[10px] font-black text-white shadow">
                     {item.badge}
                   </span>
                 )}
-                <span className="text-sm font-bold text-amber-300">{item.label}</span>
-                <span className="text-xs text-slate-400">{item.price} so&apos;m</span>
+                <span className="text-xs font-bold text-amber-300 group-hover:text-amber-200">
+                  {item.label}
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  {item.price} so&apos;m
+                </span>
               </Link>
             ))}
             <Link
               href="/academic/tokens"
-              className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 transition hover:brightness-110"
+              className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 px-5 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/30 transition hover:scale-105 hover:brightness-110 active:scale-95"
             >
               <Coins className="h-4 w-4" />
-              Token sotib olish
+              Token olish
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
